@@ -1,0 +1,13 @@
+{
+  "name": "failing_test_pytest",
+  "kind": "test_output",
+  "input": "============================= test session starts ==============================\nplatform linux -- Python 3.11.4, pytest-8.0.0\ncollected 42 items\n\ntests/test_auth.py ........F.....                                        [ 33%]\ntests/test_db.py ............                                             [ 66%]\ntests/test_api.py ..............                                          [100%]\n\n=================================== FAILURES ===================================\n___________________ test_login_rejects_expired_token ___________________\n\n    def test_login_rejects_expired_token():\n        token = make_token(expired=True)\n>       assert login(token) == 401\nE       AssertionError: assert 200 == 401\nE        +  where 200 = login('eyJhbGciOi...expired')\n\ntests/test_auth.py:87: AssertionError\n=========================== 1 failed, 41 passed in 3.21s ===========================",
+  "expected_preserved": [
+    "test_login_rejects_expired_token",
+    "AssertionError",
+    "tests/test_auth.py:87",
+    "401",
+    "1 failed",
+    "expired"
+  ]
+}
