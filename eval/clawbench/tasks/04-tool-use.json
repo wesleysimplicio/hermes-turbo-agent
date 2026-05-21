@@ -1,0 +1,8 @@
+{
+  "id": "tool-use-001",
+  "kind": "tool_use",
+  "description": "Invoke a calculator tool with two integer arguments.",
+  "prompt": "Call tool calculator.add with a=2, b=3 and return the result as JSON.",
+  "scorer": "exact",
+  "expected": "{\"tool\":\"calculator.add\",\"args\":{\"a\":2,\"b\":3},\"result\":5}"
+}
