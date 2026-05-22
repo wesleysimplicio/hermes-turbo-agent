@@ -57,22 +57,42 @@ class BatchResult:
 
 
 def install_uvloop_if_available() -> str:
-    """Try to install uvloop as the default event-loop policy.
+    """Try to install the fastest available event-loop policy.
 
-    Returns ``"uvloop"`` on success, ``"asyncio"`` if uvloop is not
-    installed. Safe to call multiple times — uvloop's ``install()`` is
-    idempotent.
+    Cross-platform resolution:
+      1. ``uvloop`` (libuv binding for CPython) — best on Linux/macOS.
+      2. ``winloop`` (drop-in uvloop replacement for Windows).
+      3. ``asyncio`` fallback when neither is installed.
+
+    Returns the chosen policy name. Safe to call multiple times — both
+    libraries' ``install()`` calls are idempotent.
     """
 
+    # Try uvloop first (Linux/macOS).
     try:
         import uvloop  # type: ignore[import-not-found]
     except ImportError:
-        return "asyncio"
+        uvloop = None  # type: ignore[assignment]
+    if uvloop is not None:
+        try:
+            uvloop.install()
+            return "uvloop"
+        except Exception:  # noqa: BLE001
+            pass
+
+    # Fall back to winloop (Windows port of uvloop).
     try:
-        uvloop.install()
-    except Exception:  # noqa: BLE001
-        return "asyncio"
-    return "uvloop"
+        import winloop  # type: ignore[import-not-found]
+    except ImportError:
+        winloop = None  # type: ignore[assignment]
+    if winloop is not None:
+        try:
+            winloop.install()
+            return "winloop"
+        except Exception:  # noqa: BLE001
+            pass
+
+    return "asyncio"
 
 
 JobFactory = Callable[[int], Awaitable[object]]
@@ -141,5 +161,9 @@ async def run_batch_async(
         import uvloop  # type: ignore[import-not-found]  # noqa: F401
         result.metrics.policy = "uvloop"
     except ImportError:
-        result.metrics.policy = "asyncio"
+        try:
+            import winloop  # type: ignore[import-not-found]  # noqa: F401
+            result.metrics.policy = "winloop"
+        except ImportError:
+            result.metrics.policy = "asyncio"
     return result

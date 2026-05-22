@@ -343,6 +343,95 @@ def secrets_token_hex_8() -> str:
     return secrets.token_hex(8)
 
 
+def _bench_fast_json(iters: int) -> List[StageResult]:
+    """Proposta H: msgspec/orjson fast JSON serde."""
+
+    from agent.serde import dumps, has_msgspec, has_orjson, loads, typed_decoder
+
+    payload = {
+        "id": 42, "name": "machine learning agent",
+        "args": {"q": "rust pyo3", "limit": 50, "filters": [1, 2, 3]},
+        "tags": ["ai", "agents", "msgspec"],
+    }
+    blob = dumps(payload)
+
+    m_dumps, p_dumps = _time_us(lambda: dumps(payload), iters)
+    import json as _json
+    b_dumps, _ = _time_us(
+        lambda: _json.dumps(payload, separators=(",", ":")).encode("utf-8"),
+        iters,
+    )
+
+    m_loads, p_loads = _time_us(lambda: loads(blob), iters)
+    b_loads, _ = _time_us(lambda: _json.loads(blob.decode("utf-8")), iters)
+
+    backend = "msgspec" if has_msgspec() else ("orjson" if has_orjson() else "json")
+    return [
+        StageResult(
+            "fast_json", f"dumps (backend={backend})",
+            iters, m_dumps, p_dumps, baseline_us=b_dumps,
+            notes="fastest installed backend vs stdlib json.",
+        ),
+        StageResult(
+            "fast_json", f"loads (backend={backend})",
+            iters, m_loads, p_loads, baseline_us=b_loads,
+            notes="orjson/msgspec parses faster than stdlib.",
+        ),
+    ]
+
+
+def _bench_token_estimator(iters: int) -> List[StageResult]:
+    """Proposta I: tiktoken-backed token estimator."""
+
+    from agent.tokens import estimate, has_tiktoken, naive_estimate
+
+    sample = "The quick brown fox jumps over the lazy dog. " * 5
+
+    m, p = _time_us(lambda: estimate(sample, model="gpt-4o" if has_tiktoken() else None), iters)
+    b, _ = _time_us(lambda: naive_estimate(sample), iters)
+
+    backend = "tiktoken" if has_tiktoken() else "naive"
+    return [
+        StageResult(
+            "token_estimator", f"estimate (backend={backend})",
+            iters, m, p, baseline_us=b,
+            notes=(
+                "tiktoken exact BPE vs naive len // 4. Naive is faster on "
+                "raw latency but inaccurate; tiktoken is exact."
+            ),
+        ),
+    ]
+
+
+def _bench_http_pool(iters: int) -> List[StageResult]:
+    """Proposta J: HttpPool construction cost (does not hit the network)."""
+
+    from agent.net import HttpPool
+
+    def _construct() -> object:
+        return HttpPool(base_url="https://example.com")
+
+    def _baseline_construct() -> object:
+        class _NaivePool:
+            def __init__(self) -> None:
+                self.base_url = "https://example.com"
+                self.connections: dict = {}
+        return _NaivePool()
+
+    med, p95 = _time_us(_construct, iters)
+    base, _ = _time_us(_baseline_construct, iters)
+    return [
+        StageResult(
+            "http_pool", "HttpPool() construction",
+            iters, med, p95, baseline_us=base,
+            notes=(
+                "ctor cost only — real win is HTTP/2 multiplexing + "
+                "keep-alive, measurable only against a live endpoint."
+            ),
+        ),
+    ]
+
+
 def _bench_uvloop_runner(iters: int) -> List[StageResult]:
     """OpenClaw best-of: high-throughput async batching."""
 
@@ -443,6 +532,9 @@ def run_all(iters: int) -> List[StageResult]:
         results.extend(_bench_tracing(iters))
         results.extend(_bench_provider_chain(iters))
         results.extend(_bench_uvloop_runner(iters))
+        results.extend(_bench_fast_json(iters))
+        results.extend(_bench_token_estimator(iters))
+        results.extend(_bench_http_pool(iters))
     return results
 
 

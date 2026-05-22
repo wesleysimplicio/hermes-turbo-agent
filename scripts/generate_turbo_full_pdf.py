@@ -64,6 +64,9 @@ SEGMENT_PRETTY = {
     "tracing":         "7. OTel-Compatible Tracing (NEW — Proposta D)",
     "provider_chain":  "8. Provider Fallback Chain (NEW — Proposta E)",
     "uvloop_runner":   "9. uvloop High-Throughput Batch (NEW — Proposta F / OpenClaw)",
+    "fast_json":       "10. msgspec/orjson Fast JSON (NEW — Proposta H)",
+    "token_estimator": "11. tiktoken Token Estimator (NEW — Proposta I)",
+    "http_pool":       "12. HTTP/2 Connection Pool (NEW — Proposta J)",
 }
 
 SEGMENT_BLURB = {
@@ -108,8 +111,21 @@ SEGMENT_BLURB = {
         "outage as a session failure.",
     "uvloop_runner":
         "High-throughput async batch runner with auto-uvloop policy "
-        "install. Brings OpenClaw's libuv-driven concurrency advantage "
-        "into the Python fork — 64× over sequential await on 200 jobs.",
+        "install (or winloop on Windows). Brings OpenClaw's libuv-driven "
+        "concurrency advantage to the Python fork — 65× over sequential "
+        "await on 200 jobs.",
+    "fast_json":
+        "Fast JSON serde with msgspec → orjson → stdlib fallback chain. "
+        "Typed Struct decoder for ~3× sub-orjson latency. 9.7× faster "
+        "dumps and 2.7× faster loads vs stdlib json.",
+    "token_estimator":
+        "tiktoken-backed exact BPE token count with a naive `len // 4` "
+        "fallback. Closes the accuracy gap vs OpenClaw (which used V8 "
+        "string handling); the latency cost is the accuracy budget.",
+    "http_pool":
+        "httpx-based HTTP/2 connection pool with keep-alive. Real win "
+        "lives in production where multiple LLM/tool calls reuse the "
+        "same TCP+TLS tunnel; benchmark only measures ctor cost.",
 }
 
 
@@ -334,6 +350,7 @@ def _cover_page(report: dict, styles: Dict[str, ParagraphStyle]) -> List[Any]:
         "project_mapping", "routing", "receipts",
         "tool_replay", "cost_router", "async_dag", "tracing",
         "provider_chain", "uvloop_runner",
+        "fast_json", "token_estimator", "http_pool",
     ]:
         if key not in grouped:
             continue
@@ -454,6 +471,7 @@ def build(report: dict, output: Path) -> Path:
         "project_mapping", "routing", "receipts",
         "tool_replay", "cost_router", "async_dag", "tracing",
         "provider_chain", "uvloop_runner",
+        "fast_json", "token_estimator", "http_pool",
     ]:
         if key not in grouped:
             continue
