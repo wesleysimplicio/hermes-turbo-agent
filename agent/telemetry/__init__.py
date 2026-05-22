@@ -1,9 +1,34 @@
-"""Runtime performance telemetry for Hermes Turbo Agent.
+"""Telemetry helpers for Hermes Turbo Agent.
 
-Exposes lightweight stage timing primitives and a CLI dashboard reader.
-No external dependencies; safe for production hot paths.
+Two coexisting subsystems:
+
+- ``token_savings``: gain analytics for the token-economy budget (issues #81-#103).
+- ``stage_timer``: lightweight runtime performance instrumentation for hot
+  paths plus a CLI dashboard reader (issue #82).
+
+Both are no-dependency and safe for production hot paths.
 """
 
-from .stage_timer import StageTimer, record_stage, set_log_path, get_log_path
+from agent.telemetry.token_savings import (
+    TokenSavingRecord,
+    default_log_path,
+    iter_records,
+    record_token_saving,
+)
+from agent.telemetry.stage_timer import (
+    StageTimer,
+    record_stage,
+    set_log_path,
+    get_log_path,
+)
 
-__all__ = ["StageTimer", "record_stage", "set_log_path", "get_log_path"]
+__all__ = [
+    "TokenSavingRecord",
+    "default_log_path",
+    "iter_records",
+    "record_token_saving",
+    "StageTimer",
+    "record_stage",
+    "set_log_path",
+    "get_log_path",
+]

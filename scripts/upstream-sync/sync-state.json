@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "upstream_url": "https://github.com/NousResearch/hermes-agent.git",
+  "upstream_branch": "main",
+  "last_sync_sha": "",
+  "last_sync_branch": "",
+  "last_sync_at": "",
+  "last_run_id": "",
+  "notes": "Updated after each successful sync by scripts/upstream-sync/capture-upstream.sh and reapply.sh. Leave last_sync_sha empty on first run to fall back to the last 50 upstream commits."
+}
