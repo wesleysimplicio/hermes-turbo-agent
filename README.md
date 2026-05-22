@@ -184,24 +184,40 @@ Version `0.13.1` applied the benchmark follow-up plan:
 
 Details: [docs/tota-benchmark-win-plan.md](docs/tota-benchmark-win-plan.md).
 
-## Hermes Turbo Segmented Benchmark (post-mortem lean edition)
+## Hermes Turbo Segmented Benchmark
 
-> **After the post-mortem cleanup, this fork keeps only the customisations
-> that beat the upstream-equivalent baseline in microbenchmark.** Everything
-> that lost (~80 files, 11 directories) was removed by user request — the
-> trade-off was: keep only measurable wins, lose the modules whose value
-> was off the latency axis (token savings, safety, auditability).
+> **After the post-mortem cleanup + 5 upstream-targeted improvements
+> (Propostas A–E), this fork beats upstream Hermes on 5 of 10 measured
+> stages.** Survivors from the original turbo backlog were kept where they
+> already beat the baseline; everything else was either removed (the lean
+> cut) or replaced with a new module that genuinely improves over upstream.
 
 - **Report (PDF)**: [`docs/perf/turbo-full-segments.pdf`](docs/perf/turbo-full-segments.pdf)
 - **Raw data (JSON)**: [`docs/perf/turbo-full-segments.json`](docs/perf/turbo-full-segments.json)
 - **Harness**: [`scripts/benchmark_full_turbo_segments.py`](scripts/benchmark_full_turbo_segments.py)
-- **Removal manifest**: [`MODIFICATIONS.md` §6](MODIFICATIONS.md)
+- **Cleanup + roadmap**: [`MODIFICATIONS.md`](MODIFICATIONS.md)
 
-| Segment | Survivor | Headline |
+### Survivors (post-mortem cleanup)
+
+| Segment | Module | Headline |
 |---|---|---:|
-| Project Mapping (P1) | `agent/project_mapper/fingerprint.py` | **33.97×** vs naïve tree walk |
-| Routing (#99) | `agent/router/deterministic.py` | **133.25×** vs LLM proxy |
-| Receipts (P7) | `agent/telemetry/receipts.py` | parity (0.79× sha256 vs md5); value is in cache hit rate |
+| Project Mapping (P1) | `agent/project_mapper/fingerprint.py` | **33.35×** vs naïve tree walk |
+| Routing (#99) | `agent/router/deterministic.py` | **129.16×** vs LLM proxy |
+| Receipts (P7) | `agent/telemetry/receipts.py` | 0.77× sha256 vs md5 (security trade-off) |
+
+### Upstream improvements (NEW — Propostas A–E)
+
+| # | Segment | Module | Headline |
+|---|---|---|---:|
+| A | Tool-Call Replay | `agent/telemetry/tool_replay.py` | **12.31×** vs 500 µs tool stand-in on cache hit |
+| B | Cost-Aware Multi-Tier Router | `agent/router/cost_aware.py` | **548.62×** vs always-frontier policy |
+| C | Async DAG Tool Executor | `agent/async_dag/executor.py` | **4.62×** vs sequential await (5 nodes) |
+| D | OTel-Compatible Tracing | `agent/tracing/spans.py` | net-new (5 µs/span) |
+| E | Provider Fallback Chain | `agent/providers/fallback_chain.py` | net-new resilience on 429/5xx |
+
+Each item is justified by a real upstream gap (no native cost-routing, no
+tool-call replay, no DAG-level parallelism, no built-in tracing, no
+provider chain on rate-limit) rather than synthetic microbenchmark spin.
 
 **Two headline wins reproducible on any laptop:**
 

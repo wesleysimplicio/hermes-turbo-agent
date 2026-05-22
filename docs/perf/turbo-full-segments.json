@@ -3,48 +3,113 @@
   "stages": [
     {
       "segment": "project_mapping",
-      "name": "detect_fingerprint (manifest heuristics)",
+      "name": "detect_fingerprint",
       "iters": 500,
-      "median_us": 2810.63,
-      "p95_us": 3083.23,
-      "baseline_us": 95487.13,
-      "speedup_x": 33.97,
-      "notes": "reads top-level manifests; baseline walks the tree."
+      "median_us": 2803.17,
+      "p95_us": 3023.03,
+      "baseline_us": 93212.36,
+      "speedup_x": 33.25,
+      "notes": "manifest heuristics vs rglob tree walk."
     },
     {
       "segment": "routing",
       "name": "DeterministicRouter.route",
       "iters": 500,
       "median_us": 1.4,
-      "p95_us": 1.73,
-      "baseline_us": 187.08,
-      "speedup_x": 133.25,
-      "notes": "regex skips LLM round-trip entirely on trivial intents."
+      "p95_us": 1.51,
+      "baseline_us": 186.37,
+      "speedup_x": 133.31,
+      "notes": "regex match avoids an LLM round-trip."
     },
     {
       "segment": "receipts",
       "name": "content_hash (sha256)",
       "iters": 500,
       "median_us": 0.93,
-      "p95_us": 1.0,
+      "p95_us": 0.98,
       "baseline_us": 0.73,
       "speedup_x": 0.79,
-      "notes": "content-addressable; parity with md5."
+      "notes": "parity with md5; sha256 trades 20% for integrity."
     },
     {
       "segment": "receipts",
-      "name": "lookup_receipt (cache hit, disk)",
+      "name": "lookup_receipt (disk hit)",
       "iters": 100,
-      "median_us": 35.88,
-      "p95_us": 65.66,
+      "median_us": 35.51,
+      "p95_us": 61.14,
       "baseline_us": null,
       "speedup_x": null,
-      "notes": "net-new: short-circuits re-execution on hash hit."
+      "notes": "net-new: cache short-circuit on hash hit."
+    },
+    {
+      "segment": "tool_replay",
+      "name": "tool_call_key (sha256)",
+      "iters": 500,
+      "median_us": 3.94,
+      "p95_us": 6.41,
+      "baseline_us": 0.92,
+      "speedup_x": 0.23,
+      "notes": "canonical args + sha256."
+    },
+    {
+      "segment": "tool_replay",
+      "name": "replay_if_hit (warm)",
+      "iters": 100,
+      "median_us": 46.75,
+      "p95_us": 66.95,
+      "baseline_us": 586.57,
+      "speedup_x": 12.55,
+      "notes": "vs a 500 \u00b5s tool stand-in; hit_rate measured = 100%."
+    },
+    {
+      "segment": "cost_router",
+      "name": "CostAwareRouter.decide (10-call loop)",
+      "iters": 10,
+      "median_us": 18.93,
+      "p95_us": 43.22,
+      "baseline_us": 11076.75,
+      "speedup_x": 585.25,
+      "notes": "80%% deterministic + 20%% cheap vs always-frontier baseline."
+    },
+    {
+      "segment": "async_dag",
+      "name": "DagExecutor.run (5 independent nodes)",
+      "iters": 10,
+      "median_us": 5461.76,
+      "p95_us": 5957.33,
+      "baseline_us": 25929.86,
+      "speedup_x": 4.75,
+      "notes": "DAG-level parallelism vs sequential await."
+    },
+    {
+      "segment": "tracing",
+      "name": "span() context manager",
+      "iters": 500,
+      "median_us": 5.01,
+      "p95_us": 7.4,
+      "baseline_us": 0.18,
+      "speedup_x": 0.04,
+      "notes": "OTel-compatible span emission; baseline is raw time_ns."
+    },
+    {
+      "segment": "provider_chain",
+      "name": "ProviderChain.call (happy path)",
+      "iters": 500,
+      "median_us": 1.28,
+      "p95_us": 1.44,
+      "baseline_us": 0.21,
+      "speedup_x": 0.16,
+      "notes": "adds backoff + metrics on top of raw provider call."
     }
   ],
   "segments": [
+    "async_dag",
+    "cost_router",
     "project_mapping",
+    "provider_chain",
     "receipts",
-    "routing"
+    "routing",
+    "tool_replay",
+    "tracing"
   ]
 }
