@@ -22,9 +22,10 @@ def _make_lines(n: int) -> str:
 
 class TestTruncateOutput:
     def test_under_threshold_returns_unchanged(self, tmp_path: Path) -> None:
+        storage = tmp_path / "token-saver"
         text = _make_lines(10)
         result = truncate_output(
-            text, max_lines=50, head=10, tail=10, storage_dir=tmp_path
+            text, max_lines=50, head=10, tail=10, storage_dir=storage
         )
         assert result.truncated is False
         assert result.text == text
@@ -32,7 +33,7 @@ class TestTruncateOutput:
         assert result.full_path is None
         assert result.original_line_count == 10
         assert result.kept_line_count == 10
-        assert list(tmp_path.iterdir()) == []
+        assert not storage.exists()
 
     def test_exact_threshold_is_not_truncated(self, tmp_path: Path) -> None:
         text = _make_lines(50)
