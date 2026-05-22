@@ -103,6 +103,58 @@
         "scripts/perf_budgets.json",
         ".github/workflows/perf-budgets.yml"
       ]
+    },
+    {
+      "name": "fork-infrastructure-and-manifests",
+      "strategy": "merge",
+      "reason": "Pyproject, Dockerfile, lockfiles and Nix flakes receive upstream updates but must retain fork-specific dependency pins and version numbers.",
+      "paths": [
+        "pyproject.toml",
+        "package.json",
+        "package-lock.json",
+        "uv.lock",
+        "Dockerfile",
+        "docker-compose.yml",
+        "flake.nix",
+        "flake.lock",
+        "MANIFEST.in",
+        "constraints-termux.txt",
+        "cli-config.yaml.example"
+      ]
+    },
+    {
+      "name": "fork-owned-modules",
+      "strategy": "keep-turbo",
+      "reason": "Modules created in the fork or significantly diverged from upstream; upstream churn here should be reviewed before adoption.",
+      "paths": [
+        "rust_ext/**",
+        "acp_adapter/**",
+        "acp_registry/**",
+        "eval/**",
+        "optional-skills/**",
+        "tui_gateway/**",
+        "ui-tui/**",
+        "cron/**",
+        "docker/**",
+        "nix/**",
+        "packaging/**"
+      ]
+    },
+    {
+      "name": "release-notes-and-fork-policies",
+      "strategy": "keep-turbo",
+      "reason": "Release history, contributor guidance, and operational policy files are fork-owned and must survive upstream refresh.",
+      "paths": [
+        "RELEASE_v*.md",
+        "CLAUDE.md",
+        "PROGRESS.md",
+        "PRD.md",
+        "GOAL_RESULT.md",
+        "PERFORMANCE_ROADMAP.md",
+        "CONTRIBUTING.md",
+        "SECURITY.md",
+        "hermes-already-has-routines.md"
+      ]
     }
   ]
 }
