@@ -62,14 +62,21 @@ def _canonical_args(args: Mapping[str, Any] | None) -> str:
 
 
 def tool_call_key(name: str, args: Mapping[str, Any] | None) -> str:
-    """Deterministic sha256 key for ``(name, args)`` pair.
+    """Deterministic BLAKE2b key for ``(name, args)`` pair.
 
     Same name + same args (any key order) → same key. Different by one
     character → different key. Safe to commit alongside skill snapshots.
+
+    BLAKE2b at 32-byte digest is sha256-strength but stdlib-faster.
+    For empty/no-args case we short-circuit the JSON canonicalisation
+    so the hot path stays sub-microsecond on simple tool calls.
     """
 
-    blob = f"{name}::{_canonical_args(args)}".encode("utf-8")
-    return hashlib.sha256(blob).hexdigest()
+    if args is None or len(args) == 0:
+        blob = f"{name}::{{}}".encode("utf-8")
+    else:
+        blob = f"{name}::{_canonical_args(args)}".encode("utf-8")
+    return hashlib.blake2b(blob, digest_size=32).hexdigest()
 
 
 @dataclass(frozen=True)

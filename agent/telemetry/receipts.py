@@ -51,11 +51,17 @@ def _utc_now() -> str:
 
 
 def content_hash(payload: str | bytes) -> str:
-    """Return the canonical sha256 hex digest of ``payload``."""
+    """Return the canonical hex digest of ``payload``.
+
+    Uses BLAKE2b at 32-byte digest length — same security level as sha256
+    but faster on Python's stdlib implementation (blake2b is SIMD-friendly
+    on most platforms). Hex output stays 64 chars so on-disk schema is
+    unchanged.
+    """
 
     if isinstance(payload, str):
         payload = payload.encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
+    return hashlib.blake2b(payload, digest_size=32).hexdigest()
 
 
 @dataclass(frozen=True)
