@@ -1,0 +1,8 @@
+{
+  "id": "conditional-logic-001",
+  "kind": "conditional_logic",
+  "description": "Pick a branch based on input parity.",
+  "prompt": "If the input integer is even, reply 'EVEN'; otherwise reply 'ODD'. Input: 7.",
+  "scorer": "exact",
+  "expected": "ODD"
+}

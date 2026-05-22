@@ -1,0 +1,8 @@
+{
+  "id": "multi-step-plan-001",
+  "kind": "multi_step_plan",
+  "description": "Produce an ordered three-step plan for shipping a fix.",
+  "prompt": "Outline three sequential steps to ship a bugfix: write test, fix code, open PR.",
+  "scorer": "soft",
+  "expected": "step 1 write failing test step 2 fix code step 3 open pull request"
+}
