@@ -119,6 +119,11 @@ _PUBLIC_API_PATHS: frozenset = frozenset({
     "/api/dashboard/themes",
     "/api/dashboard/plugins",
     "/api/dashboard/plugins/rescan",
+    # Performance dashboard (issue #137) — read-only, bound to localhost,
+    # reads only ~/.hermes/telemetry/*.jsonl.
+    "/api/perf/stage_summary",
+    "/api/perf/token_savings",
+    "/api/perf/turbo_score",
 })
 
 
@@ -4382,6 +4387,14 @@ def _mount_plugin_api_routes():
 
 # Mount plugin API routes before the SPA catch-all.
 _mount_plugin_api_routes()
+
+# Performance dashboard (issue #137) — adds /perf and /api/perf/* endpoints
+# that surface the existing CLI telemetry as an interactive web view.
+try:
+    from hermes_cli.web_perf import register as _register_perf_routes
+    _register_perf_routes(app, session_token_getter=lambda: _SESSION_TOKEN)
+except Exception:  # pragma: no cover — telemetry view is best-effort
+    _log.debug("perf dashboard endpoints not mounted", exc_info=True)
 
 mount_spa(app)
 
