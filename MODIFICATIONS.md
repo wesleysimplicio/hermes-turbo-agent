@@ -388,6 +388,62 @@ companion):
 Total estimado: ~6 dias de trabalho focado, todos changes incrementais
 e reversíveis. Cada P abre uma issue independente e vira um PR pequeno.
 
+## 6. Post-mortem cleanup (turbo-3) — what was undone and why
+
+After the segmented benchmark (`docs/perf/turbo-full-segments.json`) the user
+opted for the **strict literal interpretation** of "undo everything that lost
+in the benchmark": every customisation whose measured turbo path was slower
+than the naïve upstream-equivalent baseline was removed from the fork.
+
+This is documented honestly because some removals throw away genuine
+out-of-band value (token savings, governance, safety, auditability) that the
+latency-only microbenchmark could not capture. They can be restored at any
+time from git history.
+
+### 6.1 Removed (80+ files across 11 directories)
+
+| Module | Removed because | Real value lost |
+|---|---|---|
+| `agent/adapters/` (#90) | 0.01–0.09× | Compact `gh issue|pr` + CI log summaries; cut JSON payload sent to LLM. |
+| `agent/contracts/` (#101, P4) | 0.12–0.16× | Output-token caps on `TerseAnswer`/`ToolCall`/`Diagnostic`. |
+| `agent/context/` (#83, #92) | 0.04–0.70× | LRU hot/cold working set, TF-IDF retrieval, token cache. |
+| `agent/governor/` (#93) | 0.06× | Budget warn-70%/stop-100% guardrail. |
+| `agent/registry/` (#98) | 0.07–0.50× | Lazy JSON schema loading. |
+| `agent/meta_contract.py` + `.hermes-meta.json` (P2) | 0.04× | Containment via `read_only_globs`. |
+| `agent/distributed/` (#97) | net-new but unused | Dataclass protocol without a host implementation. |
+| `agent/token_saver/` (#88) | 0.00× | Head/tail truncation + evidence handles for verbose shell. |
+| `agent/telemetry/{cache_usage,dashboard,gain_analytics,stage_timer,stage_timing,token_savings}.py` (#82, #91, #96) | 0.09–0.11× | Anthropic/OpenAI cache parsing, runtime dashboard, savings ledger. |
+| `hermes_cli/{prompt_sync,prompt_section}.py` (P3, P6) | 0.06–0.21× | Multi-IDE rule distribution, markdown section extractor for subagents. |
+| `scripts/build_hamt_catalog.py` + `.catalog/` (#102) | 0.09–0.85× | HAMT capability addressing per yool spec v0.2. Over-engineered for 11 entries. |
+
+Also removed: associated tests, docs (`docs/perf/{compact-adapters,concise-contracts,lazy-schemas,cache-boundary-tests,token-saver-proxy,token-savings-analytics,token-throughput}.md`, `docs/runtime/budget-governor.md`, `docs/integrations/rtk-bridge.md`, `docs/agents/yool-capability.md`, `docs/context/`, `docs/eval/compression-safety.md`, `.specs/architecture/ADR-001-yool-capability-addressing.md`).
+
+### 6.2 Kept
+
+- `agent/project_mapper/` — **33.97× win** (manifest heuristics vs tree walk).
+- `agent/router/deterministic.py` + `fallback.py` — **133.25× win** (skips LLM call on trivial intents).
+- `agent/telemetry/receipts.py` — parity with md5 (0.79× sha256 is the cost of integrity); kept for `lookup_receipt` cache short-circuiting.
+- `scripts/benchmark_*` + `scripts/generate_*_pdf.py` — benchmark + PDF generation harness.
+- `scripts/upstream-sync/` + `.github/workflows/upstream-sync-daily.yml` — daily upstream capture.
+- `.github/workflows/dod.yml` — trimmed to the surviving surface.
+- `.agents/AGENTS.yool.md` — trimmed to 8 yool blocks (was 13).
+
+### 6.3 Validation after cleanup
+
+- `pytest tests/agent/project_mapper tests/router tests/agent/telemetry/test_receipts.py` → **42 passed**.
+- `python scripts/benchmark_full_turbo_segments.py --iters 500` → 4 stages, 2 winners, 1 parity, 1 net-new.
+- Regenerated PDFs: `docs/perf/turbo-vs-baseline.pdf`, `docs/perf/turbo-full-segments.pdf`.
+
+### 6.4 Restoring
+
+Any removed module can be restored with::
+
+    git show <pre-cleanup-sha>:agent/contracts/concise_response.py > agent/contracts/concise_response.py
+
+The pre-cleanup sha is the tip of `claude/hermes-turbo-agent-improvements-uNNDX`
+before the cleanup commit (run `git log --oneline` and pick the commit before
+`feat(perf): full segmented benchmark`).
+
 ### 5.6 Entregue neste ciclo (turbo-2)
 
 - **P1** `agent/project_mapper/fingerprint.py` + 6 testes — detect_fingerprint

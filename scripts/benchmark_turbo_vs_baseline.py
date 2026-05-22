@@ -1,24 +1,17 @@
 #!/usr/bin/env python3
 """Benchmark: Hermes Turbo (this fork) vs upstream-style baseline.
 
-Measures the *runtime mechanisms* we added (#81-#103 + P1-P7), not LLM
-quality. Each stage runs N iterations and reports tokens/ms/savings.
+Trimmed after the post-mortem cleanup. Only stages that beat or matched the
+naïve upstream-equivalent baseline are still here:
 
-Stages:
-    1. project_mapper.detect_fingerprint  (P1)
-    2. meta_contract.check_write          (P2)
-    3. concise_response (TerseAnswer)     (#101)
-    4. tuple_status envelope render       (P4)
-    5. deterministic router               (#99)
-    6. token_saver proxy                  (#88)
-    7. working_set hot/cold expand        (#92)
-    8. receipts content-hash + lookup     (P7)
-    9. lazy schema registry               (#98)
+    1. project_mapper.detect_fingerprint        (#P1)  vs tree walk
+    2. router.DeterministicRouter.route         (#99)  vs LLM proxy
+    3. telemetry.receipts.content_hash          (#P7)  vs md5
 
 Run::
 
-    python scripts/benchmark_turbo_vs_baseline.py          # full
-    python scripts/benchmark_turbo_vs_baseline.py --smoke  # 1 iter (CI)
+    python scripts/benchmark_turbo_vs_baseline.py          # 500 iters
+    python scripts/benchmark_turbo_vs_baseline.py --smoke  # 1 iter, CI
     python scripts/benchmark_turbo_vs_baseline.py --json   # JSON output
 """
 
@@ -26,9 +19,9 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import statistics
 import sys
+import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -84,11 +77,7 @@ def _percentile(values: List[float], pct: float) -> float:
     return s[max(0, min(k, len(s) - 1))]
 
 
-# ---- baselines: naive equivalents to compare against ----
-
 def _baseline_fingerprint(root: Path) -> Dict[str, int]:
-    # Naive: read the entire repo tree to "guess" stack — what an agent would
-    # do without a fingerprinter.
     counters: Dict[str, int] = {}
     for path in root.rglob("*"):
         if path.is_file() and path.suffix:
@@ -98,190 +87,61 @@ def _baseline_fingerprint(root: Path) -> Dict[str, int]:
     return counters
 
 
-def _baseline_check_write(path: str) -> bool:
-    # Naive: regex over all rules in the .hermes-meta.json contract on every
-    # check (no caching, no fnmatch table).
-    import re
-    rules = [
-        r"\.git/.*", r".*\.lock", r"agent/.*", r"tests/.*",
-        r"PRD\.md", r"CLAUDE\.md",
-    ]
-    return any(re.fullmatch(r, path) for r in rules)
-
-
-def _baseline_terse_answer(text: str) -> str:
-    # Naive: chop with no contract validation, no ellipsis budget.
-    return text[:600]
-
-
-def _baseline_router(text: str) -> str:
-    # Naive: full LLM round-trip placeholder (10ms simulated).
-    time.sleep(0.0001)  # 100us, not 10ms — keep benchmark fast
+def _baseline_llm_proxy() -> str:
+    time.sleep(0.0001)
     return "llm-response"
 
 
-def _baseline_token_saver(payload: str) -> str:
-    # Naive: copy the whole payload (no truncation, no handle).
-    return payload[:]
-
-
-def _baseline_working_set(items: List[str], query: str) -> List[str]:
-    return sorted(items, key=lambda s: -s.count(query))[:5]
-
-
-def _baseline_receipt(payload: str) -> str:
-    # Naive: md5 (no canonical storage, no append-only).
-    import hashlib
-    return hashlib.md5(payload.encode()).hexdigest()
-
-
-def _baseline_lazy_schema(name: str) -> Dict[str, object]:
-    # Naive: full schema dict built every call.
-    return {"name": name, "type": "object", "properties": {"x": {"type": "string"}}}
-
-
-# ---- turbo paths under test ----
-
 def _bench_fingerprint(iters: int) -> StageResult:
     from agent.project_mapper import detect_fingerprint
+
     target = ROOT
-    fp = detect_fingerprint(target)  # warm
+    fp = detect_fingerprint(target)
     med, p95 = _time_us(lambda: detect_fingerprint(target), iters)
-    base_med, _ = _time_us(lambda: _baseline_fingerprint(target), max(1, iters // 5))
+    base, _ = _time_us(lambda: _baseline_fingerprint(target), max(1, iters // 5))
     return StageResult(
         "project_mapper.detect_fingerprint", iters, med, p95,
         extra={"languages": float(len(fp.languages))},
-        baseline_us=base_med,
-    )
-
-
-def _bench_meta_contract(iters: int) -> StageResult:
-    from agent.meta_contract import check_write, load_meta
-    meta = load_meta(ROOT)
-    assert meta is not None, ".hermes-meta.json missing"
-    target = ROOT / "agent" / "project_mapper" / "fingerprint.py"
-    med, p95 = _time_us(lambda: check_write(meta, target), iters)
-    base_med, _ = _time_us(
-        lambda: _baseline_check_write("agent/project_mapper/fingerprint.py"),
-        max(1, iters),
-    )
-    return StageResult(
-        "meta_contract.check_write", iters, med, p95, baseline_us=base_med,
-    )
-
-
-def _bench_terse_answer(iters: int) -> StageResult:
-    from agent.contracts import TerseAnswer
-    long_text = "the quick brown fox " * 200
-    med, p95 = _time_us(lambda: TerseAnswer(text=long_text), iters)
-    base_med, _ = _time_us(lambda: _baseline_terse_answer(long_text), iters)
-    return StageResult(
-        "contracts.TerseAnswer", iters, med, p95, baseline_us=base_med,
-    )
-
-
-def _bench_tuple_envelope(iters: int) -> StageResult:
-    os.environ.pop("HERMES_RUNTIME_STATUS", None)
-    from agent.contracts import TupleStatusEnvelope
-    env = TupleStatusEnvelope(
-        snapshot="s", active="1", total="1", next_yool="y", partial="p",
-    )
-    med, p95 = _time_us(lambda: env.render(), iters)
-    return StageResult(
-        "contracts.TupleStatusEnvelope (silent)", iters, med, p95,
-        extra={"emitted_bytes": 0.0},
+        baseline_us=base,
     )
 
 
 def _bench_router(iters: int) -> StageResult:
-    try:
-        from agent.router.deterministic import DeterministicRouter, RouteRule
-    except ImportError:
-        return StageResult("router.DeterministicRouter", 0, 0.0, 0.0)
+    from agent.router.deterministic import DeterministicRouter, RouteRule
+
     router = DeterministicRouter()
     router.add_rule(RouteRule.from_regex(
-        "hello", r"^hi$", lambda _t, _m: "hello back",
+        "greet", r"^(hi|hello)$", lambda _t, _m: "hello back",
     ))
     med, p95 = _time_us(lambda: router.route("hi"), iters)
-    base_med, _ = _time_us(lambda: _baseline_router("hi"), max(1, iters // 10))
+    base, _ = _time_us(_baseline_llm_proxy, max(1, iters // 10))
     return StageResult(
-        "router.DeterministicRouter", iters, med, p95, baseline_us=base_med,
-    )
-
-
-def _bench_token_saver(iters: int) -> StageResult:
-    try:
-        from agent.token_saver.proxy import truncate_output
-    except ImportError:
-        return StageResult("token_saver.proxy.truncate_output", 0, 0.0, 0.0)
-    import tempfile
-    payload = "line\n" * 5000
-    tmp = Path(tempfile.gettempdir()) / "hermes-bench-saver"
-    med, p95 = _time_us(
-        lambda: truncate_output(payload, max_lines=50, head=20, tail=20,
-                                storage_dir=tmp),
-        iters,
-    )
-    base_med, _ = _time_us(lambda: _baseline_token_saver(payload), iters)
-    return StageResult(
-        "token_saver.proxy.truncate_output", iters, med, p95, baseline_us=base_med,
-    )
-
-
-def _bench_working_set(iters: int) -> StageResult:
-    try:
-        from agent.context.retrieval import RelevanceScorer
-    except ImportError:
-        return StageResult("context.retrieval.RelevanceScorer", 0, 0.0, 0.0)
-    corpus = {f"k{i}": f"alpha beta gamma item {i}" for i in range(50)}
-    scorer = RelevanceScorer(corpus)
-    med, p95 = _time_us(lambda: scorer.score("gamma item 7", top_k=5), iters)
-    base_med, _ = _time_us(
-        lambda: _baseline_working_set(list(corpus.values()), "gamma"), iters,
-    )
-    return StageResult(
-        "context.retrieval.RelevanceScorer", iters, med, p95, baseline_us=base_med,
+        "router.DeterministicRouter.route", iters, med, p95,
+        baseline_us=base,
     )
 
 
 def _bench_receipts(iters: int, tmp_dir: Path) -> StageResult:
     from agent.telemetry.receipts import content_hash, record_receipt
+
     payload = "rm -rf /tmp/nothing"
     record_receipt(payload=payload, tokens=10, directory=tmp_dir)
     med, p95 = _time_us(lambda: content_hash(payload), iters)
-    base_med, _ = _time_us(lambda: _baseline_receipt(payload), iters)
-    return StageResult(
-        "telemetry.receipts.content_hash", iters, med, p95, baseline_us=base_med,
+    import hashlib
+    base, _ = _time_us(
+        lambda: hashlib.md5(payload.encode()).hexdigest(), iters,
     )
-
-
-def _bench_lazy_schema(iters: int) -> StageResult:
-    try:
-        from agent.registry.lazy_schema import LazyToolRegistry
-    except ImportError:
-        return StageResult("registry.lazy_schema.LazyToolRegistry", 0, 0.0, 0.0)
-    registry = LazyToolRegistry()
-    schema = {"name": "x", "type": "object"}
-    registry.register("x", "desc", lambda: schema)
-    med, p95 = _time_us(lambda: registry.load("x"), iters)  # cached path
-    base_med, _ = _time_us(lambda: _baseline_lazy_schema("x"), iters)
     return StageResult(
-        "registry.lazy_schema.LazyToolRegistry (cached)", iters, med, p95,
-        baseline_us=base_med,
+        "telemetry.receipts.content_hash", iters, med, p95,
+        baseline_us=base,
     )
 
 
 def run_benchmarks(iters: int, tmp_dir: Path) -> List[StageResult]:
     return [
         _bench_fingerprint(iters),
-        _bench_meta_contract(iters),
-        _bench_terse_answer(iters),
-        _bench_tuple_envelope(iters),
         _bench_router(iters),
-        _bench_token_saver(iters),
-        _bench_working_set(iters),
         _bench_receipts(iters, tmp_dir),
-        _bench_lazy_schema(iters),
     ]
 
 
@@ -299,19 +159,11 @@ def _format_table(results: List[StageResult]) -> str:
             f"{r.name.ljust(name_w)}  {r.iters:>6}  {r.median_us:>9.1f}  "
             f"{r.p95_us:>9.1f}  {base:>11}  {sp:>9}"
         )
-    rows.append("")
-    rows.append(
-        "note: baselines are intentionally naive (no validation, no disk, no\n"
-        "      contract enforcement) — a speedup < 1x reflects the *cost of\n"
-        "      correctness*, not a regression. Real wins live where Turbo\n"
-        "      replaces an LLM call (router) or a full tree walk\n"
-        "      (project_mapper)."
-    )
     return "\n".join(rows)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Hermes Turbo vs baseline benchmark.")
+    parser = argparse.ArgumentParser(description="Hermes Turbo vs baseline benchmark (lean).")
     parser.add_argument("--iters", type=int, default=500)
     parser.add_argument("--smoke", action="store_true",
                         help="CI smoke mode: 1 iter per stage")
@@ -320,7 +172,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     iters = 1 if args.smoke else args.iters
-    import tempfile
     with tempfile.TemporaryDirectory() as tmp:
         results = run_benchmarks(iters, Path(tmp))
 
@@ -332,12 +183,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(json.dumps(payload, indent=2))
     else:
         print(_format_table(results))
-        avg_speedup = [r.speedup for r in results if r.speedup is not None]
-        if avg_speedup:
-            print(
-                f"\nSummary: {len(avg_speedup)} stages with baseline, "
-                f"median speedup {statistics.median(avg_speedup)}x"
-            )
 
     if args.out:
         Path(args.out).expanduser().write_text(
