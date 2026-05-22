@@ -373,15 +373,57 @@ companion):
 ### 5.4 Ordem sugerida de execução
 
 1. **P1 + P2** juntos (1.5 dia) — fingerprint + safety meta dão a
-   base "project-aware" para tudo abaixo.
-2. **P4 + P6** (1 dia) — economia de tokens imediata, baixo risco.
-3. **P3** (1 dia) — habilita Hermes como prompt-runtime portável.
-4. **P5** (0.5 dia) — fecha o loop de qualidade via CI.
-5. **P7** (1 dia) — convergência de schema de auditoria.
-6. **P9 + P8** (1 dia) — paridade incremental.
+   base "project-aware" para tudo abaixo. — **DONE** (commit batch turbo-2).
+2. **P4 + P6** (1 dia) — economia de tokens imediata, baixo risco. —
+   **DONE** (commit batch turbo-2).
+3. **P3** (1 dia) — habilita Hermes como prompt-runtime portável. —
+   **DONE** (commit batch turbo-2).
+4. **P5** (0.5 dia) — fecha o loop de qualidade via CI. — **DONE**
+   (`.github/workflows/dod.yml`).
+5. **P7** (1 dia) — convergência de schema de auditoria. — **DONE**
+   (`agent/telemetry/receipts.py`).
+6. **P9 + P8** (1 dia) — paridade incremental. — *pendente, baixa
+   prioridade*.
 
 Total estimado: ~6 dias de trabalho focado, todos changes incrementais
 e reversíveis. Cada P abre uma issue independente e vira um PR pequeno.
+
+### 5.6 Entregue neste ciclo (turbo-2)
+
+- **P1** `agent/project_mapper/fingerprint.py` + 6 testes — detect_fingerprint
+  por manifesto (Node, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Elixir,
+  Dart, Swift, Deno) + workspaces (npm/pnpm/Cargo) + entrypoints.
+- **P2** `.hermes-meta.json` + `agent/meta_contract.py` + 9 testes —
+  containment declarativo: `read_only_globs` (block), `init_must_ask` (ask),
+  `init_must_merge` (warn), `managed_paths` (allow).
+- **P3** `hermes_cli/prompt_sync.py` + `prompts/runtime/hermes-turbo.md`
+  + 8 testes — bloco delimitado idempotente injetado em 8 targets
+  (claude, agents, copilot, codex, cursor, cline, aider, hermes).
+- **P4** `TupleStatusEnvelope` em `agent/contracts/concise_response.py`
+  + 6 testes — default silent + opt-in verbose via 6 envs.
+- **P5** `.github/workflows/dod.yml` — gate único: ruff + unit suite
+  (turbo + legado) + compression-safety + clawbench + HAMT + benchmark
+  smoke.
+- **P6** `hermes_cli/prompt_section.py` + 6 testes — extrai seção
+  markdown por header, LRU 64 entradas.
+- **P7** `agent/telemetry/receipts.py` + 5 testes — receipts
+  append-only `.receipts/<sha>.json` por content-hash sha256.
+- **Benchmark** `scripts/benchmark_turbo_vs_baseline.py` +
+  `docs/perf/turbo-vs-baseline.md` + `docs/perf/turbo-vs-baseline-baseline.json` —
+  9 estágios, p50/p95, speedup vs baseline naïve.
+  - Wins reais: `project_mapper` **36.65x**, `router determinístico`
+    **157.30x** (vs proxy de 100 µs; vs LLM real, ordens de magnitude
+    maior).
+- **Upstream daily sync** `.github/workflows/upstream-sync-daily.yml` —
+  cron 06:00 UTC capturando NousResearch/hermes-agent, reaplicando
+  patches sobre turbo, regerando benchmarks, abrindo PR draft
+  rotulado `upstream-sync`.
+
+Validação (turbo-2):
+- 40 testes novos passando (project_mapper 6, meta_contract 9, tuple
+  envelope 6, receipts 5, prompt_sync 8, prompt_section 6).
+- 170 testes legados continuam verdes (era 159 — 11 incrementais).
+- Compression-safety 5/5; ClawBench 5/5; HAMT `--print-list` OK.
 
 ### 5.5 Critério de "feito" para esta evolução
 

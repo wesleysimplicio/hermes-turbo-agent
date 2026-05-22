@@ -1,0 +1,73 @@
+name: Definition of Done
+
+# Single gate aggregating ruff + targeted unit tests + compression-safety +
+# clawbench. P5 / inspired by llm-project-mapper. Non-blocking on legacy
+# checks that already have dedicated workflows (tests.yml, lint.yml).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dod-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dod:
+    name: dod (turbo gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Lint (ruff, turbo surface only)
+        run: |
+          uv tool run ruff check \
+            agent/project_mapper \
+            agent/meta_contract.py \
+            agent/contracts \
+            agent/telemetry/receipts.py \
+            hermes_cli/prompt_sync.py \
+            hermes_cli/prompt_section.py \
+            tests/agent/project_mapper \
+            tests/agent/test_meta_contract.py \
+            tests/contracts/test_tuple_status_envelope.py \
+            tests/agent/telemetry/test_receipts.py \
+            tests/hermes_cli/test_prompt_sync.py \
+            tests/hermes_cli/test_prompt_section.py \
+            scripts/benchmark_turbo_vs_baseline.py
+
+      - name: Unit tests (turbo surface, stdlib-only modules)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          uv run --with pytest python -m pytest -o addopts="" \
+            tests/agent/project_mapper \
+            tests/agent/test_meta_contract.py \
+            tests/contracts/test_tuple_status_envelope.py \
+            tests/agent/telemetry/test_receipts.py \
+            tests/hermes_cli/test_prompt_sync.py \
+            tests/hermes_cli/test_prompt_section.py
+
+      - name: HAMT catalog dry build
+        run: |
+          uv run python scripts/build_hamt_catalog.py \
+            --agents .agents/AGENTS.yool.md --print-list
+
+      - name: Turbo vs baseline benchmark (smoke)
+        run: |
+          uv run python scripts/benchmark_turbo_vs_baseline.py --smoke

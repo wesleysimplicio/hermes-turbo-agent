@@ -9,6 +9,7 @@ Contracts:
     * TerseAnswer  - short prose reply with optional citations.
     * ToolCall     - request to invoke a tool with named arguments.
     * Diagnostic   - structured error/warning/info signal.
+    * TupleStatusEnvelope - opt-in bracketed runtime status (P4).
 
 The intent is "narrow, predictable, cheap" - not a general DTO layer.
 Validators run at construction time so contracts cannot escape the
@@ -17,8 +18,9 @@ process with over-budget strings.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Dict, List, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
 ELLIPSIS = "..."
 
@@ -138,3 +140,97 @@ class Diagnostic:
 
     def to_dict(self) -> Dict[str, Any]:
         return {"level": self.level, "code": self.code, "message": self.message}
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
+@dataclass
+class TupleStatusEnvelope:
+    """Opt-in bracketed runtime status (P4 / inspired by simplicio-prompt).
+
+    Default = silent (zero output tokens). When ``HERMES_RUNTIME_STATUS=true``,
+    ``render()`` emits the bracketed envelope. Per-field toggles override the
+    master switch when explicitly set.
+
+    Envs:
+        HERMES_RUNTIME_STATUS              master switch (default: false)
+        HERMES_RUNTIME_STATUS_SNAPSHOT     snapshot line  (default: master)
+        HERMES_RUNTIME_STATUS_ACTIVE       active line    (default: master)
+        HERMES_RUNTIME_STATUS_TOTAL        total line     (default: master)
+        HERMES_RUNTIME_STATUS_NEXT         next-yool line (default: master)
+        HERMES_RUNTIME_STATUS_PARTIAL      partial line   (default: master)
+    """
+
+    MAX_FIELD_CHARS: ClassVar[int] = 240
+
+    snapshot: str = ""
+    active: str = ""
+    total: str = ""
+    next_yool: str = ""
+    partial: str = ""
+
+    def __post_init__(self) -> None:
+        self.snapshot = enforce_budget(
+            _coerce_str("snapshot", self.snapshot), self.MAX_FIELD_CHARS
+        )
+        self.active = enforce_budget(
+            _coerce_str("active", self.active), self.MAX_FIELD_CHARS
+        )
+        self.total = enforce_budget(
+            _coerce_str("total", self.total), self.MAX_FIELD_CHARS
+        )
+        self.next_yool = enforce_budget(
+            _coerce_str("next_yool", self.next_yool), self.MAX_FIELD_CHARS
+        )
+        self.partial = enforce_budget(
+            _coerce_str("partial", self.partial), self.MAX_FIELD_CHARS
+        )
+
+    @staticmethod
+    def is_enabled() -> bool:
+        return _env_flag("HERMES_RUNTIME_STATUS", False)
+
+    def render(self) -> Optional[str]:
+        """Return the bracketed text, or ``None`` if the envelope is silent.
+
+        Returns ``None`` (= emit no characters) when every per-field toggle
+        evaluates to false. This is the design goal: zero output tokens by
+        default.
+        """
+
+        master = self.is_enabled()
+        toggles = {
+            "snapshot": _env_flag("HERMES_RUNTIME_STATUS_SNAPSHOT", master),
+            "active": _env_flag("HERMES_RUNTIME_STATUS_ACTIVE", master),
+            "total": _env_flag("HERMES_RUNTIME_STATUS_TOTAL", master),
+            "next": _env_flag("HERMES_RUNTIME_STATUS_NEXT", master),
+            "partial": _env_flag("HERMES_RUNTIME_STATUS_PARTIAL", master),
+        }
+        if not any(toggles.values()):
+            return None
+        lines: List[str] = []
+        if toggles["snapshot"]:
+            lines.append(f"[Tuple Space Snapshot] {self.snapshot}".rstrip())
+        if toggles["active"]:
+            lines.append(f"[Active Agents/Subagents] {self.active}".rstrip())
+        if toggles["total"]:
+            lines.append(f"[Total Agents/Subagents] {self.total}".rstrip())
+        if toggles["next"]:
+            lines.append(f"[Próximo Yool a executar] {self.next_yool}".rstrip())
+        if toggles["partial"]:
+            lines.append(f"[Resultado parcial] {self.partial}".rstrip())
+        return "\n".join(lines)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "snapshot": self.snapshot,
+            "active": self.active,
+            "total": self.total,
+            "next_yool": self.next_yool,
+            "partial": self.partial,
+        }
