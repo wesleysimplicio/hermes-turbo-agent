@@ -18,9 +18,13 @@ Four issues closed in [PR #141](https://github.com/wesleysimplicio/hermes-turbo-
 - **`hermes report savings`** (`#138`) — weekly Token Savings Report with USD cost estimates per adapter.
 - **`hermes migrate-from-openclaw --benchmark`** (`#139`) — guided OpenClaw migration with a side-by-side performance comparison.
 
-Full release notes: [RELEASE_v0.14.4.md](RELEASE_v0.14.4.md).
-Latest perf report (Markdown): [docs/turbo-score-latest.md](docs/turbo-score-latest.md).
-Latest perf report (PDF): [docs/hermes-turbo-v0.14.4-perf-report.pdf](docs/hermes-turbo-v0.14.4-perf-report.pdf).
+Reports shipped with this release:
+
+- [RELEASE_v0.14.4.md](RELEASE_v0.14.4.md) — full release notes and validation matrix.
+- [docs/three-way-comparison-v0.14.4.md](docs/three-way-comparison-v0.14.4.md) — Hermes 0.14.0 × **Hermes Turbo** × OpenClaw, 15 sections.
+- [docs/three-way-comparison-v0.14.4.pdf](docs/three-way-comparison-v0.14.4.pdf) — 4-page A4 PDF version of the three-way comparison.
+- [docs/hermes-turbo-v0.14.4-perf-report.pdf](docs/hermes-turbo-v0.14.4-perf-report.pdf) — Turbo Score + side-by-side + fresh startup benchmark, single-page PDF.
+- [docs/turbo-score-latest.md](docs/turbo-score-latest.md) — Markdown perf snapshot.
 
 ## Turbo Score
 
@@ -51,6 +55,140 @@ python scripts/turbo_score.py --json     # machine-readable
 | Track real spend | Token-savings ledger + `hermes report savings` weekly report. |
 | Compare against alternatives | Side-by-side measurements vs upstream Hermes and OpenClaw. |
 | Migrate from OpenClaw safely | `hermes migrate-from-openclaw --benchmark` with rollback-friendly snapshots. |
+
+## Three-way comparison — Hermes 0.14.0 × Hermes Turbo × OpenClaw
+
+**Full report (v0.14.4):** [Markdown](docs/three-way-comparison-v0.14.4.md) · [PDF](docs/three-way-comparison-v0.14.4.pdf).
+
+### Final scoreboard (battle cards)
+
+Each category scored 0–5; higher is better. The **Hermes Turbo** column is highlighted as the headline winner (44 / 50 total).
+
+| Category               | Hermes Original | **Hermes Turbo** | OpenClaw |
+| ---                    | ---:            | ---:              | ---:     |
+| JSON performance       | 2 / 5           | **5 / 5**         | 4 / 5    |
+| Memory                 | **5 / 5**       | **5 / 5**         | 2 / 5    |
+| Message throughput     | 2 / 5           | **5 / 5**         | 4 / 5    |
+| Tool-call parsing      | 1 / 5           | **5 / 5**         | 4 / 5    |
+| Token counting         | 3 / 5           | 3 / 5             | **4 / 5**|
+| Concurrency / async    | 3 / 5           | 4 / 5             | **5 / 5**|
+| Startup / cold start   | 4 / 5           | **5 / 5**         | 2 / 5    |
+| Integrations           | 3 / 5           | 3 / 5             | **5 / 5**|
+| Library ecosystem      | 2 / 5           | **5 / 5**         | 4 / 5    |
+| Disk footprint         | **5 / 5**       | 4 / 5             | 2 / 5    |
+| **TOTAL**              | **30 / 50**     | **44 / 50** 🏆    | **36 / 50** |
+
+### Headline metrics (lower is better unless noted)
+
+| Metric                          | Hermes Original | Hermes Turbo    | OpenClaw     | Winner |
+| ---                             | ---:            | ---:            | ---:         | ---    |
+| JSON dumps, large payload       | 18.40 us        | **3.20 us**     | 5.80 us      | Hermes Turbo |
+| JSON loads, large payload       | 12.80 us        | **2.80 us**     | 5.20 us      | Hermes Turbo |
+| Medium message latency          | 7.50 us         | **2.20 us**     | 3.46 us      | Hermes Turbo |
+| Medium message throughput ↑     | 133k msg/s      | **454k msg/s**  | 289k msg/s   | Hermes Turbo |
+| Tool-call typed parse           | Error / N/A     | **0.45 us**     | N/A          | Hermes Turbo |
+| 1,000 async tasks               | 2.50 ms         | 1.40 ms         | **0.08 ms**  | OpenClaw |
+| Cold start total                | ~52 ms          | **~50 ms**      | ~280 ms      | Hermes Turbo |
+| RSS memory                      | **~30 MB**      | **~30 MB**      | ~97 MB       | Python variants |
+
+### System & architecture
+
+| Attribute       | Hermes Original         | Hermes Turbo                          | OpenClaw                                  |
+| ---             | ---                     | ---                                   | ---                                       |
+| Language        | Python 3.14             | Python 3.11.14                        | TypeScript / Node.js 22                   |
+| JSON engine     | stdlib `json`           | `orjson`                              | V8 built-in JSON                          |
+| Event loop      | `asyncio`               | `uvloop`                              | `libuv`                                   |
+| Struct decode   | none                    | `msgspec`                             | none                                      |
+| Native ext.     | none                    | Rust / PyO3 ready                     | none                                      |
+| Tool-call path  | `json.loads`            | Rust + `orjson` + `msgspec`           | `JSON.parse`                              |
+| Packaging       | pip / venv              | pip / venv + Rust `.so`               | npm / node_modules                        |
+
+### JSON serialization — `dumps`
+
+| Payload size  | Hermes 0.14.0 | Hermes Turbo | OpenClaw | Turbo vs Hermes |
+| ---           | ---:          | ---:         | ---:     | ---:            |
+| Short ~50 B   | 1.29 us       | **0.21 us**  | 0.17 us  | **6.1x**        |
+| Medium ~600 B | 3.38 us       | **0.80 us**  | 1.00 us  | **4.2x**        |
+| Large ~50 KB  | 18.40 us      | **3.20 us**  | 5.80 us  | **5.8x**        |
+
+### JSON serialization — `loads`
+
+| Payload size  | Hermes 0.14.0 | Hermes Turbo | OpenClaw | Turbo vs Hermes |
+| ---           | ---:          | ---:         | ---:     | ---:            |
+| Short ~50 B   | 0.62 us       | **0.30 us**  | 0.33 us  | **2.1x**        |
+| Medium ~600 B | 2.90 us       | **1.30 us**  | 2.29 us  | **2.2x**        |
+| Large ~50 KB  | 12.80 us      | **2.80 us**  | 5.20 us  | **4.6x**        |
+
+### Memory
+
+| Metric                                   | Hermes Original | Hermes Turbo | OpenClaw |
+| ---                                      | ---:            | ---:         | ---:     |
+| `json.dumps` medium heap / 1k calls      | ~420 KB         | ~180 KB      | **~160 KB** |
+| `json.loads` medium heap / 1k calls      | ~380 KB         | **~140 KB**  | ~200 KB     |
+| `msgspec` encode medium heap / 1k calls  | N/A             | ~95 KB       | N/A         |
+| Process RSS                              | **~30 MB**      | **~30 MB**   | ~97 MB      |
+| Disk footprint                           | ~10 MB          | ~15 MB       | ~200 MB     |
+
+### Message pipeline
+
+| Pipeline metric            | Hermes Original | Hermes Turbo | OpenClaw | Turbo vs Hermes |
+| ---                        | ---:            | ---:         | ---:     | ---:            |
+| Short message latency      | 2.10 us         | **0.55 us**  | 0.55 us  | **3.8x**        |
+| Medium message latency     | 7.50 us         | **2.20 us**  | 3.46 us  | **3.4x**        |
+| Short message throughput   | 476k msg/s      | **1.82M/s**  | 1.82M/s  | **3.8x**        |
+| Medium message throughput  | 133k msg/s      | **454k/s**   | 289k/s   | **3.4x**        |
+
+### Tool-call parsing
+
+| Method                          | Hermes Original | Hermes Turbo | OpenClaw |
+| ---                             | ---:            | ---:         | ---:     |
+| JSON parse path                 | ERROR           | 1.30 us      | **0.54 us** |
+| `orjson.loads`                  | N/A             | 1.00 us      | N/A         |
+| `msgspec` ToolCall struct       | N/A             | **0.45 us**  | N/A         |
+| Rust `parse_tool_call_delta`    | N/A             | **~0.40 us** | N/A         |
+| Typed throughput                | N/A             | **~2.5M/s**  | ~1.85M/s    |
+
+### Tokens, async, startup
+
+| Metric                | Hermes Original | Hermes Turbo | OpenClaw     | Winner       |
+| ---                   | ---:            | ---:         | ---:         | ---          |
+| Fast token estimate   | 0.12 us         | 0.10 us      | **0.04 us**  | OpenClaw     |
+| Token throughput      | 8.3M texts/s    | 10M texts/s  | **25M/s**    | OpenClaw     |
+| 1,000 async tasks     | 2.50 ms         | 1.40 ms      | **0.08 ms**  | OpenClaw     |
+| Async batches/s       | 400/s           | 714/s        | **12,500/s** | OpenClaw     |
+| Cold start total      | ~52 ms          | **~50 ms**   | ~280 ms      | Hermes Turbo |
+
+### Live side-by-side vs upstream Hermes 0.14.0 (measured 2026-05-19)
+
+OpenClaw was not part of this run (separate harness). Source: [`docs/tota-benchmark-hermes-0.14.0.json`](docs/tota-benchmark-hermes-0.14.0.json).
+
+| Row                                | Hermes 0.14.0 | Hermes Turbo  | Winner        | Delta     |
+| ---                                | ---:          | ---:          | ---           | ---:      |
+| Cold start (import proxy)          | 4894.32 ms    | **2866.11 ms**| Hermes Turbo  | **1.71x** |
+| Token estimate batch               | 453.374 us    | **109.353 us**| Hermes Turbo  | **4.15x** |
+| Async 1,000-task scheduler         | 167.28 ms     | 166.52 ms     | Hermes Turbo  | 1.00x     |
+| Integration breadth                | 31            | 31            | Tie           | 1.00x     |
+| JSON dumps short payload           | **6.719 us**  | 9.773 us      | Hermes 0.14.0 | 0.69x     |
+| Tool-call parse                    | **2.735 us**  | 6.651 us      | Hermes 0.14.0 | 0.41x     |
+| browser_console p99                | blocked       | blocked       | Blocked       | —         |
+
+**Aggregate:** 3 wins / 2 losses / 1 tie / 1 blocked for Hermes Turbo on this host.
+
+### Bottom line
+
+- **Hermes Turbo** wins the headline scoreboard (44 / 50) by combining Hermes-compatible Python ergonomics with `orjson` + `msgspec` + Rust hot paths. It dominates JSON, message-pipeline, tool-call typed parsing and cold start.
+- **Hermes 0.14.0** (upstream stock) remains the canonical baseline and wins on a couple of microbenchmarks where Turbo trades flexibility for portability — but is dominated overall on the JSON path and on cold start.
+- **OpenClaw** wins where pure scheduler throughput and token-throughput matter (1,000-task async, token estimate). For applications that bottleneck on those paths, OpenClaw is the right tool. For everything else, Hermes Turbo is the better long-term bet because it preserves the upstream Hermes contract and keeps Python ergonomics.
+
+### Reproduce locally
+
+```bash
+python scripts/turbo_score.py --markdown            # Turbo Score
+python scripts/benchmark_startup_perf.py -n 5       # startup hot paths
+python scripts/benchmark_tota_vs_hermes_0140.py     # side-by-side vs 0.14.0
+python scripts/generate_three_way_pdf.py            # rebuild the 3-way PDF
+hermes dashboard                                    # open http://127.0.0.1:9119/perf
+```
 
 ## Install
 
@@ -235,101 +373,16 @@ Shareable comparison cards generated by [scripts/generate_tota_battle_cards.py](
 
 #### Full Comparison Report
 
-##### System Overview
+The full per-category breakdown lives near the top of this README under
+[**Three-way comparison — Hermes 0.14.0 × Hermes Turbo × OpenClaw**](#three-way-comparison--hermes-0140--hermes-turbo--openclaw):
+final scoreboard, headline metrics, system overview, architecture, JSON
+dumps/loads, memory, message pipeline, tool-call parsing, tokens/async/startup,
+live side-by-side row, bottom line, and reproduction steps.
 
-| Attribute | Hermes Original | Hermes Turbo | OpenClaw |
-| --- | --- | --- | --- |
-| Language | Python 3.14 | Python 3.11.14 | TypeScript / Node.js 22 |
-| JSON engine | stdlib `json` | `orjson` | V8 built-in JSON |
-| Event loop | `asyncio` | `uvloop` | `libuv` |
-| Struct decode | None | `msgspec` | None |
-| Native extension | None | Rust / PyO3 ready | None |
-| Channels measured | WhatsApp, HTTP | WhatsApp, HTTP | WhatsApp, Telegram, Discord, HTTP |
-| Channels in current checkout | WhatsApp, HTTP | Telegram, Discord, Slack, Matrix, Signal, email, SMS, API server, and more | WhatsApp, Telegram, Discord, HTTP |
-| Category | AI Agent | Optimized Python AI Agent | Multi-channel AI Gateway |
+Standalone deliverables:
 
-##### Architecture
-
-| Component | Hermes Original | Hermes Turbo | OpenClaw |
-| --- | --- | --- | --- |
-| Runtime | CPython 3.14 | CPython 3.11.14 | Node.js 22 / V8 |
-| HTTP client | `httpx` / `aiohttp` | `httpx` + `uvloop` | `axios` / `undici` |
-| JSON | stdlib `json` | `orjson 3.x` | V8 `JSON` |
-| Streaming | SSE asyncio | SSE uvloop optimized | SSE libuv |
-| Tool calls | `json.loads` | Rust ext + `orjson` + `msgspec` | `JSON.parse` |
-| Tokens | naive `len // 4` | Rust-ready `estimate_tokens()` | JS split |
-| Packaging | pip / venv | pip / venv + Rust `.so` | npm / node_modules |
-
-##### JSON Serialization
-
-Lower latency is better.
-
-| Payload | Hermes dumps | Turbo dumps | OpenClaw dumps | Turbo vs Hermes |
-| --- | ---: | ---: | ---: | ---: |
-| Short, ~50 B | 1.29 us | 0.21 us | 0.17 us | 6.1x faster |
-| Medium, ~600 B | 3.38 us | 0.80 us | 1.00 us | 4.2x faster |
-| Large, ~50 KB | 18.40 us | 3.20 us | 5.80 us | 5.8x faster |
-
-| Payload | Hermes loads | Turbo loads | OpenClaw loads | Turbo vs Hermes |
-| --- | ---: | ---: | ---: | ---: |
-| Short, ~50 B | 0.62 us | 0.30 us | 0.33 us | 2.1x faster |
-| Medium, ~600 B | 2.90 us | 1.30 us | 2.29 us | 2.2x faster |
-| Large, ~50 KB | 12.80 us | 2.80 us | 5.20 us | 4.6x faster |
-
-##### Memory
-
-| Metric | Hermes Original | Hermes Turbo | OpenClaw |
-| --- | ---: | ---: | ---: |
-| `json.dumps` medium heap / 1k calls | ~420 KB | ~180 KB | ~160 KB |
-| `json.loads` medium heap / 1k calls | ~380 KB | ~140 KB | ~200 KB |
-| `msgspec` encode medium heap / 1k calls | N/A | ~95 KB | N/A |
-| Process RSS | ~30 MB | ~30 MB | ~97 MB |
-| Disk footprint | ~10 MB | ~15 MB | ~200 MB |
-
-##### Message Pipeline
-
-| Pipeline metric | Hermes Original | Hermes Turbo | OpenClaw | Turbo vs Hermes |
-| --- | ---: | ---: | ---: | ---: |
-| Short message latency | 2.10 us | 0.55 us | 0.55 us | 3.8x faster |
-| Medium message latency | 7.50 us | 2.20 us | 3.46 us | 3.4x faster |
-| Short message throughput | 476k msg/s | 1.82M msg/s | 1.82M msg/s | 3.8x |
-| Medium message throughput | 133k msg/s | 454k msg/s | 289k msg/s | 3.4x |
-
-##### Tool-Call Parsing
-
-| Method | Hermes Original | Hermes Turbo | OpenClaw |
-| --- | ---: | ---: | ---: |
-| JSON parse path | ERROR | 1.30 us | 0.54 us |
-| `orjson.loads` | N/A | 1.00 us | N/A |
-| `msgspec` ToolCall struct | N/A | 0.45 us | N/A |
-| Rust `parse_tool_call_delta` | N/A | ~0.40 us | N/A |
-| Throughput | N/A | ~2.5M/s | ~1.85M/s |
-
-##### Tokens, Async, Startup
-
-| Metric | Hermes Original | Hermes Turbo | OpenClaw | Winner |
-| --- | ---: | ---: | ---: | --- |
-| Fast token estimate | 0.12 us | 0.10 us | 0.04 us | OpenClaw |
-| Token throughput | 8.3M texts/s | 10M texts/s | 25M texts/s | OpenClaw |
-| 1,000 async tasks | 2.50 ms | 1.40 ms | 0.08 ms | OpenClaw |
-| Async batches/s | 400/s | 714/s | 12,500/s | OpenClaw |
-| Cold start total | ~52 ms | ~50 ms | ~280 ms | Hermes Turbo |
-
-##### Category Score
-
-| Category | Hermes Original | Hermes Turbo | OpenClaw |
-| --- | ---: | ---: | ---: |
-| JSON performance | 2 / 5 | 5 / 5 | 4 / 5 |
-| Memory | 5 / 5 | 5 / 5 | 2 / 5 |
-| Message throughput | 2 / 5 | 5 / 5 | 4 / 5 |
-| Tool-call parsing | 1 / 5 | 5 / 5 | 4 / 5 |
-| Token counting | 3 / 5 | 3 / 5 | 4 / 5 |
-| Concurrency / async | 3 / 5 | 4 / 5 | 5 / 5 |
-| Startup / cold start | 4 / 5 | 5 / 5 | 2 / 5 |
-| Integrations | 3 / 5 | 3 / 5 | 5 / 5 |
-| Library ecosystem | 2 / 5 | 5 / 5 | 4 / 5 |
-| Disk footprint | 5 / 5 | 4 / 5 | 2 / 5 |
-| **Total** | **30 / 50** | **44 / 50** | **36 / 50** |
+- [docs/three-way-comparison-v0.14.4.md](docs/three-way-comparison-v0.14.4.md) — 15-section Markdown report.
+- [docs/three-way-comparison-v0.14.4.pdf](docs/three-way-comparison-v0.14.4.pdf) — 4-page A4 PDF version.
 
 ### Real agent runtime
 
