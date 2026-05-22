@@ -5,6 +5,7 @@ from agent.contracts.concise_response import (
     Diagnostic,
     TerseAnswer,
     ToolCall,
+    TupleStatusEnvelope,
     enforce_budget,
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     "Diagnostic",
     "TerseAnswer",
     "ToolCall",
+    "TupleStatusEnvelope",
     "enforce_budget",
 ]
