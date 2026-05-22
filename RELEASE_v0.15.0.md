@@ -8,15 +8,25 @@ This release closes two work streams: a complete removal of the legacy
 follow-through on the audit gaps in the daily upstream sync system that
 was introduced in 0.14.x (issues #85, #86, #87).
 
-## Breaking changes — operator action required
+## Deprecations — migrate at your convenience
 
-The fork-native environment variable and home directory have been renamed.
-There is **no automatic fallback**. Operators upgrading from 0.14.x must
-migrate manually:
+The fork-native environment variable and home directory have been renamed,
+but the previous names continue to work for backward compatibility. They
+emit a one-shot deprecation warning to stderr per process and will be
+removed in a future release.
+
+| Legacy | Canonical | Behavior |
+|---|---|---|
+| `TOTA_HOME` env var | `HERMES_TURBO_HOME` | Honored with warning; `HERMES_TURBO_HOME` wins when both are set |
+| `~/.tota` directory | `~/.hermes-turbo` | Honored with warning when canonical dir is absent |
+| `.tota/` in repo | `.hermes-turbo/` | Bootstrap reads canonical first, falls back to legacy |
+| `TOTA_AUTO_MAP` env var | `HERMES_TURBO_AUTO_MAP` | Honored (auto_mapper checks all three keys) |
+
+Recommended migration (no rush):
 
 ```bash
-# Environment
-sed -i 's/TOTA_HOME/HERMES_TURBO_HOME/g' ~/.profile ~/.zshrc /etc/environment
+# Environment (in your shell rc files)
+# Replace TOTA_HOME with HERMES_TURBO_HOME
 
 # Data directory (one-time)
 mv ~/.tota ~/.hermes-turbo
@@ -25,8 +35,8 @@ mv ~/.tota ~/.hermes-turbo
 mv .tota .hermes-turbo
 ```
 
-Legacy `HERMES_HOME` is still honored as a secondary fallback (unchanged
-from prior releases). Only the fork-native `TOTA_HOME` has been removed.
+Legacy `HERMES_HOME` is still honored as a tertiary fallback (unchanged
+from prior releases).
 
 Console script aliases changed too:
 

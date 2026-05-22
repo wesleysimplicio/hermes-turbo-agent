@@ -53,11 +53,17 @@ def _hermes_turbo_home() -> Path:
         from hermes_constants import get_hermes_home  # type: ignore[import-not-found]
         return get_hermes_home()
     except (ImportError, ModuleNotFoundError, ValueError):
-        for env_var in ("HERMES_TURBO_HOME", "HERMES_HOME"):
+        for env_var in ("HERMES_TURBO_HOME", "TOTA_HOME", "HERMES_HOME"):
             val = os.environ.get(env_var, "").strip()
             if val:
                 return Path(val).expanduser()
-        return Path.home() / ".hermes-turbo"
+        canonical = Path.home() / ".hermes-turbo"
+        if canonical.exists():
+            return canonical
+        legacy = Path.home() / ".tota"
+        if legacy.exists():
+            return legacy
+        return canonical
 
 
 def _memory_path() -> Path:

@@ -50,7 +50,19 @@ def _repo_root() -> Path:
 
 
 def _source_dir() -> Path:
-    return _repo_root() / ".hermes-turbo"
+    """Locate the in-repo seed dir for the runtime home.
+
+    Prefers ``.hermes-turbo/`` (canonical) and falls back to ``.tota/`` for
+    repositories that haven't yet been migrated. The legacy fallback is
+    deprecated and will be removed in a future release.
+    """
+    canonical = _repo_root() / ".hermes-turbo"
+    if canonical.exists():
+        return canonical
+    legacy = _repo_root() / ".tota"
+    if legacy.exists():
+        return legacy
+    return canonical
 
 
 def bootstrap_hermes_turbo_home(force_reseed: bool = False) -> dict[str, str]:

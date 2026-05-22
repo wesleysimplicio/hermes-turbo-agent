@@ -16,7 +16,7 @@ Detection heuristics — any one is enough to qualify as a code project:
 
 Skip conditions (any one disables the auto-trigger):
 
-- ``HERMES_TURBO_AUTO_MAP=0`` (or ``HERMES_AUTO_MAP=0``) in env.
+- ``HERMES_TURBO_AUTO_MAP=0`` (or ``TOTA_AUTO_MAP=0`` legacy, or ``HERMES_AUTO_MAP=0``) in env.
 - ``$HERMES_TURBO_HOME/.disable_auto_mapper`` sentinel file exists.
 - cwd is the user's home directory itself.
 - cwd is the Hermes Turbo Agent repo (avoid Hermes Turbo mapping its own source).
@@ -53,7 +53,7 @@ _CODE_PROJECT_MARKERS: tuple[str, ...] = (
 
 
 def _is_disabled() -> bool:
-    for key in ("HERMES_TURBO_AUTO_MAP", "HERMES_AUTO_MAP"):
+    for key in ("HERMES_TURBO_AUTO_MAP", "TOTA_AUTO_MAP", "HERMES_AUTO_MAP"):
         val = os.environ.get(key, "").strip().lower()
         if val in {"0", "false", "no", "off"}:
             return True
@@ -75,9 +75,12 @@ def _is_own_repo(project_root: Path) -> bool:
 
     Mapping our own source on every CLI invocation is annoying and not what
     operators want.  We detect by checking for the ``.hermes-turbo/HERMES_BASE``
-    marker that this fork specifically ships.
+    marker (canonical) or the legacy ``.tota/HERMES_BASE`` marker from before
+    the 0.15.0 rebrand.
     """
-    return (project_root / ".hermes-turbo" / "HERMES_BASE").exists()
+    if (project_root / ".hermes-turbo" / "HERMES_BASE").exists():
+        return True
+    return (project_root / ".tota" / "HERMES_BASE").exists()
 
 
 def _is_home_dir(project_root: Path) -> bool:
