@@ -88,12 +88,19 @@ jobs:
         continue-on-error: true
         run: |
           python scripts/refresh_sync_benchmarks.py
+          python -m pip install reportlab >/dev/null
+          # 1) micro benchmark + 1-pager PDF
           python scripts/benchmark_turbo_vs_baseline.py --json \
             --out docs/perf/turbo-vs-baseline-${{ steps.branch.outputs.name }}.json
-          python -m pip install reportlab >/dev/null
           python scripts/generate_turbo_vs_baseline_pdf.py \
             --input docs/perf/turbo-vs-baseline-${{ steps.branch.outputs.name }}.json \
             --output docs/perf/turbo-vs-baseline-${{ steps.branch.outputs.name }}.pdf
+          # 2) full segmented benchmark + multi-page PDF
+          python scripts/benchmark_full_turbo_segments.py --iters 500 --json \
+            --out docs/perf/turbo-full-segments-${{ steps.branch.outputs.name }}.json
+          python scripts/generate_turbo_full_pdf.py \
+            --input docs/perf/turbo-full-segments-${{ steps.branch.outputs.name }}.json \
+            --output docs/perf/turbo-full-segments-${{ steps.branch.outputs.name }}.pdf
 
       - name: Commit refresh artifacts
         if: steps.capture.outputs.has_changes == 'true'

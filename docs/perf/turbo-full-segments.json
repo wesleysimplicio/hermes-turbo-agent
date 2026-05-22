@@ -1,0 +1,298 @@
+{
+  "iters": 500,
+  "stages": [
+    {
+      "segment": "project_mapping",
+      "name": "detect_fingerprint (manifest heuristics)",
+      "iters": 500,
+      "median_us": 1770.59,
+      "p95_us": 1929.01,
+      "baseline_us": 64600.21,
+      "speedup_x": 36.49,
+      "notes": "vs na\u00efve rglob() tree walk that upstream would do."
+    },
+    {
+      "segment": "containment",
+      "name": "check_write (managed allow path)",
+      "iters": 500,
+      "median_us": 38.29,
+      "p95_us": 52.78,
+      "baseline_us": 1.59,
+      "speedup_x": 0.04,
+      "notes": "full rule resolution; baseline is regex-only."
+    },
+    {
+      "segment": "containment",
+      "name": "check_write (read-only block path)",
+      "iters": 500,
+      "median_us": 25.25,
+      "p95_us": 37.7,
+      "baseline_us": null,
+      "speedup_x": null,
+      "notes": "net-new: upstream has no read-only enforcement."
+    },
+    {
+      "segment": "multi_ide_prompt",
+      "name": "prompt_sync._replace_or_append_block (idempotent)",
+      "iters": 500,
+      "median_us": 1.56,
+      "p95_us": 1.74,
+      "baseline_us": 0.33,
+      "speedup_x": 0.21,
+      "notes": "idempotent in-place; baseline is na\u00efve prepend."
+    },
+    {
+      "segment": "multi_ide_prompt",
+      "name": "prompt_section.get_section",
+      "iters": 500,
+      "median_us": 14.16,
+      "p95_us": 20.69,
+      "baseline_us": 0.83,
+      "speedup_x": 0.06,
+      "notes": "header-bounded slice with case-insensitive match."
+    },
+    {
+      "segment": "response_contract",
+      "name": "TerseAnswer",
+      "iters": 500,
+      "median_us": 0.85,
+      "p95_us": 1.14,
+      "baseline_us": 0.14,
+      "speedup_x": 0.16,
+      "notes": "enforce_budget + ellipsis vs raw slice."
+    },
+    {
+      "segment": "response_contract",
+      "name": "ToolCall",
+      "iters": 500,
+      "median_us": 1.2,
+      "p95_us": 1.37,
+      "baseline_us": 0.15,
+      "speedup_x": 0.13,
+      "notes": "full validation vs dict literal."
+    },
+    {
+      "segment": "response_contract",
+      "name": "Diagnostic",
+      "iters": 500,
+      "median_us": 0.73,
+      "p95_us": 0.82,
+      "baseline_us": 0.09,
+      "speedup_x": 0.12,
+      "notes": "enum + budget vs tuple."
+    },
+    {
+      "segment": "response_contract",
+      "name": "TupleStatusEnvelope.render (default silent)",
+      "iters": 500,
+      "median_us": 3.82,
+      "p95_us": 4.17,
+      "baseline_us": null,
+      "speedup_x": null,
+      "notes": "zero output tokens by default; verbose via envs."
+    },
+    {
+      "segment": "token_saver",
+      "name": "truncate_output small (200 lines)",
+      "iters": 500,
+      "median_us": 59.57,
+      "p95_us": 83.87,
+      "baseline_us": 0.11,
+      "speedup_x": 0.0,
+      "notes": "persists full payload + emits handle."
+    },
+    {
+      "segment": "token_saver",
+      "name": "truncate_output medium (5k lines)",
+      "iters": 500,
+      "median_us": 155.76,
+      "p95_us": 218.57,
+      "baseline_us": 0.11,
+      "speedup_x": 0.0,
+      "notes": "persists full payload + emits handle."
+    },
+    {
+      "segment": "token_saver",
+      "name": "truncate_output large (50k lines)",
+      "iters": 500,
+      "median_us": 1934.87,
+      "p95_us": 2248.98,
+      "baseline_us": 0.11,
+      "speedup_x": 0.0,
+      "notes": "persists full payload + emits handle."
+    },
+    {
+      "segment": "context",
+      "name": "retrieval.RelevanceScorer (TF-IDF)",
+      "iters": 500,
+      "median_us": 55.82,
+      "p95_us": 94.76,
+      "baseline_us": 5.18,
+      "speedup_x": 0.09,
+      "notes": "stdlib TF-IDF cosine vs sort-by-substring."
+    },
+    {
+      "segment": "context",
+      "name": "token_cache.get (LRU hit)",
+      "iters": 500,
+      "median_us": 2.78,
+      "p95_us": 3.59,
+      "baseline_us": 0.12,
+      "speedup_x": 0.04,
+      "notes": "blake2b LRU vs na\u00efve len // 4."
+    },
+    {
+      "segment": "context",
+      "name": "working_set.get (hot fact)",
+      "iters": 500,
+      "median_us": 0.17,
+      "p95_us": 0.23,
+      "baseline_us": 0.12,
+      "speedup_x": 0.7,
+      "notes": "LRU hot set vs slice."
+    },
+    {
+      "segment": "routing",
+      "name": "DeterministicRouter.route",
+      "iters": 500,
+      "median_us": 0.99,
+      "p95_us": 1.29,
+      "baseline_us": 172.48,
+      "speedup_x": 174.93,
+      "notes": "regex match avoids an LLM round-trip entirely."
+    },
+    {
+      "segment": "routing",
+      "name": "BudgetGovernor.record_step",
+      "iters": 500,
+      "median_us": 1.82,
+      "p95_us": 4.66,
+      "baseline_us": 0.11,
+      "speedup_x": 0.06,
+      "notes": "warn-70%/stop-100% policy in pure Python."
+    },
+    {
+      "segment": "telemetry",
+      "name": "stage_timing.record",
+      "iters": 500,
+      "median_us": 0.85,
+      "p95_us": 1.22,
+      "baseline_us": 0.09,
+      "speedup_x": 0.1,
+      "notes": "per-stage timers with provider/model breakdown."
+    },
+    {
+      "segment": "telemetry",
+      "name": "receipts.content_hash (sha256)",
+      "iters": 500,
+      "median_us": 0.61,
+      "p95_us": 0.68,
+      "baseline_us": 0.58,
+      "speedup_x": 0.95,
+      "notes": "content-addressable; baseline is plain md5."
+    },
+    {
+      "segment": "telemetry",
+      "name": "cache_usage.extract_anthropic_usage",
+      "iters": 500,
+      "median_us": 1.18,
+      "p95_us": 1.28,
+      "baseline_us": 0.11,
+      "speedup_x": 0.09,
+      "notes": "parses cache_*_input_tokens fields."
+    },
+    {
+      "segment": "registry",
+      "name": "LazyToolRegistry.load (cached)",
+      "iters": 500,
+      "median_us": 0.29,
+      "p95_us": 0.33,
+      "baseline_us": 0.15,
+      "speedup_x": 0.5,
+      "notes": "thread-safe LRU vs dict copy."
+    },
+    {
+      "segment": "registry",
+      "name": "LazyToolRegistry register + first load",
+      "iters": 500,
+      "median_us": 2.03,
+      "p95_us": 3.17,
+      "baseline_us": 0.14,
+      "speedup_x": 0.07,
+      "notes": "register + first schema build (cold path)."
+    },
+    {
+      "segment": "adapters",
+      "name": "github_compact.compact_issue",
+      "iters": 500,
+      "median_us": 2.03,
+      "p95_us": 2.34,
+      "baseline_us": 0.17,
+      "speedup_x": 0.08,
+      "notes": "slim summary + handle vs raw dict copy."
+    },
+    {
+      "segment": "adapters",
+      "name": "github_compact.compact_pr",
+      "iters": 500,
+      "median_us": 1.95,
+      "p95_us": 2.21,
+      "baseline_us": 0.18,
+      "speedup_x": 0.09,
+      "notes": "diff stats + base/head extraction."
+    },
+    {
+      "segment": "adapters",
+      "name": "ci_compact.parse_ci_log",
+      "iters": 500,
+      "median_us": 794.94,
+      "p95_us": 846.91,
+      "baseline_us": 6.66,
+      "speedup_x": 0.01,
+      "notes": "failure grouping + signatures."
+    },
+    {
+      "segment": "hamt",
+      "name": "build_hamt.parse_capabilities (AGENTS.yool.md)",
+      "iters": 500,
+      "median_us": 63.38,
+      "p95_us": 82.54,
+      "baseline_us": 5.4,
+      "speedup_x": 0.09,
+      "notes": "yool block parser vs raw splitlines."
+    },
+    {
+      "segment": "hamt",
+      "name": "build_hamt.hash30 (blake2b/30bit)",
+      "iters": 500,
+      "median_us": 0.7,
+      "p95_us": 0.78,
+      "baseline_us": 0.6,
+      "speedup_x": 0.85,
+      "notes": "HAMT-compatible content hash."
+    },
+    {
+      "segment": "hamt",
+      "name": "build_hamt.lookup_catalog",
+      "iters": 500,
+      "median_us": 1.0,
+      "p95_us": 1.14,
+      "baseline_us": 0.63,
+      "speedup_x": 0.63,
+      "notes": "HAMT lookup vs linear scan."
+    }
+  ],
+  "segments": [
+    "adapters",
+    "containment",
+    "context",
+    "hamt",
+    "multi_ide_prompt",
+    "project_mapping",
+    "registry",
+    "response_contract",
+    "routing",
+    "telemetry",
+    "token_saver"
+  ]
+}
