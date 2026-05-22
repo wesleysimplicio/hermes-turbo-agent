@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hermes-agent"
-version = "0.14.7"
+version = "0.15.0"
 description = "Hermes Turbo Agent — a modified, faster Hermes fork with desktop and car profile distributions"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -225,6 +225,8 @@ hermes-acp = "acp_adapter.entry:main"
 hermes-turbo = "hermes_cli.main:main"
 hermes-turbo-agent = "run_agent:main"
 hermes-turbo-acp = "acp_adapter.entry:main"
+# Deprecated aliases — kept for backward compatibility with pre-0.15 installs.
+# Migrate to the hermes-turbo-* commands; these will be removed in a future release.
 tota = "hermes_cli.main:main"
 tota-agent = "run_agent:main"
 tota-acp = "acp_adapter.entry:main"

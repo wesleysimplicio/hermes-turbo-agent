@@ -41,8 +41,8 @@ def captured_subprocess(monkeypatch):
     return captured
 
 
-def test_skips_when_TOTA_AUTO_MAP_disabled(monkeypatch, fake_project, captured_subprocess):
-    monkeypatch.setenv("TOTA_AUTO_MAP", "0")
+def test_skips_when_HERMES_TURBO_AUTO_MAP_disabled(monkeypatch, fake_project, captured_subprocess):
+    monkeypatch.setenv("HERMES_TURBO_AUTO_MAP", "0")
     status = auto_mapper.maybe_map_project(fake_project)
 
     assert status["ran"] is False
@@ -51,7 +51,7 @@ def test_skips_when_TOTA_AUTO_MAP_disabled(monkeypatch, fake_project, captured_s
 
 
 def test_skips_when_HERMES_AUTO_MAP_disabled(monkeypatch, fake_project, captured_subprocess):
-    monkeypatch.delenv("TOTA_AUTO_MAP", raising=False)
+    monkeypatch.delenv("HERMES_TURBO_AUTO_MAP", raising=False)
     monkeypatch.setenv("HERMES_AUTO_MAP", "false")
     status = auto_mapper.maybe_map_project(fake_project)
 
@@ -63,9 +63,9 @@ def test_skips_when_sentinel_file_exists(monkeypatch, tmp_path, fake_project, ca
     home = tmp_path / "home"
     home.mkdir()
     (home / ".disable_auto_mapper").touch()
-    monkeypatch.setenv("TOTA_HOME", str(home))
+    monkeypatch.setenv("HERMES_TURBO_HOME", str(home))
     monkeypatch.delenv("HERMES_HOME", raising=False)
-    monkeypatch.delenv("TOTA_AUTO_MAP", raising=False)
+    monkeypatch.delenv("HERMES_TURBO_AUTO_MAP", raising=False)
     monkeypatch.delenv("HERMES_AUTO_MAP", raising=False)
 
     status = auto_mapper.maybe_map_project(fake_project)
@@ -75,9 +75,9 @@ def test_skips_when_sentinel_file_exists(monkeypatch, tmp_path, fake_project, ca
 
 
 def test_skips_when_not_a_code_project(monkeypatch, tmp_path, captured_subprocess):
-    monkeypatch.delenv("TOTA_AUTO_MAP", raising=False)
+    monkeypatch.delenv("HERMES_TURBO_AUTO_MAP", raising=False)
     monkeypatch.delenv("HERMES_AUTO_MAP", raising=False)
-    monkeypatch.setenv("TOTA_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("HERMES_TURBO_HOME", str(tmp_path / "home"))
 
     plain_dir = tmp_path / "scratch"
     plain_dir.mkdir()
@@ -88,9 +88,9 @@ def test_skips_when_not_a_code_project(monkeypatch, tmp_path, captured_subproces
 
 
 def test_skips_when_home_dir(monkeypatch, tmp_path, captured_subprocess):
-    monkeypatch.delenv("TOTA_AUTO_MAP", raising=False)
+    monkeypatch.delenv("HERMES_TURBO_AUTO_MAP", raising=False)
     monkeypatch.delenv("HERMES_AUTO_MAP", raising=False)
-    monkeypatch.setenv("TOTA_HOME", str(tmp_path / "tota"))
+    monkeypatch.setenv("HERMES_TURBO_HOME", str(tmp_path / "hermes-turbo"))
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path / "user_home"))
 
     user_home = tmp_path / "user_home"
@@ -103,13 +103,13 @@ def test_skips_when_home_dir(monkeypatch, tmp_path, captured_subprocess):
 
 
 def test_skips_own_repo(monkeypatch, tmp_path, captured_subprocess):
-    monkeypatch.delenv("TOTA_AUTO_MAP", raising=False)
+    monkeypatch.delenv("HERMES_TURBO_AUTO_MAP", raising=False)
     monkeypatch.delenv("HERMES_AUTO_MAP", raising=False)
-    monkeypatch.setenv("TOTA_HOME", str(tmp_path / "tota"))
+    monkeypatch.setenv("HERMES_TURBO_HOME", str(tmp_path / "hermes-turbo"))
 
-    own_repo = tmp_path / "tota-agent"
-    (own_repo / ".tota").mkdir(parents=True)
-    (own_repo / ".tota" / "HERMES_BASE").write_text("hermes-agent\n0.14.0\n")
+    own_repo = tmp_path / "hermes-turbo-agent"
+    (own_repo / ".hermes-turbo").mkdir(parents=True)
+    (own_repo / ".hermes-turbo" / "HERMES_BASE").write_text("hermes-agent\n0.14.0\n")
 
     status = auto_mapper.maybe_map_project(own_repo)
     assert status["ran"] is False
@@ -117,9 +117,9 @@ def test_skips_own_repo(monkeypatch, tmp_path, captured_subprocess):
 
 
 def test_runs_mapper_on_pyproject_project(monkeypatch, tmp_path, captured_subprocess):
-    monkeypatch.delenv("TOTA_AUTO_MAP", raising=False)
+    monkeypatch.delenv("HERMES_TURBO_AUTO_MAP", raising=False)
     monkeypatch.delenv("HERMES_AUTO_MAP", raising=False)
-    monkeypatch.setenv("TOTA_HOME", str(tmp_path / "tota"))
+    monkeypatch.setenv("HERMES_TURBO_HOME", str(tmp_path / "hermes-turbo"))
 
     project = tmp_path / "py_project"
     project.mkdir()
@@ -135,9 +135,9 @@ def test_runs_mapper_on_pyproject_project(monkeypatch, tmp_path, captured_subpro
 
 
 def test_runs_mapper_on_package_json_project(monkeypatch, tmp_path, captured_subprocess):
-    monkeypatch.delenv("TOTA_AUTO_MAP", raising=False)
+    monkeypatch.delenv("HERMES_TURBO_AUTO_MAP", raising=False)
     monkeypatch.delenv("HERMES_AUTO_MAP", raising=False)
-    monkeypatch.setenv("TOTA_HOME", str(tmp_path / "tota"))
+    monkeypatch.setenv("HERMES_TURBO_HOME", str(tmp_path / "hermes-turbo"))
 
     project = tmp_path / "js_project"
     project.mkdir()
@@ -148,9 +148,9 @@ def test_runs_mapper_on_package_json_project(monkeypatch, tmp_path, captured_sub
 
 
 def test_only_runs_once_per_session_per_project(monkeypatch, fake_project, captured_subprocess):
-    monkeypatch.delenv("TOTA_AUTO_MAP", raising=False)
+    monkeypatch.delenv("HERMES_TURBO_AUTO_MAP", raising=False)
     monkeypatch.delenv("HERMES_AUTO_MAP", raising=False)
-    monkeypatch.setenv("TOTA_HOME", str(fake_project.parent / "tota"))
+    monkeypatch.setenv("HERMES_TURBO_HOME", str(fake_project.parent / "hermes-turbo"))
 
     first = auto_mapper.maybe_map_project(fake_project)
     second = auto_mapper.maybe_map_project(fake_project)
@@ -162,9 +162,9 @@ def test_only_runs_once_per_session_per_project(monkeypatch, fake_project, captu
 
 
 def test_uses_cwd_when_no_arg(monkeypatch, tmp_path, captured_subprocess):
-    monkeypatch.delenv("TOTA_AUTO_MAP", raising=False)
+    monkeypatch.delenv("HERMES_TURBO_AUTO_MAP", raising=False)
     monkeypatch.delenv("HERMES_AUTO_MAP", raising=False)
-    monkeypatch.setenv("TOTA_HOME", str(tmp_path / "tota"))
+    monkeypatch.setenv("HERMES_TURBO_HOME", str(tmp_path / "hermes-turbo"))
 
     project = tmp_path / "cwd_project"
     project.mkdir()
@@ -176,9 +176,9 @@ def test_uses_cwd_when_no_arg(monkeypatch, tmp_path, captured_subprocess):
 
 
 def test_propagates_subprocess_error(monkeypatch, fake_project):
-    monkeypatch.delenv("TOTA_AUTO_MAP", raising=False)
+    monkeypatch.delenv("HERMES_TURBO_AUTO_MAP", raising=False)
     monkeypatch.delenv("HERMES_AUTO_MAP", raising=False)
-    monkeypatch.setenv("TOTA_HOME", str(fake_project.parent / "tota"))
+    monkeypatch.setenv("HERMES_TURBO_HOME", str(fake_project.parent / "hermes-turbo"))
 
     def _raise(*a, **k):
         raise OSError("simulated")
@@ -194,9 +194,9 @@ def test_propagates_subprocess_error(monkeypatch, fake_project):
 
 def test_nonzero_exit_does_not_mark_project_done(monkeypatch, fake_project):
     """Closes Copilot review: non-zero exit must allow retry within the same process."""
-    monkeypatch.delenv("TOTA_AUTO_MAP", raising=False)
+    monkeypatch.delenv("HERMES_TURBO_AUTO_MAP", raising=False)
     monkeypatch.delenv("HERMES_AUTO_MAP", raising=False)
-    monkeypatch.setenv("TOTA_HOME", str(fake_project.parent / "tota"))
+    monkeypatch.setenv("HERMES_TURBO_HOME", str(fake_project.parent / "hermes-turbo"))
 
     def _fail(cmd, **kwargs):
         return SimpleNamespace(returncode=2, stdout="", stderr="boom")
@@ -215,9 +215,9 @@ def test_nonzero_exit_does_not_mark_project_done(monkeypatch, fake_project):
 
 def test_ok_false_payload_does_not_mark_project_done(monkeypatch, fake_project):
     """Closes Copilot review: ok=false payload should not silently dedup."""
-    monkeypatch.delenv("TOTA_AUTO_MAP", raising=False)
+    monkeypatch.delenv("HERMES_TURBO_AUTO_MAP", raising=False)
     monkeypatch.delenv("HERMES_AUTO_MAP", raising=False)
-    monkeypatch.setenv("TOTA_HOME", str(fake_project.parent / "tota"))
+    monkeypatch.setenv("HERMES_TURBO_HOME", str(fake_project.parent / "hermes-turbo"))
 
     def _fake(cmd, **kwargs):
         return SimpleNamespace(

@@ -33,7 +33,7 @@ sys.path.insert(0, REPO_ROOT)
 # Ensure HERMES_HOME is set for imports that touch it at module level.
 os.environ.setdefault(
     "HERMES_HOME",
-    os.environ.get("TOTA_HOME", os.path.join(os.path.expanduser("~"), ".tota")),
+    os.environ.get("HERMES_TURBO_HOME", os.path.join(os.path.expanduser("~"), ".hermes-turbo")),
 )
 
 from hermes_cli.models import OPENROUTER_MODELS, _PROVIDER_MODELS  # noqa: E402

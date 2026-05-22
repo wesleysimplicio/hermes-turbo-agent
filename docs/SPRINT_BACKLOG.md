@@ -1,9 +1,9 @@
-# Tota Agent — Sprint Backlog (final close-out)
+# Hermes Turbo Agent — Sprint Backlog (final close-out)
 
 > **Status as of 2026-05-18:** All 33 roadmap issues are closed. This
 > file is now an archive of the 4-sprint plan and how each item landed.
 
-Mirror of the GitHub issues in `wesleysimplicio/tota-agent` (see #58 for
+Mirror of the GitHub issues in `wesleysimplicio/hermes-turbo-agent` (see #58 for
 the live roadmap). This file lives in the repo so anyone reading the
 codebase can find the plan without leaving their editor.
 
@@ -21,7 +21,7 @@ codebase can find the plan without leaving their editor.
 
 - ✅ #21 — Sync to Hermes 0.14.0 + promote llm-project-mapper to core.
 - ✅ #26 — Auto-invoke llm-project-mapper on first turn in any code project (`agent/auto_mapper.py`).
-- ✅ #27 — Bootstrap `.tota/` defaults into runtime `$TOTA_HOME` on first run (`agent/tota_home_bootstrap.py`).
+- ✅ #27 — Bootstrap `.hermes-turbo/` defaults into runtime `$HERMES_TURBO_HOME` on first run (`agent/hermes_turbo_home_bootstrap.py`).
 - ✅ #28 — Pytest coverage for the llm-project-mapper skill (23 cases).
 - ✅ #29 — Consolidate `HERMES_HOME` literal lookups behind `hermes_constants.get_hermes_home()`.
 - ✅ #30 — Cherry-pick upstream cross-session 1h Claude prompt cache (Hermes #23828) — landed via upstream merge `ab61ec254`; lives in `agent/prompt_caching.py`.
@@ -34,8 +34,8 @@ codebase can find the plan without leaving their editor.
 - ✅ #34 — Adopt upstream cold-start wave (~19s win) — landed via upstream merge `ab61ec254`.
 - ✅ #35 — Phase 2 `msgspec.Struct` migration for `transports/types.py::ToolCall` — shipped via `d0a6401bd` per ADR-0006 (compat-mixin approach).
 - ✅ #36 — Phase 1.5 `run_agent.py` `_fast_loads`/`_fast_dumps` migration — shipped via `d0a6401bd` per ADR-0004.
-- ✅ #37 — Phase 1.5 `hermes_state.py` `orjson` migration — shipped via `d0a6401bd` per ADR-0005; opt-in via `TOTA_FAST_STATE=1`.
-- ✅ #38 — Refresh benchmark report vs Hermes 0.14.0 — shipped via `d0a6401bd` per ADR-0007 (`scripts/benchmark_tota_vs_hermes_0140.py`, `docs/tota-benchmark-hermes-0.14.0.{json,md}`).
+- ✅ #37 — Phase 1.5 `hermes_state.py` `orjson` migration — shipped via `d0a6401bd` per ADR-0005; opt-in via `HERMES_TURBO_FAST_STATE=1` (legacy `TOTA_FAST_STATE=1` still honored).
+- ✅ #38 — Refresh benchmark report vs Hermes 0.14.0 — shipped via `d0a6401bd` per ADR-0007 (`scripts/benchmark_hermes_turbo_vs_hermes_0140.py`, `docs/hermes-turbo-benchmark-hermes-0.14.0.{json,md}`).
 
 ## Sprint 3 — Distribution + identity polish ✅
 
@@ -44,9 +44,9 @@ codebase can find the plan without leaving their editor.
 - ✅ #41 — Adopt supply-chain advisory checker for lazy installs (`hermes_cli/security_advisories.py` + `tools/lazy_deps.py` guard).
 - ✅ #42 — Adopt tiered install fallback (Hermes #24515) — landed via upstream merge.
 - ✅ #43 — Brand consistency pass (default + 4 neutral skins, CLI welcome banner, SOUL.md template).
-- ✅ #44 — `SOUL.md` override docs page (`docs/tota-identity-customization.md`).
+- ✅ #44 — `SOUL.md` override docs page (`docs/hermes-turbo-identity-customization.md`).
 - ✅ #45 — Native Windows beta integration test pass — shipped via `d0a6401bd` per ADR-0008 (`.github/workflows/tests.yml::windows-smoke (blocking)`).
-- ✅ #46 — `tota` / `tota-agent` / `tota-acp` `console_scripts` aliases added.
+- ✅ #46 — `hermes-turbo` / `hermes-turbo-agent` / `hermes-turbo-acp` `console_scripts` aliases added (legacy `tota` / `tota-agent` / `tota-acp` kept for backward compat).
 
 ## Sprint 4 — Features, skills, nice-to-have ✅
 
@@ -94,7 +94,7 @@ The 33-issue roadmap closed in three waves:
 ## Process notes
 
 - One PR per child issue wherever possible.
-- Cherry-picks were scoped tight: identify the upstream commit, apply, resolve conflicts preferring Tota's perf customizations + upstream's behavior, test.
+- Cherry-picks were scoped tight: identify the upstream commit, apply, resolve conflicts preferring Hermes Turbo's perf customizations + upstream's behavior, test.
 - Sprints were sequential. Each sprint's DoD held before the next sprint started.
-- The `.tota/` repo directory is the source of truth for runtime defaults; `$TOTA_HOME` is the operator-mutable runtime home.
+- The `.hermes-turbo/` repo directory is the source of truth for runtime defaults; `$HERMES_TURBO_HOME` is the operator-mutable runtime home (legacy `.tota/` + `$TOTA_HOME` still honored for backward compatibility).
 - The upstream Hermes v0.14.0 merge (commit `ab61ec254`, 2026-05-18) closed 13 cherry-pick issues at once.

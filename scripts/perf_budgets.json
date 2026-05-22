@@ -1,0 +1,43 @@
+{
+  "_comment": "Performance budgets for Hermes hot paths. See docs/adr/0004-perf-budgets.md for policy and update procedure. Budgets are intentionally generous regression alarms — they are NOT performance targets. Warnings only; CI is non-blocking.",
+  "_schema_version": 1,
+  "_unit": "seconds (median across N samples)",
+  "_methodology": {
+    "runner": "scripts/benchmark_startup_perf.py and scripts/benchmark_runtime_usage.py",
+    "default_samples": 3,
+    "isolation": "fresh subprocess per sample",
+    "hardware_note": "Budgets are calibrated for ubuntu-latest GitHub Actions runners (2 vCPU, 7GB RAM). Local runs may differ — see ADR-0004."
+  },
+  "cases": {
+    "import_model_tools": {
+      "source": "benchmark_startup_perf.py",
+      "metric": "elapsed_median_seconds",
+      "budget": 2.5,
+      "description": "Time to import the model_tools module from cold (proxy for cold-start tool registry load)."
+    },
+    "get_tool_definitions": {
+      "source": "benchmark_startup_perf.py",
+      "metric": "elapsed_median_seconds",
+      "budget": 1.5,
+      "description": "Cold call to model_tools.get_tool_definitions() after import. Measures schema assembly cost."
+    },
+    "session_append_messages_batch": {
+      "source": "benchmark_startup_perf.py",
+      "metric": "elapsed_median_seconds",
+      "budget": 0.5,
+      "description": "SessionDB.append_messages() batch insert for ~180 messages. Lower is better — protects the batched persistence path."
+    },
+    "parallel_guard_read_files": {
+      "source": "benchmark_runtime_usage.py",
+      "metric": "elapsed_median_seconds",
+      "budget": 0.5,
+      "description": "_should_parallelize_tool_batch() hot-loop guard (10k iterations of an 8-tool batch). Catches regressions in the parallel-tool gating fast path."
+    },
+    "openrouter_metadata_disk_cache": {
+      "source": "benchmark_runtime_usage.py",
+      "metric": "elapsed_median_seconds",
+      "budget": 1.5,
+      "description": "Disk-cache-backed fetch_model_metadata() for 500 models, 100 iterations. Guards the OpenRouter metadata cache fast path against network/parse regressions."
+    }
+  }
+}

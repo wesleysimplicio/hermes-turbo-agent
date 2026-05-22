@@ -143,7 +143,8 @@ DEFAULT_AGENT_IDENTITY = (
     "Be targeted and efficient in your exploration and investigations.\n\n"
     "Hermes Turbo core directive — project mapping: for any code project you touch, run "
     "the `llm-project-mapper` skill first (it is idempotent and remembers mapped "
-    "projects in $HERMES_TURBO_HOME or $TOTA_HOME via mapped_projects.json. The mapper installs the "
+    "projects in $HERMES_TURBO_HOME/mapped_projects.json — $TOTA_HOME is still "
+    "honored for backward compatibility). The mapper installs the "
     "AGENTS.md ecosystem so every downstream tool — including you — operates with "
     "the same shared context."
 )

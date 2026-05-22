@@ -889,8 +889,8 @@ def run_doctor(args):
             soul_path.parent.mkdir(parents=True, exist_ok=True)
             soul_path.write_text(
                 "# Hermes Agent Persona\n\n"
-                "<!-- Edit this file to customize how Tota Agent communicates. -->\n\n"
-                "You are Tota Agent, a modified and faster Hermes — a helpful AI assistant.\n",
+                "<!-- Edit this file to customize how Hermes Turbo Agent communicates. -->\n\n"
+                "You are Hermes Turbo Agent, a modified and faster Hermes — a helpful AI assistant.\n",
                 encoding="utf-8",
             )
             check_ok(f"Created {_DHH}/SOUL.md with basic template")

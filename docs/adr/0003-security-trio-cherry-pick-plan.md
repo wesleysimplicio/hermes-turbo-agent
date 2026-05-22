@@ -7,7 +7,7 @@
 ## Context
 
 Hermes 0.14.0 closed three security categories that we want to pull
-into Tota:
+into Hermes Turbo:
 
 1. **Sudo brute-force block** — upstream PR `NousResearch/hermes-agent#23736`.
    The approval gate now refuses `sudo -S` brute-force attempts and
@@ -62,17 +62,17 @@ Repeat for #26829 and #26823.
 
 ### Step 3 — Conflicts to expect
 
-Files most likely to conflict because Tota has customizations there:
+Files most likely to conflict because Hermes Turbo has customizations there:
 
-| Upstream PR | File | Tota customization |
+| Upstream PR | File | Hermes Turbo customization |
 | --- | --- | --- |
 | #23736 | `tools/approval.py` | None expected. |
-| #26829 | `tools/file_operations.py` | Tota's hierarchical cache + streaming defaults. |
-| #26823 | `tools/tool_result_classification.py` | Tota's `agent/_fastjson.py` migration call sites. |
+| #26829 | `tools/file_operations.py` | Hermes Turbo's hierarchical cache + streaming defaults. |
+| #26823 | `tools/tool_result_classification.py` | Hermes Turbo's `agent/_fastjson.py` migration call sites. |
 
-For each conflict, the rule is: keep Tota's perf customizations, take
+For each conflict, the rule is: keep Hermes Turbo's perf customizations, take
 upstream's security logic. If the two are entangled, refactor so they
-compose (e.g. extract the security check into a helper Tota's perf path
+compose (e.g. extract the security check into a helper Hermes Turbo's perf path
 calls).
 
 ### Step 4 — Tests
@@ -97,7 +97,7 @@ the approval gate rate-limits).
 Sprint 4 tracker (issue #25) explicitly lists this trio as the gating
 work item. Cherry-pick PRs must be merged before #47–#54 PRs open.
 
-### Step 6 — Tota changelog + security advisory
+### Step 6 — Hermes Turbo changelog + security advisory
 
 Update `RELEASE_v0.14.0.md` (or open `RELEASE_v0.14.1.md` if the
 manifest version bumps) to note the three closures and link to the

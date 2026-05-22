@@ -1,0 +1,76 @@
+name: Perf budgets (non-blocking)
+
+# Issue #79: track regressions on key hot paths without blocking PRs.
+# Runs the small benchmark subset documented in scripts/perf_budgets.json,
+# uploads JSON + Markdown artifacts, and surfaces over-budget cases in the
+# step summary. Exit code is always 0 — this workflow is informational.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Nightly at 07:00 UTC — early enough for morning review, off-peak for runners.
+    - cron: "0 7 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: perf-budgets-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  benchmarks:
+    name: Run perf budget benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: |
+          uv venv .venv --python 3.11
+          source .venv/bin/activate
+          uv pip install -e ".[all,dev]"
+
+      - name: Run perf budgets
+        id: budgets
+        env:
+          # Benchmarks must not touch real APIs.
+          OPENROUTER_API_KEY: ""
+          OPENAI_API_KEY: ""
+          NOUS_API_KEY: ""
+        run: |
+          source .venv/bin/activate
+          # Non-blocking by design — script always exits 0.
+          python scripts/perf_budgets.py \
+            --samples 3 \
+            --output perf-budgets-report.json \
+            --summary perf-budgets-summary.md
+
+      - name: Append summary to step output
+        if: always()
+        run: |
+          if [ -f perf-budgets-summary.md ]; then
+            cat perf-budgets-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload report artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-budgets-${{ github.run_id }}
+          path: |
+            perf-budgets-report.json
+            perf-budgets-summary.md
+          retention-days: 30
+          if-no-files-found: warn
