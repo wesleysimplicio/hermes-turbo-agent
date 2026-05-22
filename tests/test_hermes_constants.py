@@ -36,6 +36,17 @@ class TestGetHermesHome:
 
         assert get_hermes_home() == hermes_turbo_home
 
+    def test_turbo_home_override_wins_over_tota_and_legacy(self, tmp_path, monkeypatch):
+        """HERMES_TURBO_HOME is the new preferred override."""
+        turbo_home = tmp_path / "turbo-data"
+        tota_home = tmp_path / "tota-data"
+        hermes_home = tmp_path / "hermes-data"
+        monkeypatch.setenv("HERMES_TURBO_HOME", str(turbo_home))
+        monkeypatch.setenv("TOTA_HOME", str(tota_home))
+        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+
+        assert get_hermes_home() == turbo_home
+
     def test_legacy_hermes_home_override_still_works(self, tmp_path, monkeypatch):
         """Existing hermes2 wrappers can keep using HERMES_HOME explicitly."""
         hermes_home = tmp_path / ".hermes2"

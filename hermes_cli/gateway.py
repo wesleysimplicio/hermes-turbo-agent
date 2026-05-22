@@ -5,6 +5,7 @@ Handles: hermes gateway [run|start|stop|restart|status|install|uninstall|setup]
 """
 
 import asyncio
+import logging
 import os
 import shutil
 import signal
@@ -38,6 +39,7 @@ from hermes_cli.setup import (
 )
 from hermes_cli.colors import Colors, color
 
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # Process Management (for manual gateway runs)
@@ -2021,16 +2023,7 @@ def _build_user_local_paths(home: Path, path_entries: list[str]) -> list[str]:
         str(home / "go" / "bin"),            # Go tools
         str(home / ".npm-global" / "bin"),   # npm global packages
     ]
-    existing = []
-    for p in candidates:
-        if p in path_entries:
-            continue
-        try:
-            if Path(p).exists():
-                existing.append(p)
-        except OSError:
-            continue
-    return existing
+    return [p for p in candidates if p not in path_entries and Path(p).exists()]
 
 
 def _build_wsl_interop_paths(path_entries: list[str]) -> list[str]:
@@ -2109,29 +2102,29 @@ def _hermes_home_for_target_user(target_home_dir: str) -> str:
       /root/.hermes/profiles/coder     → /home/alice/.hermes/profiles/coder
       /opt/custom-hermes               → /opt/custom-hermes  (kept as-is)
     """
-    from hermes_constants import DEFAULT_HOME_DIRNAME
+    explicit_home = os.environ.get("HERMES_HOME", "").strip()
+    current_home = Path.home()
+    target_home = Path(target_home_dir)
 
-    current_hermes = get_hermes_home().resolve()
+    if explicit_home:
+        current_hermes = Path(explicit_home).expanduser().resolve()
+        current_default = (current_home / ".hermes").resolve()
+        target_default = target_home / ".hermes"
+    else:
+        current_hermes = get_hermes_home().resolve()
+        current_default = (current_home / ".tota").resolve()
+        target_default = target_home / ".tota"
 
-    current_default = (Path.home() / DEFAULT_HOME_DIRNAME).resolve()
-    target_default = Path(target_home_dir) / DEFAULT_HOME_DIRNAME
+    # Default home → remap to the target user's equivalent default.
     if current_hermes == current_default:
         return str(target_default)
+
+    # Profile or subdir of the configured default → preserve the relative structure.
     try:
         relative = current_hermes.relative_to(current_default)
         return str(target_default / relative)
     except ValueError:
-        pass
-
-    # Preserve legacy Hermes layouts when HERMES_HOME explicitly points there.
-    legacy_current_default = (Path.home() / ".hermes").resolve()
-    legacy_target_default = Path(target_home_dir) / ".hermes"
-    if current_hermes == legacy_current_default:
-        return str(legacy_target_default)
-    try:
-        relative = current_hermes.relative_to(legacy_current_default)
-        return str(legacy_target_default / relative)
-    except ValueError:
+        # Completely custom path (not under ~/.hermes) — keep as-is
         return str(current_hermes)
 
 
@@ -2140,40 +2133,30 @@ def _build_service_path_dirs(project_root: Path | None = None) -> list[str]:
     if project_root is None:
         project_root = PROJECT_ROOT
 
+    def _is_dir(path: Path) -> bool:
+        try:
+            return path.is_dir()
+        except OSError:
+            return False
+
     candidates = []
 
     venv_bin = project_root / "venv" / "bin"
-    try:
-        venv_exists = venv_bin.is_dir()
-    except OSError:
-        venv_exists = False
-    if venv_exists:
+    if _is_dir(venv_bin):
         candidates.append(str(venv_bin))
     elif sys.prefix != sys.base_prefix:
         candidates.append(str(Path(sys.prefix) / "bin"))
 
     node_bin = project_root / "node_modules" / ".bin"
-    try:
-        node_exists = node_bin.is_dir()
-    except OSError:
-        node_exists = False
-    if node_exists:
+    if _is_dir(node_bin):
         candidates.append(str(node_bin))
 
     hermes_home = get_hermes_home()
     hermes_node = hermes_home / "node" / "bin"
-    try:
-        hermes_node_exists = hermes_node.is_dir()
-    except OSError:
-        hermes_node_exists = False
-    if hermes_node_exists:
+    if _is_dir(hermes_node):
         candidates.append(str(hermes_node))
     hermes_nm = hermes_home / "node_modules" / ".bin"
-    try:
-        hermes_nm_exists = hermes_nm.is_dir()
-    except OSError:
-        hermes_nm_exists = False
-    if hermes_nm_exists:
+    if _is_dir(hermes_nm):
         candidates.append(str(hermes_nm))
 
     return candidates
@@ -2186,10 +2169,7 @@ def generate_systemd_unit(system: bool = False, run_as_user: str | None = None) 
     venv_dir = str(detected_venv) if detected_venv else str(PROJECT_ROOT / "venv")
 
     path_entries = _build_service_path_dirs()
-    try:
-        resolved_node = shutil.which("node")
-    except OSError:
-        resolved_node = None
+    resolved_node = shutil.which("node")
     if resolved_node:
         resolved_node_dir = str(Path(resolved_node).resolve().parent)
         if resolved_node_dir not in path_entries:
@@ -2834,10 +2814,7 @@ def generate_launchd_plist() -> str:
     # Resolve the directory containing the node binary (e.g. Homebrew, nvm)
     # so it's explicitly in PATH even if the user's shell PATH changes later.
     priority_dirs = _build_service_path_dirs()
-    try:
-        resolved_node = shutil.which("node")
-    except OSError:
-        resolved_node = None
+    resolved_node = shutil.which("node")
     if resolved_node:
         resolved_node_dir = str(Path(resolved_node).resolve().parent)
         if resolved_node_dir not in priority_dirs:
@@ -2864,7 +2841,7 @@ def generate_launchd_plist() -> str:
     from xml.sax.saxutils import escape as _xml_escape
 
     extra_env = []
-    for key in ("HERMES_TURBO_HOME", "HERMES_GATEWAY_SERVICE_BASE", "HERMES_LAUNCHD_LABEL_BASE"):
+    for key in ("HERMES_TURBO_HOME", "TOTA_HOME", "HERMES_GATEWAY_SERVICE_BASE", "HERMES_LAUNCHD_LABEL_BASE"):
         value = os.environ.get(key, "").strip()
         if value:
             extra_env.append(f"<key>{key}</key>\n        <string>{_xml_escape(value)}</string>")
@@ -3253,16 +3230,7 @@ def run_gateway(verbose: int = 0, quiet: bool = False, replace: bool = False):
             pass  # best-effort; don't block gateway startup
     
     from gateway.run import start_gateway
-
-    # uvloop: libuv-backed event loop. Drop-in policy install before any
-    # asyncio.run() so all asyncio.* APIs in the gateway use it. Graceful
-    # fallback if uvloop is not installed (Windows / Termux).
-    try:
-        import uvloop  # type: ignore
-        uvloop.install()
-    except Exception:
-        pass
-
+    
     print("┌─────────────────────────────────────────────────────────┐")
     print("│           ⚕ Hermes Gateway Starting...                 │")
     print("├─────────────────────────────────────────────────────────┤")
@@ -3820,8 +3788,11 @@ def _platform_status(platform: dict) -> str:
                 configured = bool(entry.is_connected(synthetic))
             except Exception:
                 configured = False
-        if not configured and entry.required_env:
-            configured = all(bool(get_env_value(name)) for name in entry.required_env)
+        if not configured:
+            try:
+                configured = bool(entry.check_fn())
+            except Exception:
+                configured = False
         return "configured" if configured else "not configured"
 
     token_var = platform.get("token_var", "")

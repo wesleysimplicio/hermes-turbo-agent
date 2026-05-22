@@ -1,10 +1,10 @@
-# Hermes Agent 100x Fast — Performance Roadmap & Upstream Sync Guide
+# Hermes Turbo Agent — Performance Roadmap & Upstream Sync Guide
 
 > **Status:** Living document. Owner: performance branch maintainer.
-> **Target repo:** `wesleysimplicio/hermes-agent-100x-fast`
+> **Target repo:** `wesleysimplicio/hermes-turbo-agent`
 > **Upstream:** `NousResearch/hermes-agent`
-> **Working branch:** `codex/hermes-agent-100x-fast`
-> **Last analysis:** 2026-05-16
+> **Working branch:** `codex/tota-sync-hermes-20260519`
+> **Last analysis:** 2026-05-19
 
 ---
 

@@ -45,7 +45,6 @@ import queue
 import re
 import shlex
 import shutil
-import signal
 import subprocess
 import sys
 import tempfile

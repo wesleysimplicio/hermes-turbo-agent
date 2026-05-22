@@ -1333,6 +1333,7 @@ def check_all_command_guards(command: str, env_type: str,
             "approved": False,
             "pattern_key": primary_key,
             "status": "approval_required",
+            "approval_pending": True,
             "command": command,
             "description": combined_desc,
             "message": (

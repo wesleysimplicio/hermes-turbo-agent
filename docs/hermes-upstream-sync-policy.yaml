@@ -1,0 +1,67 @@
+version: 1
+upstream_remote: https://github.com/NousResearch/hermes-agent.git
+sync_branch_prefix: codex/hermes-upstream-sync
+default_mode: merge
+validation:
+  required_commands:
+    - python -m pytest tests/plugins/test_token_saver_plugin.py tests/hermes_cli/test_upstream_sync_policy.py tests/hermes_cli/test_hermes_upstream_sync.py -q
+    - python scripts/validate_hermes_sync_policy.py docs/hermes-upstream-sync-policy.yaml
+    - taskflow run .
+  benchmark_refresh:
+    - python scripts/benchmark_startup_perf.py -n 3
+    - python scripts/benchmark_runtime_usage.py -n 3
+report:
+  include:
+    - upstream_commits
+    - conflicts
+    - skipped_patches
+    - reapplied_patches
+    - tests
+    - benchmarks
+    - risks
+rules:
+  - pattern: README.md
+    mode: merge
+    reason: Keep upstream install and runtime docs, but preserve Hermes Turbo benchmark, branding, and profile narrative.
+  - pattern: hermes-turbo-agent.html
+    mode: keep-turbo
+    reason: Hermes Turbo launch page is fork-owned and should not be overwritten by upstream.
+  - pattern: tota-agent.html
+    mode: manual-review
+    reason: Legacy benchmark microsite is retained for compatibility but can receive measured benchmark refreshes.
+  - pattern: distributions/hermes-turbo-*
+    mode: keep-turbo
+    reason: Desktop and car profile distributions are fork-owned product surfaces.
+  - pattern: hermes_constants.py
+    mode: merge
+    reason: Preserve upstream constants while keeping HERMES_TURBO_HOME, TOTA_HOME, and storage compatibility.
+  - pattern: pyproject.toml
+    mode: merge
+    reason: Accept upstream dependency and entrypoint changes while preserving Hermes Turbo metadata and optional performance extras.
+  - pattern: acp_registry/agent.json
+    mode: merge
+    reason: Keep ACP metadata aligned with version and Hermes Turbo identity.
+  - pattern: plugins/token_saver/**
+    mode: keep-turbo
+    reason: Native token economy plugin is fork-owned and must survive upstream refreshes.
+  - pattern: docs/hermes-upstream-sync-policy.yaml
+    mode: keep-turbo
+    reason: Sync policy is the contract for future upstream updates.
+  - pattern: docs/hermes-100x-fast-*
+    mode: regenerate
+    reason: Performance docs should be regenerated from measured benchmark data after upstream sync.
+  - pattern: docs/tota-benchmark-*
+    mode: regenerate
+    reason: Benchmark claims must track current measured data after upstream sync.
+  - pattern: docs/assets/hermes-turbo-brand/**
+    mode: keep-turbo
+    reason: Hermes Turbo visual identity is fork-owned.
+  - pattern: docs/assets/100x-fast/**
+    mode: regenerate
+    reason: Runtime benchmark visuals should be refreshed from the latest measured values.
+  - pattern: plugins/model-providers/**
+    mode: prefer-upstream
+    reason: Provider compatibility should follow upstream unless a Hermes Turbo patch is explicitly documented.
+  - pattern: tests/plugins/test_token_saver_plugin.py
+    mode: keep-turbo
+    reason: Token saver regression coverage guards fork-owned token economy behavior.

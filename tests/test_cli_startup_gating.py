@@ -64,6 +64,11 @@ def test_agent_subcommands_run_hooks(gating):
         assert gating([cmd]) is True, f"Expected {cmd} to run hooks"
 
 
+def test_tota_update_check_runs_with_agent_hooks(gating):
+    assert gating(["chat"]) is True
+    assert gating(["update"]) is False
+
+
 def test_explicit_disable_overrides_subcommand(gating, monkeypatch):
     monkeypatch.setenv("HERMES_TURBO_SKIP_STARTUP_HOOKS", "1")
     assert gating(["chat"]) is False

@@ -488,7 +488,12 @@ def _should_parallelize_tool_batch(tool_calls) -> bool:
             continue
 
         if tool_name not in _PARALLEL_SAFE_TOOLS:
-            return False
+            try:
+                from tools.mcp_tool import is_mcp_tool_parallel_safe
+            except Exception:
+                return False
+            if not is_mcp_tool_parallel_safe(tool_name):
+                return False
 
     return True
 
@@ -1149,6 +1154,32 @@ def _qwen_portal_headers() -> dict:
         "X-DashScope-UserAgent": _ua,
         "X-DashScope-AuthType": "qwen-oauth",
     }
+
+
+class _StreamErrorEvent(Exception):
+    """Provider error surfaced from a Responses ``error`` SSE frame."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: Optional[str] = None,
+        param: Optional[str] = None,
+        status_code: Optional[int] = None,
+    ) -> None:
+        super().__init__(message)
+        self.message = message
+        self.code = code
+        self.param = param
+        self.status_code = status_code
+        self.body: Dict[str, Any] = {
+            "error": {
+                "message": message,
+                "code": code,
+                "param": param,
+                "type": "error",
+            }
+        }
 
 
 _TOOL_CALL_ARGUMENTS_CORRUPTION_MARKER = (
@@ -3090,6 +3121,16 @@ class AIAgent:
             parts.append(f"{type(e).__name__}({msg})" if msg else type(e).__name__)
         return " <- ".join(parts) if parts else type(error).__name__
 
+    def _is_provider_stream_parse_error(self, error: BaseException) -> bool:
+        """Treat known provider-side stream parser ValueErrors as retryable."""
+        if getattr(self, "api_mode", None) != "anthropic_messages":
+            return False
+        if not isinstance(error, ValueError):
+            return False
+        if isinstance(error, (UnicodeEncodeError, json.JSONDecodeError)):
+            return False
+        return "expected ident at line" in str(error).strip().lower()
+
     def _log_stream_retry(
         self,
         *,
@@ -4380,6 +4421,7 @@ class AIAgent:
                         api_key=_parent_runtime.get("api_key") or None,
                         credential_pool=getattr(self, "_credential_pool", None),
                         parent_session_id=self.session_id,
+                        skip_memory=True,
                     )
                     review_agent._memory_write_origin = "background_review"
                     review_agent._memory_write_context = "background_review"
@@ -5043,6 +5085,29 @@ class AIAgent:
         _save_trajectory_to_file(trajectory, self.model, completed)
 
     @staticmethod
+    def _is_entitlement_failure(
+        error_context: Optional[Dict[str, Any]],
+        status_code: Optional[int],
+    ) -> bool:
+        """Detect subscription-shaped auth errors that refresh cannot fix."""
+        if status_code not in {401, 403, None}:
+            return False
+        if not isinstance(error_context, dict):
+            return False
+        message = str(error_context.get("message") or "").lower()
+        reason = str(error_context.get("reason") or "").lower()
+        haystack = f"{message} {reason}"
+        if not haystack.strip():
+            return False
+        if "do not have an active grok subscription" in haystack:
+            return True
+        if "out of available resources" in haystack and "grok" in haystack:
+            return True
+        if "does not have permission" in haystack and "grok" in haystack:
+            return True
+        return False
+
+    @staticmethod
     def _decorate_xai_entitlement_error(detail: str) -> str:
         """Append a friendly hint when xAI's OAuth surface returns an
         entitlement-shaped error.
@@ -5091,6 +5156,12 @@ class AIAgent:
         """
         raw = str(error)
 
+        if (
+            isinstance(error, ValueError)
+            and "expected ident at line" in raw.lower()
+        ):
+            return f"Malformed provider streaming response: {raw[:300]}"
+
         # Cloudflare / proxy HTML pages: grab the <title> for a clean summary
         if "<!DOCTYPE" in raw or "<html" in raw:
             m = re.search(r"<title[^>]*>([^<]+)</title>", raw, re.IGNORECASE)
@@ -5122,6 +5193,8 @@ class AIAgent:
         return AIAgent._decorate_xai_entitlement_error(f"{prefix}{raw[:500]}")
 
     def _mask_api_key_for_logs(self, key: Optional[str]) -> Optional[str]:
+        if callable(key) and not isinstance(key, str):
+            return "<entra-id-bearer>"
         if not key:
             return None
         if len(key) <= 12:
@@ -5156,68 +5229,9 @@ class AIAgent:
 
     @staticmethod
     def _extract_api_error_context(error: Exception) -> Dict[str, Any]:
-        """Extract structured rate-limit details from provider errors."""
-        context: Dict[str, Any] = {}
-
-        body = getattr(error, "body", None)
-        payload = None
-        if isinstance(body, dict):
-            payload = body.get("error") if isinstance(body.get("error"), dict) else body
-        if isinstance(payload, dict):
-            reason = payload.get("code") or payload.get("error")
-            if isinstance(reason, str) and reason.strip():
-                context["reason"] = reason.strip()
-            message = payload.get("message") or payload.get("error_description")
-            if isinstance(message, str) and message.strip():
-                context["message"] = message.strip()
-            for key in ("resets_at", "reset_at"):
-                value = payload.get(key)
-                if value not in {None, ""}:
-                    context["reset_at"] = value
-                    break
-            retry_after = payload.get("retry_after")
-            if retry_after not in {None, ""} and "reset_at" not in context:
-                try:
-                    context["reset_at"] = time.time() + float(retry_after)
-                except (TypeError, ValueError):
-                    pass
-
-        response = getattr(error, "response", None)
-        headers = getattr(response, "headers", None)
-        if headers:
-            retry_after = headers.get("retry-after") or headers.get("Retry-After")
-            if retry_after and "reset_at" not in context:
-                try:
-                    context["reset_at"] = time.time() + float(retry_after)
-                except (TypeError, ValueError):
-                    pass
-            ratelimit_reset = headers.get("x-ratelimit-reset")
-            if ratelimit_reset and "reset_at" not in context:
-                context["reset_at"] = ratelimit_reset
-
-        if "message" not in context:
-            raw_message = str(error).strip()
-            if raw_message:
-                context["message"] = raw_message[:500]
-
-        if "reset_at" not in context:
-            message = context.get("message") or ""
-            if isinstance(message, str):
-                delay_match = re.search(r"quotaResetDelay[:\s\"]+(\\d+(?:\\.\\d+)?)(ms|s)", message, re.IGNORECASE)
-                if delay_match:
-                    value = float(delay_match.group(1))
-                    seconds = value / 1000.0 if delay_match.group(2).lower() == "ms" else value
-                    context["reset_at"] = time.time() + seconds
-                else:
-                    sec_match = re.search(
-                        r"retry\s+(?:after\s+)?(\d+(?:\.\d+)?)\s*(?:sec|secs|seconds|s\b)",
-                        message,
-                        re.IGNORECASE,
-                    )
-                    if sec_match:
-                        context["reset_at"] = time.time() + float(sec_match.group(1))
-
-        return context
+        """Forwarder — see ``agent.agent_runtime_helpers.extract_api_error_context``."""
+        from agent.agent_runtime_helpers import extract_api_error_context
+        return extract_api_error_context(error)
 
     def _usage_summary_for_api_request_hook(self, response: Any) -> Optional[Dict[str, Any]]:
         """Token buckets for ``post_api_request`` plugins (no raw ``response`` object)."""
@@ -6119,7 +6133,7 @@ class AIAgent:
                     stable_parts.append(GOOGLE_MODEL_OPERATIONAL_GUIDANCE)
                 # OpenAI GPT/Codex execution discipline (tool persistence,
                 # prerequisite checks, verification, anti-hallucination).
-                if "gpt" in _model_lower or "codex" in _model_lower:
+                if "gpt" in _model_lower or "codex" in _model_lower or "grok" in _model_lower:
                     stable_parts.append(OPENAI_MODEL_EXECUTION_GUIDANCE)
 
         has_skills_tools = any(name in self.valid_tool_names for name in ['skills_list', 'skill_view', 'skill_manage'])
@@ -6218,7 +6232,7 @@ class AIAgent:
 
         from hermes_time import now as _hermes_now
         now = _hermes_now()
-        timestamp_line = f"Conversation started: {now.strftime('%A, %B %d, %Y %I:%M %p')}"
+        timestamp_line = f"Conversation started: {now.strftime('%A, %B %d, %Y')}"
         if self.pass_session_id and self.session_id:
             timestamp_line += f"\nSession ID: {self.session_id}"
         if self.model:
@@ -7241,6 +7255,22 @@ class AIAgent:
                 if not event_type and isinstance(event, dict):
                     event_type = event.get("type")
 
+                if event_type == "error":
+                    err_message = getattr(event, "message", None)
+                    if not err_message and isinstance(event, dict):
+                        err_message = event.get("message")
+                    err_code = getattr(event, "code", None)
+                    if not err_code and isinstance(event, dict):
+                        err_code = event.get("code")
+                    err_param = getattr(event, "param", None)
+                    if not err_param and isinstance(event, dict):
+                        err_param = event.get("param")
+                    raise _StreamErrorEvent(
+                        (err_message or "stream emitted error event").strip(),
+                        code=err_code,
+                        param=err_param,
+                    )
+
                 # Collect output items and text deltas for backfill
                 if event_type == "response.output_item.done":
                     done_item = getattr(event, "item", None)
@@ -7374,12 +7404,20 @@ class AIAgent:
             return False
 
         try:
-            from hermes_cli.auth import resolve_nous_runtime_credentials
+            from hermes_cli.auth import (
+                NOUS_INFERENCE_AUTH_MODE_AUTO,
+                NOUS_INFERENCE_AUTH_MODE_LEGACY,
+                resolve_nous_runtime_credentials,
+            )
 
             creds = resolve_nous_runtime_credentials(
                 min_key_ttl_seconds=max(60, int(os.getenv("HERMES_NOUS_MIN_KEY_TTL_SECONDS", "1800"))),
                 timeout_seconds=float(os.getenv("HERMES_NOUS_TIMEOUT_SECONDS", "15")),
-                force_mint=force,
+                inference_auth_mode=(
+                    NOUS_INFERENCE_AUTH_MODE_LEGACY
+                    if force
+                    else NOUS_INFERENCE_AUTH_MODE_AUTO
+                ),
             )
         except Exception as exc:
             logger.debug("Nous credential refresh failed: %s", exc)
@@ -7571,81 +7609,9 @@ class AIAgent:
         classified_reason: Optional[FailoverReason] = None,
         error_context: Optional[Dict[str, Any]] = None,
     ) -> tuple[bool, bool]:
-        """Attempt credential recovery via pool rotation.
-
-        Returns (recovered, has_retried_429).
-        On rate limits: first occurrence retries same credential (sets flag True).
-                        second consecutive failure rotates to next credential.
-        On billing exhaustion: immediately rotates.
-        On auth failures: attempts token refresh before rotating.
-
-        `classified_reason` lets the recovery path honor the structured error
-        classifier instead of relying only on raw HTTP codes. This matters for
-        providers that surface billing/rate-limit/auth conditions under a
-        different status code, such as Anthropic returning HTTP 400 for
-        "out of extra usage".
-        """
-        pool = self._credential_pool
-        if pool is None:
-            return False, has_retried_429
-
-        effective_reason = classified_reason
-        if effective_reason is None:
-            if status_code == 402:
-                effective_reason = FailoverReason.billing
-            elif status_code == 429:
-                effective_reason = FailoverReason.rate_limit
-            elif status_code in {401, 403}:
-                effective_reason = FailoverReason.auth
-
-        if effective_reason == FailoverReason.billing:
-            rotate_status = status_code if status_code is not None else 402
-            next_entry = pool.mark_exhausted_and_rotate(status_code=rotate_status, error_context=error_context)
-            if next_entry is not None:
-                logger.info(
-                    "Credential %s (billing) — rotated to pool entry %s",
-                    rotate_status,
-                    getattr(next_entry, "id", "?"),
-                )
-                self._swap_credential(next_entry)
-                return True, False
-            return False, has_retried_429
-
-        if effective_reason == FailoverReason.rate_limit:
-            if not has_retried_429:
-                return False, True
-            rotate_status = status_code if status_code is not None else 429
-            next_entry = pool.mark_exhausted_and_rotate(status_code=rotate_status, error_context=error_context)
-            if next_entry is not None:
-                logger.info(
-                    "Credential %s (rate limit) — rotated to pool entry %s",
-                    rotate_status,
-                    getattr(next_entry, "id", "?"),
-                )
-                self._swap_credential(next_entry)
-                return True, False
-            return False, True
-
-        if effective_reason == FailoverReason.auth:
-            refreshed = pool.try_refresh_current()
-            if refreshed is not None:
-                logger.info(f"Credential auth failure — refreshed pool entry {getattr(refreshed, 'id', '?')}")
-                self._swap_credential(refreshed)
-                return True, has_retried_429
-            # Refresh failed — rotate to next credential instead of giving up.
-            # The failed entry is already marked exhausted by try_refresh_current().
-            rotate_status = status_code if status_code is not None else 401
-            next_entry = pool.mark_exhausted_and_rotate(status_code=rotate_status, error_context=error_context)
-            if next_entry is not None:
-                logger.info(
-                    "Credential %s (auth refresh failed) — rotated to pool entry %s",
-                    rotate_status,
-                    getattr(next_entry, "id", "?"),
-                )
-                self._swap_credential(next_entry)
-                return True, False
-
-        return False, has_retried_429
+        """Forwarder — see ``agent.agent_runtime_helpers.recover_with_credential_pool``."""
+        from agent.agent_runtime_helpers import recover_with_credential_pool
+        return recover_with_credential_pool(self, status_code=status_code, has_retried_429=has_retried_429, classified_reason=classified_reason, error_context=error_context)
 
     def _credential_pool_may_recover_rate_limit(self) -> bool:
         """Whether a rate-limit retry should wait for same-provider credentials."""
@@ -8522,6 +8488,7 @@ class AIAgent:
                         _is_conn_err = isinstance(
                             e, (_httpx.ConnectError, _httpx.RemoteProtocolError, ConnectionError)
                         )
+                        _is_provider_parse_err = self._is_provider_stream_parse_error(e)
 
                         # If the stream died AFTER some tokens were delivered:
                         # normally we don't retry (the user already saw text,
@@ -8659,7 +8626,7 @@ class AIAgent:
                                     for phrase in _SSE_CONN_PHRASES
                                 )
 
-                        if _is_timeout or _is_conn_err or _is_sse_conn_err:
+                        if _is_timeout or _is_conn_err or _is_sse_conn_err or _is_provider_parse_err:
                             # Transient network / timeout error. Retry the
                             # streaming request with a fresh connection first.
                             if _stream_attempt < _max_stream_retries:
@@ -9148,6 +9115,7 @@ class AIAgent:
         ``gateway/run.py``), so this restoration IS needed there too.
         """
         if not self._fallback_activated:
+            self._fallback_index = 0
             return False
 
         if getattr(self, "_rate_limited_until", 0) > time.monotonic():

@@ -1,0 +1,6 @@
+name: hermes-turbo-car
+version: 0.14.5
+description: "Car copilot profile for Hermes Turbo Agent: voice-first summaries, task capture, and safe handoff workflows."
+hermes_requires: ">=0.14.5"
+author: "Wesley Simplicio"
+license: "MIT"
