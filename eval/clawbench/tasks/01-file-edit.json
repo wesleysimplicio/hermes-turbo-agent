@@ -1,0 +1,8 @@
+{
+  "id": "file-edit-001",
+  "kind": "file_edit",
+  "description": "Insert a CHANGELOG entry under the [Unreleased] heading.",
+  "prompt": "Edit CHANGELOG.md to add '- Added clawbench eval harness' under [Unreleased].",
+  "scorer": "exact",
+  "expected": "edited:CHANGELOG.md:added-line:- Added clawbench eval harness"
+}
