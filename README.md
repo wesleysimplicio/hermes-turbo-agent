@@ -19,7 +19,8 @@ Four issues closed in [PR #141](https://github.com/wesleysimplicio/hermes-turbo-
 - **`hermes migrate-from-openclaw --benchmark`** (`#139`) — guided OpenClaw migration with a side-by-side performance comparison.
 
 Full release notes: [RELEASE_v0.14.4.md](RELEASE_v0.14.4.md).
-Latest perf report: [docs/turbo-score-latest.md](docs/turbo-score-latest.md).
+Latest perf report (Markdown): [docs/turbo-score-latest.md](docs/turbo-score-latest.md).
+Latest perf report (PDF): [docs/hermes-turbo-v0.14.4-perf-report.pdf](docs/hermes-turbo-v0.14.4-perf-report.pdf).
 
 ## Turbo Score
 
