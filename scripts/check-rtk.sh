@@ -1,26 +1,38 @@
 #!/usr/bin/env bash
-# check-rtk.sh — detect optional RTK CLI (https://github.com/rtk-ai/rtk).
+# check-rtk.sh — show which token-saver backend the Hermes Turbo RTK bridge
+# will use. See docs/integrations/rtk-bridge.md.
 #
-# Exits 0 with the resolved binary path when `rtk` is on PATH.
-# Exits 1 with an install hint otherwise. Never blocks the repo: RTK is
-# optional, every command in this repo has a plain fallback.
-#
-# See: docs/dev/rtk-cli.md
+# Exit: 0 rtk active, 1 native fallback, 2 backend=rtk but rtk missing.
 set -euo pipefail
 
-if bin="$(command -v rtk 2>/dev/null)"; then
-  echo "rtk: ok ($bin)"
-  rtk --version 2>/dev/null || true
-  exit 0
+BACKEND="${HERMES_TOKEN_SAVER:-auto}"
+
+if command -v rtk >/dev/null 2>&1; then
+  RTK_PATH="$(command -v rtk)"
+  RTK_AVAILABLE=1
+else
+  RTK_PATH=""
+  RTK_AVAILABLE=0
 fi
 
-cat >&2 <<'HINT'
-rtk: not found on PATH (optional)
+case "$BACKEND" in
+  native) EFFECTIVE="native" ;;
+  rtk)
+    if [ "$RTK_AVAILABLE" -eq 1 ]; then
+      EFFECTIVE="rtk"
+    else
+      echo "ERROR: HERMES_TOKEN_SAVER=rtk but \`rtk\` is not on PATH." >&2
+      echo "Install https://github.com/rtk-ai/rtk or switch to native/auto." >&2
+      exit 2
+    fi
+    ;;
+  auto|*)
+    BACKEND="auto"
+    [ "$RTK_AVAILABLE" -eq 1 ] && EFFECTIVE="rtk" || EFFECTIVE="native"
+    ;;
+esac
 
-Install: https://github.com/rtk-ai/rtk
-Guide:   docs/dev/rtk-cli.md
+printf 'backend=%s\nrtk_available=%s\nrtk_path=%s\neffective=%s\n' \
+  "$BACKEND" "$RTK_AVAILABLE" "$RTK_PATH" "$EFFECTIVE"
 
-This repo works without rtk. The check exits non-zero only to signal absence
-to callers that want to gate on it.
-HINT
-exit 1
+[ "$EFFECTIVE" = "rtk" ] && exit 0 || exit 1
