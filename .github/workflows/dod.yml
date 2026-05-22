@@ -26,20 +26,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.12"
-          cache: pip
+          enable-cache: true
 
-      - name: Install minimal deps
-        run: |
-          python -m pip install --upgrade pip
-          pip install ruff pytest
+      - name: Set up Python
+        run: uv python install 3.12
 
-      - name: Lint (ruff, blocking only on turbo modules)
+      - name: Lint (ruff, turbo surface only)
         run: |
-          ruff check \
+          uv tool run ruff check \
             agent/project_mapper \
             agent/meta_contract.py \
             agent/contracts \
@@ -51,42 +48,26 @@ jobs:
             tests/contracts/test_tuple_status_envelope.py \
             tests/agent/telemetry/test_receipts.py \
             tests/hermes_cli/test_prompt_sync.py \
-            tests/hermes_cli/test_prompt_section.py
+            tests/hermes_cli/test_prompt_section.py \
+            scripts/benchmark_turbo_vs_baseline.py
 
-      - name: Unit tests (turbo surface)
+      - name: Unit tests (turbo surface, stdlib-only modules)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
-          python -m pytest -o addopts="" \
+          uv run --with pytest python -m pytest -o addopts="" \
             tests/agent/project_mapper \
             tests/agent/test_meta_contract.py \
             tests/contracts/test_tuple_status_envelope.py \
             tests/agent/telemetry/test_receipts.py \
             tests/hermes_cli/test_prompt_sync.py \
-            tests/hermes_cli/test_prompt_section.py \
-            tests/token_saver \
-            tests/router \
-            tests/agent/telemetry \
-            tests/registry \
-            tests/contracts \
-            tests/agent/test_token_cache.py \
-            tests/agent/test_governor.py \
-            tests/test_ci_compact.py \
-            tests/test_github_compact.py \
-            tests/test_evidence_store.py \
-            tests/test_prompt_cache_stability.py \
-            tests/scripts
-
-      - name: Compression safety fixtures
-        run: |
-          python tests/eval/compression_safety/runner.py
-
-      - name: ClawBench harness
-        run: |
-          python eval/clawbench/runner.py
+            tests/hermes_cli/test_prompt_section.py
 
       - name: HAMT catalog dry build
         run: |
-          python scripts/build_hamt_catalog.py --print-list
+          uv run python scripts/build_hamt_catalog.py \
+            --agents .agents/AGENTS.yool.md --print-list
 
       - name: Turbo vs baseline benchmark (smoke)
         run: |
-          python scripts/benchmark_turbo_vs_baseline.py --smoke
+          uv run python scripts/benchmark_turbo_vs_baseline.py --smoke

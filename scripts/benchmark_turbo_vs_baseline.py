@@ -86,7 +86,7 @@ def _percentile(values: List[float], pct: float) -> float:
 
 # ---- baselines: naive equivalents to compare against ----
 
-def _baseline_fingerprint(root: Path) -> Dict[str, object]:
+def _baseline_fingerprint(root: Path) -> Dict[str, int]:
     # Naive: read the entire repo tree to "guess" stack — what an agent would
     # do without a fingerprinter.
     counters: Dict[str, int] = {}
