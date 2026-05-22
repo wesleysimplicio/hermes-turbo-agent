@@ -1,57 +1,63 @@
-<p align="center">
-  <img src="docs/assets/tota-brand/tota-agent-vs-openclaw-banner.png" alt="Tota Agent by Hermes Agent versus OpenClaw benchmark banner" width="100%">
-</p>
-
-# Tota Agent
+# Hermes Turbo Agent
 
 <p align="center">
-  <a href="tota-agent.html"><img src="https://img.shields.io/badge/Site-tota--agent.html-19D27F?style=for-the-badge" alt="Tota Agent HTML site"></a>
-  <a href="tota_agent_benchmark_report.pdf"><img src="https://img.shields.io/badge/Benchmark-PDF-FFE15A?style=for-the-badge" alt="Benchmark PDF"></a>
-  <a href="https://github.com/wesleysimplicio/tota-agent"><img src="https://img.shields.io/badge/Fork-wesleysimplicio%2Ftota--agent-32B7FF?style=for-the-badge&logo=github" alt="Tota Agent fork"></a>
-  <a href="https://x.com/wesleysimplic"><img src="https://img.shields.io/badge/X-@wesleysimplic-000000?style=for-the-badge&logo=x" alt="Wesley Simplicio on X"></a>
-  <a href="https://github.com/NousResearch/hermes-agent"><img src="https://img.shields.io/badge/Upstream-Hermes%20Agent-FF5D6C?style=for-the-badge" alt="Hermes Agent upstream"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/Version-v0.14.4-19D27F?style=for-the-badge" alt="Version v0.14.4">
+  <img src="https://img.shields.io/badge/Turbo%20Score-62.78%20%2F%20100-FFE15A?style=for-the-badge" alt="Turbo Score 62.78 / 100">
+  <a href="https://github.com/NousResearch/hermes-agent"><img src="https://img.shields.io/badge/Upstream-Hermes%20Agent-FF5D6C?style=for-the-badge" alt="Hermes Agent upstream"></a>
 </p>
 
-<p align="center">
-  <strong>Once you're Tota, you'll never be OpenClaw.</strong>
-</p>
+**Hermes Turbo Agent is a performance-focused fork of [Hermes Agent](https://github.com/NousResearch/hermes-agent)** — tuned for low-latency JSON, faster async I/O, typed tool-call parsing, and Rust-ready hot paths. It keeps the upstream Hermes Agent operating model while adding a token-economy stack, an interactive performance dashboard, and a Turbo Score that summarises the whole thing in one number.
 
-**Tota Agent is a Brazilian-fast fork of [Hermes Agent](https://github.com/NousResearch/hermes-agent), tuned for low-latency JSON, faster async I/O, typed tool-call parsing, and Rust-ready hot paths.** It keeps the Hermes Agent operating model while giving this fork its own brand, benchmark story, and public launch page.
+## What's new in v0.14.4 (2026-05-22)
 
-The visual identity is inspired by Tota MC's public Brazil-to-US streaming rise: creator energy, Rocinha-to-global momentum, improvised live culture, and cross-language charisma. Public references include the Streamer University coverage by [Times of India](https://timesofindia.indiatimes.com/sports/esports/news/who-is-tota-mc-meet-streamer-universitys-viral-brazilian-star/articleshow/121433457.cms) and the Portuguese profile syndicated by [Rede NXT](https://www.redenxt.com.br/noticia/5281/pop-amp-arte/quem-e-tota-mc-influenciador-da-rocinha-que-vendia-bala-no-sinal-e-hoje-tem-6-milhoes-de-seguidores-com-fas-como-snoop-dogg-e-drake.html). The core geometric logo does not use a portrait or imply official endorsement; the benchmark battle cards also include the supplied circular Tota mark for campaign use.
+Four issues closed in [PR #141](https://github.com/wesleysimplicio/hermes-turbo-agent/pull/141):
 
-## Launch Assets
+- **Turbo Score** (`#136`) — single 0–100 figure of merit combining latency, throughput, memory, cold-start and token-savings. Refreshed daily by `.github/workflows/daily-turbo-score.yml`.
+- **`/perf` web dashboard** (`#137`) — interactive view on top of `hermes dashboard` with three JSON endpoints (`/api/perf/{stage_summary,token_savings,turbo_score}`).
+- **`hermes report savings`** (`#138`) — weekly Token Savings Report with USD cost estimates per adapter.
+- **`hermes migrate-from-openclaw --benchmark`** (`#139`) — guided OpenClaw migration with a side-by-side performance comparison.
 
-- [Standalone HTML site](tota-agent.html)
-- [Tota vs OpenClaw launch banner PNG](docs/assets/tota-brand/tota-agent-vs-openclaw-banner.png)
-- [Tota vs OpenClaw launch banner SVG](docs/assets/tota-brand/tota-agent-vs-openclaw-banner.svg)
-- [Benchmark battle cards](docs/assets/tota-benchmark/battles/)
-- [Hermes 0.14.0 side-by-side report](docs/tota-benchmark-hermes-0.14.0.md)
-- [Daily Hermes sync routine](docs/tota-hermes-daily-update.md)
-- [Updated benchmark PDF](tota_agent_benchmark_report.pdf) - May 18, 2026 edition with the Hermes 0.14.0 refresh, brand, site, visuals, and current `.venv` validation.
-- [SVG logo](docs/assets/tota-brand/tota-agent-logo.svg)
-- [PNG logo](docs/assets/tota-brand/tota-agent-logo.png)
-- [Open graph image](docs/assets/tota-brand/tota-agent-og.png)
-- [GPT-image-2 emblem source](docs/assets/tota-brand/generated/gpt-image-2-tota-agent-emblem.png)
+Full release notes: [RELEASE_v0.14.4.md](RELEASE_v0.14.4.md).
+Latest perf report: [docs/turbo-score-latest.md](docs/turbo-score-latest.md).
 
-## Why Tota Agent
+## Turbo Score
 
-| Need | Tota Agent answer |
+| Family       | Weight | Raw  | Weighted | Metrics |
+| ---          | ---:   | ---: | ---:     | ---:    |
+| latency      | 30     | 0.10 | 3.15     | 3       |
+| throughput   | 20     | 1.00 | 20.00    | 1       |
+| cold_start   | 15     | 0.81 | 12.08    | 1       |
+| memory       | 15     | 1.00 | 15.00    | 1       |
+
+**Score: 62.78 / 100** (token_savings family dropped — log empty on this build).
+
+Reproduce locally:
+
+```bash
+python scripts/turbo_score.py            # ASCII report
+python scripts/turbo_score.py --markdown # README-ready
+python scripts/turbo_score.py --json     # machine-readable
+```
+
+## Why Hermes Turbo
+
+| Need | Answer |
 | --- | --- |
-| Keep Hermes compatibility | Forks Hermes Agent instead of replacing its architecture. |
-| Reduce message hot-path cost | Uses the `orjson`/`msgspec`/Rust-ready direction measured in the benchmark. |
-| Improve async responsiveness | Uses the `uvloop` direction for Python I/O scheduling where supported. |
-| Tell a sharper product story | Adds Tota Agent branding, launch site, and benchmark visuals. |
-| Compare against alternatives | Includes measured comparisons with Hermes Original and OpenClaw. |
+| Keep upstream Hermes compatibility | Forks Hermes Agent instead of replacing its architecture. |
+| Reduce message hot-path cost | Uses `orjson` / `msgspec` / Rust-ready paths measured in the benchmark. |
+| Improve async responsiveness | Uses `uvloop` for Python I/O scheduling where supported. |
+| Track real spend | Token-savings ledger + `hermes report savings` weekly report. |
+| Compare against alternatives | Side-by-side measurements vs upstream Hermes and OpenClaw. |
+| Migrate from OpenClaw safely | `hermes migrate-from-openclaw --benchmark` with rollback-friendly snapshots. |
 
 ## Install
 
 ### From GitHub
 
 ```bash
-git clone https://github.com/wesleysimplicio/tota-agent.git
-cd tota-agent
+git clone https://github.com/wesleysimplicio/hermes-turbo-agent.git
+cd hermes-turbo-agent
 
 uv venv .venv --python 3.11
 source .venv/bin/activate
@@ -62,18 +68,9 @@ uv pip install -e ".[all,dev]"
 
 Windows users can use the native PowerShell installer at `scripts/install.ps1`.
 
-### From This Checkout
-
-```bash
-cd /Users/wesleysimplicio/Projetos/contribuicoes/hermes/tota-agent
-source .venv/bin/activate 2>/dev/null || source venv/bin/activate
-uv pip install -e ".[all,dev]"
-./hermes
-```
-
 ### Performance Extras
 
-The benchmarked Tota Agent direction is built around fast Python plus native-extension-ready hot paths:
+The performance-oriented build adds fast Python plus native-extension-ready hot paths:
 
 ```bash
 uv pip install -e ".[fast]"
@@ -87,14 +84,15 @@ python -c "from agent._hermes_fast import HAVE_RUST; print('Rust:', HAVE_RUST)"
 ```
 
 The `fast` extra stays optional so the base install remains small. When present,
-Tota Agent uses `orjson`, `msgspec`, `uvloop`, and the Rust extension with
+Hermes Turbo uses `orjson`, `msgspec`, `uvloop`, and the Rust extension with
 Python fallbacks for locked-down or source-only environments.
 
-### Daily Hermes Sync
+### Daily upstream sync
 
-Tota Agent can run a daily sync routine that updates the local environment,
+Hermes Turbo can run a daily sync routine that updates the local environment,
 runs `hermes update`, merges the latest `NousResearch/hermes-agent` core, and
-keeps Tota's speed customizations under validation before pushing a dated branch:
+keeps Hermes Turbo's speed customisations under validation before pushing a
+dated branch:
 
 ```bash
 python3 scripts/install_tota_hermes_daily_update_launchd.py --hour 6 --minute 30
@@ -102,31 +100,38 @@ python3 scripts/install_tota_hermes_daily_update_launchd.py --hour 6 --minute 30
 
 See [docs/tota-hermes-daily-update.md](docs/tota-hermes-daily-update.md).
 
-### Post-Benchmark Performance Patch
+## Release history
 
-Version `0.14.2` adds the Hermes 0.14.0 side-by-side benchmark refresh, the
-daily Hermes sync routine, and the report generation dependency needed to
-regenerate `tota_agent_benchmark_report.pdf`.
-
-Version `0.13.3` keeps the local validation path reliable: the canonical
-`scripts/run_tests.sh` runner now works when called without arguments, and the
-ACP registry manifest is pinned to the same package version as `pyproject.toml`.
-
-Version `0.13.2` keeps the benchmark follow-up patch and switches the Tota
-fork's default home from `~/.hermes` to `~/.tota` for new installs. `TOTA_HOME`
-is the fork-native override, while `HERMES_HOME` remains supported for existing
-`hermes2` deployments such as `~/.hermes2`.
-
-Version `0.13.1` applied the benchmark follow-up plan:
-
-- Bytes-native JSON via `agent._fastjson.dumps_bytes()` for short payload hot paths.
-- Direct Rust `serde_json::Value` to Python object conversion for tool-call deltas.
-- Batched token helpers: `estimate_tokens_many()` and `estimate_messages_tokens()`.
-- Rust bytes variants for message-token estimation/truncation.
-- Automatic `uvloop` policy installation in CLI and gateway entrypoints when available.
-- Bounded `fast` extra dependencies to keep supply-chain risk controlled.
+- **0.14.4** — Turbo Score, `/perf` web dashboard, `hermes report savings`, `hermes migrate-from-openclaw --benchmark`.
+- **0.14.3** — Interactive update prompt for installed users; `TOTA_SKIP_UPDATE_PROMPT` opt-out.
+- **0.14.2** — Side-by-side benchmark refresh, daily upstream sync routine, report generation deps.
+- **0.13.3** — Canonical `scripts/run_tests.sh` runner reliability; ACP registry manifest aligned with `pyproject.toml`.
+- **0.13.2** — Default home moved from `~/.hermes` to `~/.tota` for fresh installs (`TOTA_HOME` / `HERMES_HOME` both honoured).
+- **0.13.1** — Bytes-native JSON via `agent._fastjson.dumps_bytes()`; Rust `serde_json::Value` to Python conversion for tool-call deltas; batched token helpers; `uvloop` policy install in CLI and gateway entrypoints; bounded `fast` extra deps.
 
 Details: [docs/tota-benchmark-win-plan.md](docs/tota-benchmark-win-plan.md).
+
+## New CLI Commands (v0.14.4)
+
+```bash
+# Weekly Token Savings Report
+hermes report savings --since 7d                   # text
+hermes report savings --since 30d --markdown        # Slack/email-ready
+hermes report savings --json --out report.json      # machine-readable
+
+# OpenClaw → Hermes Turbo migration with benchmark
+hermes migrate-from-openclaw --dry-run --benchmark
+hermes migrate-from-openclaw --benchmark --benchmark-out reports/openclaw.md
+
+# Performance dashboard (web)
+hermes dashboard
+# → open http://127.0.0.1:9119/perf
+```
+
+The `/perf` view polls every 15 s against `~/.hermes/telemetry/*.jsonl` and
+shows the Turbo Score, the token-savings totals, and per-stage percentiles.
+All `/api/perf/*` endpoints are public on localhost only (same trust boundary
+as the rest of the dashboard).
 
 ## Runtime Speedups
 
@@ -147,6 +152,39 @@ These are real-agent-runtime measurements (agent construction, subagent build, t
 
 Two separate sets of measurements ship in this repo. Keep the distinction sharp when quoting numbers.
 
+### Latest startup hot-path benchmark (v0.14.4)
+
+Fresh run on the merged code (`python scripts/benchmark_startup_perf.py -n 3`):
+
+| case | median | min | max | notes |
+| --- | ---: | ---: | ---: | --- |
+| import_model_tools | 0.2253s | 0.2239s | 0.2272s | tools=69 |
+| import_and_get_tool_definitions | 0.3170s | 0.3153s | 0.3188s | tools=25 |
+| get_tool_definitions | 0.0887s | 0.0846s | 0.0896s | warm=0.000067s |
+| discover_plugins_fast | 0.0804s | 0.0791s | 0.0814s | plugins=17, platforms_loaded=False |
+| discover_plugins_full | 0.1143s | 0.1088s | 0.1149s | plugins=22, platforms_loaded=True |
+| tool_discovery_source_scan_adaptive | 0.0168s | 0.0166s | 0.0168s | tools=29, parallel_eligible=False, same=True, speedup=1.05x |
+| resolve_toolset_cached | 0.0111s | 0.0108s | 0.0116s | tools=70, warm=0.000001s |
+| session_append_messages_batch | 0.0137s | 0.0115s | 0.0139s | loop=0.2301s, batch=0.0139s, speedup=16.54x, messages=180 |
+
+Full perf report (Turbo Score + side-by-side + startup): [docs/turbo-score-latest.md](docs/turbo-score-latest.md).
+
+### Side-by-side vs upstream Hermes 0.14.0
+
+Source: [docs/tota-benchmark-hermes-0.14.0.md](docs/tota-benchmark-hermes-0.14.0.md) (2026-05-19 run; browser row blocked locally).
+
+| Row | Hermes 0.14.0 | Hermes Turbo | Winner | Delta |
+| --- | ---: | ---: | --- | ---: |
+| Cold start (import_model_tools proxy) | 4894.32 ms | 2866.11 ms | Hermes Turbo | 1.71x |
+| Token estimate batch | 453.374 us | 109.353 us | Hermes Turbo | 4.15x |
+| Async 1,000-task scheduler | 167.28 ms | 166.52 ms | Hermes Turbo | 1.00x |
+| Integration breadth | 31 | 31 | Tie | 1.00x |
+| JSON dumps short payload | 6.719 us | 9.773 us | Hermes 0.14.0 | 0.69x |
+| Tool-call parse | 2.735 us | 6.651 us | Hermes 0.14.0 | 0.41x |
+| browser_console p99 | blocked | blocked | Blocked | — |
+
+Result: **3 wins / 2 losses / 1 tie / 1 blocked**.
+
 ### Micro hot paths
 
 These are isolated per-operation microbenchmarks: JSON dumps/loads, message pipeline, tool-call typed parse, async task scheduling, cold start, RSS. They isolate the hot-path cost of the JSON engine, struct decoder, event loop, and process startup — not full agent behavior.
@@ -158,70 +196,47 @@ Harness:
 
 #### Benchmark Headline
 
-| Metric | Hermes Original | Tota Agent | OpenClaw | Winner |
+| Metric | Hermes Original | Hermes Turbo | OpenClaw | Winner |
 | --- | ---: | ---: | ---: | --- |
-| Total score | 30 / 50 | 44 / 50 | 36 / 50 | Tota Agent |
-| JSON dumps, large payload | 18.40 us | 3.20 us | 5.80 us | Tota Agent |
-| JSON loads, large payload | 12.80 us | 2.80 us | 5.20 us | Tota Agent |
-| Medium message pipeline | 7.50 us | 2.20 us | 3.46 us | Tota Agent |
-| Medium message throughput | 133k msg/s | 454k msg/s | 289k msg/s | Tota Agent |
-| Tool-call typed parse | Error / N/A | 0.45 us | N/A | Tota Agent |
+| Total score | 30 / 50 | 44 / 50 | 36 / 50 | Hermes Turbo |
+| JSON dumps, large payload | 18.40 us | 3.20 us | 5.80 us | Hermes Turbo |
+| JSON loads, large payload | 12.80 us | 2.80 us | 5.20 us | Hermes Turbo |
+| Medium message pipeline | 7.50 us | 2.20 us | 3.46 us | Hermes Turbo |
+| Medium message throughput | 133k msg/s | 454k msg/s | 289k msg/s | Hermes Turbo |
+| Tool-call typed parse | Error / N/A | 0.45 us | N/A | Hermes Turbo |
 | Async 1,000 tasks | 2.50 ms | 1.40 ms | 0.08 ms | OpenClaw |
-| Cold start | ~52 ms | ~50 ms | ~280 ms | Tota Agent |
+| Cold start | ~52 ms | ~50 ms | ~280 ms | Hermes Turbo |
 | RSS memory | ~30 MB | ~30 MB | ~97 MB | Python variants |
 
-The repo also ships a dedicated side-by-side harness for upstream stock Hermes
-`0.14.0`: [`scripts/benchmark_tota_vs_hermes_0140.py`](scripts/benchmark_tota_vs_hermes_0140.py).
-The latest measured status lives in [docs/tota-benchmark-hermes-0.14.0.md](docs/tota-benchmark-hermes-0.14.0.md)
-and was folded into the refreshed PDF.
-
-Benchmark source: [tota_agent_benchmark_report.pdf](tota_agent_benchmark_report.pdf), updated May 18, 2026 with the Tota Agent launch package, Hermes 0.14.0 side-by-side data, and current Apple Silicon `.venv` validation.
+The repo also ships a dedicated side-by-side harness for upstream stock Hermes `0.14.0`: [`scripts/benchmark_tota_vs_hermes_0140.py`](scripts/benchmark_tota_vs_hermes_0140.py). The latest measured status lives in [docs/tota-benchmark-hermes-0.14.0.md](docs/tota-benchmark-hermes-0.14.0.md).
 
 #### Benchmark Battle Cards
 
-These shareable comparison cards turn the report's headline battles into a Tota Agent vs Hermes Agent vs OpenClaw visual campaign. They are generated by [scripts/generate_tota_battle_cards.py](scripts/generate_tota_battle_cards.py) from the benchmark values above.
+Shareable comparison cards generated by [scripts/generate_tota_battle_cards.py](scripts/generate_tota_battle_cards.py) from the benchmark values above.
 
-![Tota Agent final scoreboard battle card](docs/assets/tota-benchmark/battles/00-scoreboard.png)
+![Final scoreboard battle card](docs/assets/tota-benchmark/battles/00-scoreboard.png)
 
-![Tota Agent large JSON dumps battle card](docs/assets/tota-benchmark/battles/01-json-dumps-large.png)
+![Large JSON dumps battle card](docs/assets/tota-benchmark/battles/01-json-dumps-large.png)
 
-![Tota Agent large JSON loads battle card](docs/assets/tota-benchmark/battles/02-json-loads-large.png)
+![Large JSON loads battle card](docs/assets/tota-benchmark/battles/02-json-loads-large.png)
 
-![Tota Agent medium message pipeline battle card](docs/assets/tota-benchmark/battles/03-medium-message-pipeline.png)
+![Medium message pipeline battle card](docs/assets/tota-benchmark/battles/03-medium-message-pipeline.png)
 
-![Tota Agent medium message throughput battle card](docs/assets/tota-benchmark/battles/04-medium-message-throughput.png)
+![Medium message throughput battle card](docs/assets/tota-benchmark/battles/04-medium-message-throughput.png)
 
-![Tota Agent tool-call typed parse battle card](docs/assets/tota-benchmark/battles/05-tool-call-typed-parse.png)
+![Tool-call typed parse battle card](docs/assets/tota-benchmark/battles/05-tool-call-typed-parse.png)
 
-![Tota Agent async 1000 tasks battle card](docs/assets/tota-benchmark/battles/06-async-1000-tasks.png)
+![Async 1000 tasks battle card](docs/assets/tota-benchmark/battles/06-async-1000-tasks.png)
 
-![Tota Agent cold start battle card](docs/assets/tota-benchmark/battles/07-cold-start.png)
+![Cold start battle card](docs/assets/tota-benchmark/battles/07-cold-start.png)
 
-![Tota Agent RSS memory battle card](docs/assets/tota-benchmark/battles/08-rss-memory.png)
-
-#### Benchmark Visuals
-
-![Tota Agent JSON latency benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-json-latency.png)
-
-![Tota Agent memory footprint benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-memory-footprint.png)
-
-![Tota Agent message throughput benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-message-throughput.png)
-
-![Tota Agent tool-call parsing benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-tool-call-parsing.png)
-
-![Tota Agent token counting benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-token-counting.png)
-
-![Tota Agent async concurrency benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-concurrency-async.png)
-
-![Tota Agent startup benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-startup-time.png)
-
-![Tota Agent ecosystem scorecard benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-ecosystem-scorecard.png)
+![RSS memory battle card](docs/assets/tota-benchmark/battles/08-rss-memory.png)
 
 #### Full Comparison Report
 
 ##### System Overview
 
-| Attribute | Hermes Original | Tota Agent | OpenClaw |
+| Attribute | Hermes Original | Hermes Turbo | OpenClaw |
 | --- | --- | --- | --- |
 | Language | Python 3.14 | Python 3.11.14 | TypeScript / Node.js 22 |
 | JSON engine | stdlib `json` | `orjson` | V8 built-in JSON |
@@ -234,7 +249,7 @@ These shareable comparison cards turn the report's headline battles into a Tota 
 
 ##### Architecture
 
-| Component | Hermes Original | Tota Agent | OpenClaw |
+| Component | Hermes Original | Hermes Turbo | OpenClaw |
 | --- | --- | --- | --- |
 | Runtime | CPython 3.14 | CPython 3.11.14 | Node.js 22 / V8 |
 | HTTP client | `httpx` / `aiohttp` | `httpx` + `uvloop` | `axios` / `undici` |
@@ -248,13 +263,13 @@ These shareable comparison cards turn the report's headline battles into a Tota 
 
 Lower latency is better.
 
-| Payload | Hermes dumps | Tota dumps | OpenClaw dumps | Tota vs Hermes |
+| Payload | Hermes dumps | Turbo dumps | OpenClaw dumps | Turbo vs Hermes |
 | --- | ---: | ---: | ---: | ---: |
 | Short, ~50 B | 1.29 us | 0.21 us | 0.17 us | 6.1x faster |
 | Medium, ~600 B | 3.38 us | 0.80 us | 1.00 us | 4.2x faster |
 | Large, ~50 KB | 18.40 us | 3.20 us | 5.80 us | 5.8x faster |
 
-| Payload | Hermes loads | Tota loads | OpenClaw loads | Tota vs Hermes |
+| Payload | Hermes loads | Turbo loads | OpenClaw loads | Turbo vs Hermes |
 | --- | ---: | ---: | ---: | ---: |
 | Short, ~50 B | 0.62 us | 0.30 us | 0.33 us | 2.1x faster |
 | Medium, ~600 B | 2.90 us | 1.30 us | 2.29 us | 2.2x faster |
@@ -262,7 +277,7 @@ Lower latency is better.
 
 ##### Memory
 
-| Metric | Hermes Original | Tota Agent | OpenClaw |
+| Metric | Hermes Original | Hermes Turbo | OpenClaw |
 | --- | ---: | ---: | ---: |
 | `json.dumps` medium heap / 1k calls | ~420 KB | ~180 KB | ~160 KB |
 | `json.loads` medium heap / 1k calls | ~380 KB | ~140 KB | ~200 KB |
@@ -272,7 +287,7 @@ Lower latency is better.
 
 ##### Message Pipeline
 
-| Pipeline metric | Hermes Original | Tota Agent | OpenClaw | Tota vs Hermes |
+| Pipeline metric | Hermes Original | Hermes Turbo | OpenClaw | Turbo vs Hermes |
 | --- | ---: | ---: | ---: | ---: |
 | Short message latency | 2.10 us | 0.55 us | 0.55 us | 3.8x faster |
 | Medium message latency | 7.50 us | 2.20 us | 3.46 us | 3.4x faster |
@@ -281,7 +296,7 @@ Lower latency is better.
 
 ##### Tool-Call Parsing
 
-| Method | Hermes Original | Tota Agent | OpenClaw |
+| Method | Hermes Original | Hermes Turbo | OpenClaw |
 | --- | ---: | ---: | ---: |
 | JSON parse path | ERROR | 1.30 us | 0.54 us |
 | `orjson.loads` | N/A | 1.00 us | N/A |
@@ -291,17 +306,17 @@ Lower latency is better.
 
 ##### Tokens, Async, Startup
 
-| Metric | Hermes Original | Tota Agent | OpenClaw | Winner |
+| Metric | Hermes Original | Hermes Turbo | OpenClaw | Winner |
 | --- | ---: | ---: | ---: | --- |
 | Fast token estimate | 0.12 us | 0.10 us | 0.04 us | OpenClaw |
 | Token throughput | 8.3M texts/s | 10M texts/s | 25M texts/s | OpenClaw |
 | 1,000 async tasks | 2.50 ms | 1.40 ms | 0.08 ms | OpenClaw |
 | Async batches/s | 400/s | 714/s | 12,500/s | OpenClaw |
-| Cold start total | ~52 ms | ~50 ms | ~280 ms | Tota Agent |
+| Cold start total | ~52 ms | ~50 ms | ~280 ms | Hermes Turbo |
 
 ##### Category Score
 
-| Category | Hermes Original | Tota Agent | OpenClaw |
+| Category | Hermes Original | Hermes Turbo | OpenClaw |
 | --- | ---: | ---: | ---: |
 | JSON performance | 2 / 5 | 5 / 5 | 4 / 5 |
 | Memory | 5 / 5 | 5 / 5 | 2 / 5 |
@@ -339,12 +354,12 @@ The 100x framing applies to the dead local endpoint / subagent construction path
 
 | Scenario | Recommended | Reason |
 | --- | --- | --- |
-| WhatsApp / HTTP AI agent | Tota Agent | 4-6x faster JSON path with Hermes-compatible Python ergonomics. |
-| Serverless / Lambda / Cloud Run | Tota Agent | ~50 ms cold start vs ~280 ms for OpenClaw. |
-| Low memory footprint | Tota Agent | ~30 MB RSS vs ~97 MB for OpenClaw. |
-| Existing Python production stack | Tota Agent | Drop-in optimized fork direction. |
+| WhatsApp / HTTP AI agent | Hermes Turbo | 4-6x faster JSON path with Hermes-compatible Python ergonomics. |
+| Serverless / Lambda / Cloud Run | Hermes Turbo | ~50 ms cold start vs ~280 ms for OpenClaw. |
+| Low memory footprint | Hermes Turbo | ~30 MB RSS vs ~97 MB for OpenClaw. |
+| Existing Python production stack | Hermes Turbo | Drop-in optimized fork direction. |
 | 1,000+ concurrent connections | OpenClaw | Native libuv scheduler wins pure scheduling benchmarks. |
-| Multi-channel out of the box | Tota Agent | The current checkout includes more gateway adapters than the benchmarked Tota subset. |
+| Multi-channel out of the box | Hermes Turbo | The current checkout includes more gateway adapters than the benchmarked subset. |
 | Hermes upstream contribution baseline | Hermes Agent | Canonical upstream project and community. |
 
 ## Development
@@ -356,8 +371,35 @@ python -m ruff check .
 taskflow run .
 ```
 
-For this repository, `taskflow inspect .` detects the Python and Node surfaces and `taskflow run .` produces the local validation checklist.
+For this repository, `taskflow inspect .` detects the Python and Node surfaces
+and `taskflow run .` produces the local validation checklist.
+
+### Test the v0.14.4 surface
+
+```bash
+python -m pytest \
+  tests/scripts/test_turbo_score.py \
+  tests/agent/telemetry/test_savings_report.py \
+  tests/hermes_cli/test_migrate_from_openclaw.py \
+  tests/hermes_cli/test_web_perf.py \
+  -o addopts=""
+# → 44 passed
+```
+
+Full target regression set (252 tests):
+
+```bash
+python -m pytest \
+  tests/token_saver tests/router tests/agent/telemetry tests/registry \
+  tests/contracts tests/agent/test_token_cache.py tests/agent/test_governor.py \
+  tests/test_ci_compact.py tests/test_github_compact.py \
+  tests/test_evidence_store.py tests/test_prompt_cache_stability.py \
+  tests/scripts \
+  tests/hermes_cli/test_claw.py tests/hermes_cli/test_skills_subparser.py \
+  tests/hermes_cli/test_migrate_from_openclaw.py tests/hermes_cli/test_web_perf.py \
+  -o addopts=""
+```
 
 ## Upstream
 
-Tota Agent is a fork of [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent). The upstream project provides the core Hermes agent architecture, CLI, gateway, tools, skills, sessions, and multi-platform agent runtime. This fork adds a Tota Agent brand layer, benchmark campaign, performance-oriented packaging story, and launch site.
+Hermes Turbo Agent is a fork of [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent). The upstream project provides the core Hermes agent architecture, CLI, gateway, tools, skills, sessions, and multi-platform agent runtime. This fork adds a performance layer, the token-economy stack, and the v0.14.4 visibility/migration surface.
