@@ -1,0 +1,50 @@
+{
+  "iters": 500,
+  "stages": [
+    {
+      "segment": "project_mapping",
+      "name": "detect_fingerprint (manifest heuristics)",
+      "iters": 500,
+      "median_us": 2810.63,
+      "p95_us": 3083.23,
+      "baseline_us": 95487.13,
+      "speedup_x": 33.97,
+      "notes": "reads top-level manifests; baseline walks the tree."
+    },
+    {
+      "segment": "routing",
+      "name": "DeterministicRouter.route",
+      "iters": 500,
+      "median_us": 1.4,
+      "p95_us": 1.73,
+      "baseline_us": 187.08,
+      "speedup_x": 133.25,
+      "notes": "regex skips LLM round-trip entirely on trivial intents."
+    },
+    {
+      "segment": "receipts",
+      "name": "content_hash (sha256)",
+      "iters": 500,
+      "median_us": 0.93,
+      "p95_us": 1.0,
+      "baseline_us": 0.73,
+      "speedup_x": 0.79,
+      "notes": "content-addressable; parity with md5."
+    },
+    {
+      "segment": "receipts",
+      "name": "lookup_receipt (cache hit, disk)",
+      "iters": 100,
+      "median_us": 35.88,
+      "p95_us": 65.66,
+      "baseline_us": null,
+      "speedup_x": null,
+      "notes": "net-new: short-circuits re-execution on hash hit."
+    }
+  ],
+  "segments": [
+    "project_mapping",
+    "receipts",
+    "routing"
+  ]
+}

@@ -6,6 +6,34 @@ All notable changes to Hermes Turbo Agent are recorded here. Format follows
 
 ## [Unreleased]
 
+### Removed (post-mortem cleanup, turbo-3)
+
+Strict-literal application of "undo what lost in the benchmark". 80+ files
+across 11 directories removed. Many had genuine off-axis value (token
+savings, governance, auditability) that the latency-only microbenchmark
+could not capture; restored from git history if needed. See
+`MODIFICATIONS.md` §6 for the full table.
+
+- `agent/adapters/` (#90) — compact GitHub/CI adapters.
+- `agent/contracts/` (#101, P4) — concise response contracts.
+- `agent/context/` (#83, #92) — working set, TF-IDF retrieval, token cache.
+- `agent/governor/` (#93) — budget warn/stop guardrail.
+- `agent/registry/` (#98) — lazy schema loading.
+- `agent/meta_contract.py` + `.hermes-meta.json` (P2) — containment.
+- `agent/distributed/` (#97) — protocol dataclasses (no implementation).
+- `agent/token_saver/` (#88) — head/tail truncation + evidence handles.
+- `agent/telemetry/{cache_usage,dashboard,gain_analytics,stage_timer,stage_timing,token_savings}.py` (#82, #91, #96).
+- `hermes_cli/{prompt_sync,prompt_section}.py` (P3, P6).
+- `scripts/build_hamt_catalog.py` + `.catalog/` (#102) — HAMT for 11 entries was over-engineered.
+
+### Kept (winners + parity)
+
+- `agent/project_mapper/` (P1) — **33.97× vs tree walk**.
+- `agent/router/deterministic.py` (#99) — **133.25× vs LLM proxy**.
+- `agent/telemetry/receipts.py` (P7) — content-addressable replay ledger.
+
+
+
 ### Added (token economy & runtime telemetry — issues #81-#103)
 
 - **Token-saver proxy** (`agent/token_saver/proxy.py`, #88): head/tail truncation

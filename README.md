@@ -184,6 +184,44 @@ Version `0.13.1` applied the benchmark follow-up plan:
 
 Details: [docs/tota-benchmark-win-plan.md](docs/tota-benchmark-win-plan.md).
 
+## Hermes Turbo Segmented Benchmark (post-mortem lean edition)
+
+> **After the post-mortem cleanup, this fork keeps only the customisations
+> that beat the upstream-equivalent baseline in microbenchmark.** Everything
+> that lost (~80 files, 11 directories) was removed by user request — the
+> trade-off was: keep only measurable wins, lose the modules whose value
+> was off the latency axis (token savings, safety, auditability).
+
+- **Report (PDF)**: [`docs/perf/turbo-full-segments.pdf`](docs/perf/turbo-full-segments.pdf)
+- **Raw data (JSON)**: [`docs/perf/turbo-full-segments.json`](docs/perf/turbo-full-segments.json)
+- **Harness**: [`scripts/benchmark_full_turbo_segments.py`](scripts/benchmark_full_turbo_segments.py)
+- **Removal manifest**: [`MODIFICATIONS.md` §6](MODIFICATIONS.md)
+
+| Segment | Survivor | Headline |
+|---|---|---:|
+| Project Mapping (P1) | `agent/project_mapper/fingerprint.py` | **33.97×** vs naïve tree walk |
+| Routing (#99) | `agent/router/deterministic.py` | **133.25×** vs LLM proxy |
+| Receipts (P7) | `agent/telemetry/receipts.py` | parity (0.79× sha256 vs md5); value is in cache hit rate |
+
+**Two headline wins reproducible on any laptop:**
+
+| Stage | Turbo p50 | Upstream baseline | Speedup |
+|---|---:|---:|---:|
+| `router.DeterministicRouter.route` | 1.4 µs | 191.9 µs (100 µs LLM proxy) | **133.25×** |
+| `project_mapper.detect_fingerprint` | 2.8 ms | 95.5 ms (rglob walk) | **33.97×** |
+
+The router proxy uses a conservative 100 µs LLM stand-in. Against real LLM
+latency (50 ms-2 s for a small chat completion), the real-world speedup is
+4–6 orders of magnitude on intents the router catches.
+
+Regenerate locally::
+
+```bash
+python scripts/benchmark_full_turbo_segments.py --out docs/perf/turbo-full-segments.json
+python scripts/generate_turbo_full_pdf.py
+# → docs/perf/turbo-full-segments.pdf
+```
+
 ## Benchmark Headline
 
 | Metric | Hermes Original | Hermes Turbo Agent | OpenClaw | Winner |
