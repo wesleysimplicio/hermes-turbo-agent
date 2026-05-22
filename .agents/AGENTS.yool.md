@@ -94,6 +94,73 @@ catalog builder — at 11 capabilities, a flat dict outperforms HAMT.
   intents. **Benchmark winner: 174×–185× vs LLM proxy.** See
   `agent/router/deterministic.py`.
 
+### Hermes Tool Replay (Proposta A)
+
+- yool_id: `agent.audit.tool_replay`
+- authority: audit
+- lane: fast
+- agent_terms:
+    cpu_quota_pct: 20
+    disk_quota_mb: 500
+    timeout_s: 10
+- description: Deterministic tool-call replay via canonical
+  `tool_call_key(name, args)` + `.receipts/tool/<sha>.json`. Benchmark
+  winner: 12.31× vs a 500 µs tool stand-in on cache hit. See
+  `agent/telemetry/tool_replay.py`.
+
+### Hermes Cost-Aware Router (Proposta B)
+
+- yool_id: `agent.ops.router_cost_aware`
+- authority: ops
+- lane: fast
+- agent_terms:
+    cpu_quota_pct: 25
+    disk_quota_mb: 20
+    timeout_s: 60
+- description: Multi-tier router (deterministic → cheap → frontier) with
+  per-request `$/req` accounting and projected-savings calculator.
+  Benchmark winner: 548× vs always-frontier baseline. See
+  `agent/router/cost_aware.py`.
+
+### Hermes Async DAG (Proposta C)
+
+- yool_id: `agent.ops.async_dag`
+- authority: ops
+- lane: fast
+- agent_terms:
+    cpu_quota_pct: 60
+    disk_quota_mb: 50
+    timeout_s: 300
+- description: Topological-level executor for tool DAGs with `$ref:`
+  resolution. Benchmark winner: 4.62× vs sequential await on 5
+  independent nodes. See `agent/async_dag/executor.py`.
+
+### Hermes Tracing (Proposta D)
+
+- yool_id: `agent.audit.tracing`
+- authority: audit
+- lane: fast
+- agent_terms:
+    cpu_quota_pct: 10
+    disk_quota_mb: 200
+    timeout_s: 5
+- description: Stdlib OTel-compatible span recorder. ~5 µs/span,
+  JSONL drain. Replaces the bespoke telemetry deleted in the cleanup.
+  See `agent/tracing/spans.py`.
+
+### Hermes Provider Chain (Proposta E)
+
+- yool_id: `agent.ops.provider_chain`
+- authority: ops
+- lane: slow
+- agent_terms:
+    cpu_quota_pct: 30
+    disk_quota_mb: 20
+    timeout_s: 120
+- description: Provider fallback chain with transient/fatal classifier
+  and full-jitter exponential backoff. Sync + async variants. See
+  `agent/providers/fallback_chain.py`.
+
 ### Hermes Receipts
 
 - yool_id: `agent.audit.receipts`

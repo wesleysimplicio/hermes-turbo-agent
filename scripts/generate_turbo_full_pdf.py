@@ -55,58 +55,56 @@ PANEL = colors.HexColor("#F8FAFC")
 BORDER = colors.HexColor("#CBD5E1")
 
 SEGMENT_PRETTY = {
-    "project_mapping": "1. Project Mapping",
-    "containment": "2. Containment & Governance",
-    "multi_ide_prompt": "3. Multi-IDE Prompt Distribution",
-    "response_contract": "4. Response Contracts",
-    "token_saver": "5. Token Saver",
-    "context": "6. Context Working Set",
-    "routing": "7. Routing & Budget",
-    "telemetry": "8. Telemetry & Receipts",
-    "registry": "9. Lazy Tool Registry",
-    "adapters": "10. GitHub & CI Adapters",
-    "hamt": "11. Yool / HAMT Capability Addressing",
+    "project_mapping": "1. Project Mapping (survivor, P1)",
+    "routing":         "2. Deterministic Routing (survivor, #99)",
+    "receipts":        "3. Receipts (survivor, P7)",
+    "tool_replay":     "4. Tool-Call Replay (NEW — Proposta A)",
+    "cost_router":     "5. Cost-Aware Multi-Tier Router (NEW — Proposta B)",
+    "async_dag":       "6. Async DAG Tool Executor (NEW — Proposta C)",
+    "tracing":         "7. OTel-Compatible Tracing (NEW — Proposta D)",
+    "provider_chain":  "8. Provider Fallback Chain (NEW — Proposta E)",
 }
 
 SEGMENT_BLURB = {
     "project_mapping":
         "Deterministic stack/workspace fingerprint via top-level manifests. "
-        "Feeds the warm daemon, the no-LLM router, and the working set "
-        "without paying an LLM round-trip.",
-    "containment":
-        "Executable enforcement of .hermes-meta.json. read_only_globs block "
-        "writes, init_must_ask prompts for confirmation, init_must_merge "
-        "warns. Net-new in turbo — upstream has no equivalent.",
-    "multi_ide_prompt":
-        "Idempotent <!-- hermes-turbo:start/end --> block injected into 8 "
-        "rule files. get_section serves sub-prompts to subagents so each "
-        "spawn pays only for the relevant slice of CLAUDE.md / AGENTS.md.",
-    "response_contract":
-        "Budget-capped TerseAnswer, ToolCall, Diagnostic. TupleStatusEnvelope "
-        "defaults to silent (zero output tokens) and is opt-in verbose via "
-        "HERMES_RUNTIME_STATUS* envs.",
-    "token_saver":
-        "Head/tail truncation with file-backed evidence handles. Replaces "
-        "verbatim payloads in transcripts; on-demand expansion via handle.",
-    "context":
-        "LRU hot/cold working set, stdlib TF-IDF retrieval scorer, "
-        "blake2b-keyed incremental token cache.",
+        "Survived the post-mortem cleanup with a 33–39× win over a naïve "
+        "tree walk.",
     "routing":
-        "Deterministic regex router skips LLM calls entirely on trivial "
-        "intents. Budget governor enforces warn-70%/stop-100% on tokens, "
-        "cost, and iterations.",
-    "telemetry":
-        "Per-stage timers, cache usage parsing (Anthropic / OpenAI), "
-        "content-addressable receipts that short-circuit replays.",
-    "registry":
-        "On-demand JSON schema loading — startup keeps only (name, "
-        "description) stubs; full schema materialised on first use.",
-    "adapters":
-        "Compact summaries of `gh issue|pr` JSON and grouped CI failure "
-        "logs. Slashes payload while preserving signal.",
-    "hamt":
-        "Bagwell HAMT (branch 32, 30-bit blake2b hash) for capability "
-        "addressing per yool-tuple-hamt v0.2.",
+        "Deterministic regex router skips LLM round-trips on trivial "
+        "intents. The original headline win of the fork — 129–185× vs an "
+        "LLM proxy stand-in.",
+    "receipts":
+        "Append-only `.receipts/<sha>.json` content-addressable ledger. "
+        "sha256 trades 20% latency for integrity vs md5; the real value is "
+        "in `lookup_receipt` cache short-circuits.",
+    "tool_replay":
+        "Tool-call replay primitive built on top of receipts. Canonical "
+        "key over (name, args), stored as `.receipts/tool/<sha>.json`. "
+        "12× over a 500 µs tool stand-in on cache hit. Upstream Hermes "
+        "auto-generates skills post-task but cannot replay tool outputs.",
+    "cost_router":
+        "Multi-tier router: deterministic → cheap LLM → frontier LLM. "
+        "548× over an 'always-frontier' baseline policy on an 80/20 "
+        "deterministic/cheap workload. Tracks per-request $$. Upstream "
+        "lets you switch models but does not auto-route by cost.",
+    "async_dag":
+        "DAG executor with Kahn's algorithm topological levels and "
+        "per-level parallelism. Resolves `$ref:` placeholders across "
+        "tool calls automatically. 4.6× over sequential await on a "
+        "5-node independent batch. Upstream parallelises only when the "
+        "caller hand-batches.",
+    "tracing":
+        "Stdlib OTel-compatible span emitter (trace_id, span_id, "
+        "parent_span_id, attributes). Drains to JSONL for any OTLP "
+        "exporter. ~5 µs per span — observability without pulling "
+        "opentelemetry-sdk.",
+    "provider_chain":
+        "Provider fallback chain with transient-vs-fatal classification "
+        "and full-jitter exponential backoff. On a happy path it adds "
+        "~1 µs over the raw provider call; on 429 / 5xx it rotates "
+        "providers automatically. Upstream Hermes treats provider "
+        "outage as a session failure.",
 }
 
 
@@ -328,9 +326,9 @@ def _cover_page(report: dict, styles: Dict[str, ParagraphStyle]) -> List[Any]:
     seg_rows: List[List[Any]] = [["#", "Segment", "Stages", "Avg p50 (µs)", "Best speedup"]]
     grouped = _group_by_segment(stages)
     for key in [
-        "project_mapping", "containment", "multi_ide_prompt",
-        "response_contract", "token_saver", "context", "routing",
-        "telemetry", "registry", "adapters", "hamt",
+        "project_mapping", "routing", "receipts",
+        "tool_replay", "cost_router", "async_dag", "tracing",
+        "provider_chain",
     ]:
         if key not in grouped:
             continue
@@ -448,9 +446,9 @@ def build(report: dict, output: Path) -> Path:
 
     grouped = _group_by_segment(report.get("stages", []))
     for key in [
-        "project_mapping", "containment", "multi_ide_prompt",
-        "response_contract", "token_saver", "context", "routing",
-        "telemetry", "registry", "adapters", "hamt",
+        "project_mapping", "routing", "receipts",
+        "tool_replay", "cost_router", "async_dag", "tracing",
+        "provider_chain",
     ]:
         if key not in grouped:
             continue
