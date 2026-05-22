@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 520" role="img" aria-labelledby="title desc">
-  <title id="title">Tota Agent logo</title>
-  <desc id="desc">Tota Agent army green and dark mustard wordmark, credited by Hermes Agent.</desc>
+  <title id="title">Hermes Turbo Agent logo</title>
+  <desc id="desc">Hermes Turbo Agent army green and dark mustard wordmark, credited by Hermes Agent.</desc>
   <defs>
     <linearGradient id="slash" x1="0" y1="1" x2="1" y2="0">
       <stop offset="0" stop-color="#3F4B2F"/>
@@ -21,6 +21,6 @@
     <text x="0" y="110" fill="#F7F3DF" stroke="#11160E" stroke-width="4" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="112" font-weight="900" letter-spacing="1">TOTA AGENT</text>
     <text x="4" y="176" fill="#C49A28" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="800" letter-spacing="4">BY HERMES AGENT</text>
     <path d="M4 218 H830" stroke="url(#slash)" stroke-width="8" stroke-linecap="round"/>
-    <text x="4" y="278" fill="#F7F3DF" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Whoever is Tota, will never be Claw.</text>
+    <text x="4" y="278" fill="#F7F3DF" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Whoever is Hermes Turbo, will never be Claw.</text>
   </g>
 </svg>

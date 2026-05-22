@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Tota Agent benchmark battle cards as SVG and PNG assets."""
+"""Generate Hermes Turbo Agent benchmark battle cards as SVG and PNG assets."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT_DIR = ROOT / "docs/assets/tota-benchmark/battles"
-LOGO_PATH = ROOT / "docs/assets/tota-brand/tota-agent-founder-logo.jpg"
+OUT_DIR = ROOT / "docs/assets/hermes-turbo-benchmark/battles"
+LOGO_PATH = ROOT / "docs/assets/hermes-turbo-brand/hermes-turbo-agent-founder-logo.jpg"
 
 
 @dataclass(frozen=True)
@@ -38,7 +38,7 @@ class Battle:
 
 
 HERMES = ("Hermes Agent", "#32B7FF", "#9ED8FF")
-TOTA = ("Tota Agent", "#19D27F", "#FFE15A")
+TOTA = ("Hermes Turbo Agent", "#19D27F", "#FFE15A")
 OPENCLAW = ("OpenClaw", "#FF4655", "#FFB3BD")
 
 
@@ -52,8 +52,8 @@ BATTLES: tuple[Battle, ...] = (
         "Benchmark Battle 00",
         "Final Scoreboard",
         "Higher score wins",
-        "Tota Agent",
-        "Tota wins the full measured report: 44 / 50.",
+        "Hermes Turbo Agent",
+        "Hermes Turbo wins the full measured report: 44 / 50.",
         (c(HERMES, "30 / 50", 30), c(TOTA, "44 / 50", 44), c(OPENCLAW, "36 / 50", 36)),
     ),
     Battle(
@@ -61,8 +61,8 @@ BATTLES: tuple[Battle, ...] = (
         "Benchmark Battle 01",
         "Large JSON Dumps",
         "Lower latency wins",
-        "Tota Agent",
-        "Tota is 5.8x faster than Hermes on the large dump path.",
+        "Hermes Turbo Agent",
+        "Hermes Turbo is 5.8x faster than Hermes on the large dump path.",
         (c(HERMES, "18.40 us", 18.40), c(TOTA, "3.20 us", 3.20), c(OPENCLAW, "5.80 us", 5.80)),
     ),
     Battle(
@@ -70,8 +70,8 @@ BATTLES: tuple[Battle, ...] = (
         "Benchmark Battle 02",
         "Large JSON Loads",
         "Lower latency wins",
-        "Tota Agent",
-        "Tota keeps the Python path fast with orjson.",
+        "Hermes Turbo Agent",
+        "Hermes Turbo keeps the Python path fast with orjson.",
         (c(HERMES, "12.80 us", 12.80), c(TOTA, "2.80 us", 2.80), c(OPENCLAW, "5.20 us", 5.20)),
     ),
     Battle(
@@ -79,8 +79,8 @@ BATTLES: tuple[Battle, ...] = (
         "Benchmark Battle 03",
         "Medium Message Pipeline",
         "Lower latency wins",
-        "Tota Agent",
-        "Tota cuts the Hermes-compatible message path to 2.20 us.",
+        "Hermes Turbo Agent",
+        "Hermes Turbo cuts the Hermes-compatible message path to 2.20 us.",
         (c(HERMES, "7.50 us", 7.50), c(TOTA, "2.20 us", 2.20), c(OPENCLAW, "3.46 us", 3.46)),
     ),
     Battle(
@@ -88,8 +88,8 @@ BATTLES: tuple[Battle, ...] = (
         "Benchmark Battle 04",
         "Medium Message Throughput",
         "Higher throughput wins",
-        "Tota Agent",
-        "Tota pushes the medium pipeline to 454k msg/s.",
+        "Hermes Turbo Agent",
+        "Hermes Turbo pushes the medium pipeline to 454k msg/s.",
         (c(HERMES, "133k msg/s", 133), c(TOTA, "454k msg/s", 454), c(OPENCLAW, "289k msg/s", 289)),
     ),
     Battle(
@@ -97,8 +97,8 @@ BATTLES: tuple[Battle, ...] = (
         "Benchmark Battle 05",
         "Tool-Call Typed Parse",
         "Lower latency wins",
-        "Tota Agent",
-        "Tota owns the typed tool-call path; Hermes and OpenClaw do not expose the same measured typed path.",
+        "Hermes Turbo Agent",
+        "Hermes Turbo owns the typed tool-call path; Hermes and OpenClaw do not expose the same measured typed path.",
         (c(HERMES, "Error / N/A", None), c(TOTA, "0.45 us", 0.45), c(OPENCLAW, "N/A", None)),
     ),
     Battle(
@@ -107,7 +107,7 @@ BATTLES: tuple[Battle, ...] = (
         "Async 1,000 Tasks",
         "Lower latency wins",
         "OpenClaw",
-        "OpenClaw wins pure scheduler latency here; Tota still improves Hermes.",
+        "OpenClaw wins pure scheduler latency here; Hermes Turbo still improves Hermes.",
         (c(HERMES, "2.50 ms", 2.50), c(TOTA, "1.40 ms", 1.40), c(OPENCLAW, "0.08 ms", 0.08)),
     ),
     Battle(
@@ -115,8 +115,8 @@ BATTLES: tuple[Battle, ...] = (
         "Benchmark Battle 07",
         "Cold Start",
         "Lower startup time wins",
-        "Tota Agent",
-        "Tota stays serverless-friendly at roughly 50 ms.",
+        "Hermes Turbo Agent",
+        "Hermes Turbo stays serverless-friendly at roughly 50 ms.",
         (c(HERMES, "~52 ms", 52), c(TOTA, "~50 ms", 50), c(OPENCLAW, "~280 ms", 280)),
     ),
     Battle(
@@ -125,7 +125,7 @@ BATTLES: tuple[Battle, ...] = (
         "RSS Memory",
         "Lower memory wins",
         "Python variants",
-        "Tota keeps Hermes-class memory while OpenClaw carries a larger Node footprint.",
+        "Hermes Turbo keeps Hermes-class memory while OpenClaw carries a larger Node footprint.",
         (c(HERMES, "~30 MB", 30), c(TOTA, "~30 MB", 30), c(OPENCLAW, "~97 MB", 97)),
     ),
 )
@@ -159,7 +159,7 @@ def bar_scores(battle: Battle) -> dict[str, float]:
 
 def agent_icon(item: Competitor, idx: int, logo_data: str) -> str:
     x = 120 + idx * 450
-    if item.name == "Tota Agent":
+    if item.name == "Hermes Turbo Agent":
         return f"""
         <g transform="translate({x} 244)">
           <circle cx="80" cy="80" r="78" fill="#0b1220" stroke="url(#totaGlow)" stroke-width="8"/>
@@ -198,7 +198,7 @@ def render_svg(battle: Battle) -> str:
         x = 90 + idx * 450
         score = max(0.06, min(scores[item.name], 1.0))
         bar_width = 310 * score
-        is_winner = item.name == battle.winner or (battle.winner == "Python variants" and item.name in {"Hermes Agent", "Tota Agent"})
+        is_winner = item.name == battle.winner or (battle.winner == "Python variants" and item.name in {"Hermes Agent", "Hermes Turbo Agent"})
         badge = (
             f'<rect x="224" y="30" width="116" height="34" rx="17" fill="{item.color}" opacity="0.22" stroke="{item.color}" stroke-width="2"/>'
             f'<text x="282" y="53" text-anchor="middle" fill="{item.accent}" font-family="Helvetica" font-size="17" font-weight="900">WINNER</text>'
@@ -221,7 +221,7 @@ def render_svg(battle: Battle) -> str:
         )
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
   <title id="title">{esc(battle.title)} comparison battle card</title>
-  <desc id="desc">Tota Agent, Hermes Agent, and OpenClaw comparison card generated from the Tota Agent benchmark report.</desc>
+  <desc id="desc">Hermes Turbo Agent, Hermes Agent, and OpenClaw comparison card generated from the Hermes Turbo Agent benchmark report.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#030712"/>
@@ -267,8 +267,8 @@ def render_svg(battle: Battle) -> str:
     {''.join(cards)}
   </g>
 
-  <text x="80" y="838" fill="#7f93ad" font-family="Helvetica" font-size="16" font-weight="700">Source: Tota Agent benchmark report linked in README, May 17 2026.</text>
-  <text x="80" y="866" fill="#7f93ad" font-family="Helvetica" font-size="16" font-weight="700">Runtime caveat: Hermes CPython 3.14, Tota CPython 3.11.14, OpenClaw Node.js 22. Once you're Tota, you'll never be OpenClaw.</text>
+  <text x="80" y="838" fill="#7f93ad" font-family="Helvetica" font-size="16" font-weight="700">Source: Hermes Turbo Agent benchmark report linked in README, May 17 2026.</text>
+  <text x="80" y="866" fill="#7f93ad" font-family="Helvetica" font-size="16" font-weight="700">Runtime caveat: Hermes CPython 3.14, Hermes Turbo CPython 3.11.14, OpenClaw Node.js 22. Once you're Hermes Turbo, you'll never be OpenClaw.</text>
 </svg>
 """
 

@@ -31,16 +31,16 @@ rules:
       rebrands again.
     paths:
       - README.md
-      - tota-agent.html
-      - docs/assets/tota-brand/**
-      - docs/tota-social-storyboard.md
-      - docs/tota-identity-customization.md
+      - hermes-turbo-agent.html
+      - docs/assets/hermes-turbo-brand/**
+      - docs/hermes-turbo-social-storyboard.md
+      - docs/hermes-turbo-identity-customization.md
 
   - name: fork-home-aliases-and-entrypoints
     strategy: merge
     reason: >-
       CLI aliases, HERMES_TURBO_HOME environment variables, and startup
-      wrappers must absorb upstream behavior while retaining Tota/Hermes-Turbo
+      wrappers must absorb upstream behavior while retaining Hermes Turbo
       entrypoints.
     paths:
       - hermes
@@ -92,17 +92,17 @@ rules:
       and stale markers must be regenerated only from measured output after
       sync.
     paths:
-      - docs/tota-benchmark-hermes-0.14.0.json
-      - docs/tota-benchmark-hermes-0.14.0.md
-      - docs/assets/tota-benchmark/battles/**
-      - tota_agent_benchmark_report.pdf
+      - docs/hermes-turbo-benchmark-hermes-0.14.0.json
+      - docs/hermes-turbo-benchmark-hermes-0.14.0.md
+      - docs/assets/hermes-turbo-benchmark/battles/**
+      - hermes_turbo_agent_benchmark_report.pdf
       - docs/benchmark-refresh-status.json
       - docs/benchmark-refresh-status.md
     allow_missing_paths:
       - docs/benchmark-refresh-status.json
       - docs/benchmark-refresh-status.md
     allow_empty_globs:
-      - docs/assets/tota-benchmark/battles/**
+      - docs/assets/hermes-turbo-benchmark/battles/**
 
   - name: performance-patches-and-budgets
     strategy: manual-review

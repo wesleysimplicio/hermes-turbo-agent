@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install the macOS LaunchAgent for Tota's daily Hermes sync."""
+"""Install the macOS LaunchAgent for Hermes Turbo's daily Hermes sync."""
 
 from __future__ import annotations
 
@@ -11,9 +11,9 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-LABEL = "com.wesleysimplicio.tota-agent.hermes-daily-update"
+LABEL = "com.wesleysimplicio.hermes-turbo-agent.hermes-daily-update"
 PLIST_PATH = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"
-STATE_DIR = Path.home() / ".local" / "state" / "tota-agent" / "hermes-sync"
+STATE_DIR = Path.home() / ".local" / "state" / "hermes-turbo-agent" / "hermes-sync"
 
 
 def _launchctl(*args: str) -> None:
@@ -34,7 +34,7 @@ def install(hour: int, minute: int, python_version: str) -> None:
         python_bin = "/usr/bin/python3"
     program = (
         f"cd {REPO_ROOT} && "
-        f"{python_bin} scripts/tota_hermes_daily_update.py "
+        f"{python_bin} scripts/hermes_turbo_daily_update.py "
         f"--repo {REPO_ROOT} --python-version {python_version}"
     )
     payload = {
@@ -46,8 +46,8 @@ def install(hour: int, minute: int, python_version: str) -> None:
         "StandardErrorPath": str(STATE_DIR / "launchd.err.log"),
         "EnvironmentVariables": {
             "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
-            "TOTA_HOME": str(Path.home() / ".tota"),
-            "HERMES_HOME": str(Path.home() / ".tota"),
+            "HERMES_TURBO_HOME": str(Path.home() / ".hermes-turbo"),
+            "HERMES_HOME": str(Path.home() / ".hermes-turbo"),
         },
         "RunAtLoad": False,
     }

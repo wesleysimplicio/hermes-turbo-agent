@@ -9,7 +9,7 @@ The `Benchmark Refresh` workflow (`.github/workflows/benchmark-refresh.yml`)
 runs on:
 
 - `workflow_dispatch` — manual run from the Actions tab.
-- `push` to `sync/**`, `upstream-sync/**`, and `codex/tota-hermes-daily-*`
+- `push` to `sync/**`, `upstream-sync/**`, and `codex/hermes-turbo-daily-*`
   branches (the branch patterns used by upstream sync automation).
 
 ## What it does

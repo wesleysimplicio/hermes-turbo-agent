@@ -1,13 +1,13 @@
-# Tota Agent v0.14.0 — Hermes 0.14.0 sync + `llm-project-mapper` core
+# Hermes Turbo Agent v0.14.0 — Hermes 0.14.0 sync + `llm-project-mapper` core
 
-**Release type:** Tota fork sync.
+**Release type:** Hermes Turbo fork sync.
 **Upstream baseline:** Hermes Agent `0.14.0` (NousResearch/hermes-agent,
 calendar tag `v2026.5.16`).
-**Previous Tota version:** `0.13.2` (synced against Hermes `0.13.0` /
+**Previous Hermes Turbo version:** `0.13.2` (synced against Hermes `0.13.0` /
 `v2026.5.7`).
 
-This release brings the Tota Agent fork in line with Hermes Agent 0.14.0
-while preserving every Tota-specific customization, and promotes
+This release brings the Hermes Turbo Agent fork in line with Hermes Agent 0.14.0
+while preserving every Hermes Turbo-specific customization, and promotes
 [`@wesleysimplicio/llm-project-mapper`](https://github.com/wesleysimplicio/llm-project-mapper)
 to a **core onboarding step** for all code projects.
 
@@ -20,23 +20,23 @@ to a **core onboarding step** for all code projects.
   identical to upstream 0.14.0 (additive customizations only —
   `fast`/`perf` extras, Rust `maturin` dev pin, `tui_dist` package data,
   `acp_adapter/bootstrap` package data).
-- **`TOTA_HOME` is first-class.** The fork already honored `TOTA_HOME`
+- **`HERMES_TURBO_HOME` is first-class.** The fork already honored `HERMES_TURBO_HOME`
   ahead of legacy `HERMES_HOME` in `hermes_constants.py`. This release
-  documents that contract and ships project-local defaults under `.tota/`.
-- **`llm-project-mapper` is Tota core.** New skill at
+  documents that contract and ships project-local defaults under `.hermes-turbo/`.
+- **`llm-project-mapper` is Hermes Turbo core.** New skill at
   `skills/software-development/llm-project-mapper/` with an idempotent
-  `map_project.py` script. The default agent identity now instructs Tota
+  `map_project.py` script. The default agent identity now instructs Hermes Turbo
   to run the mapper before touching any code project. State persists in
-  `$TOTA_HOME/mapped_projects.json` across sessions and profiles.
-- **Identity refresh.** `DEFAULT_AGENT_IDENTITY` introduces Tota as a
+  `$HERMES_TURBO_HOME/mapped_projects.json` across sessions and profiles.
+- **Identity refresh.** `DEFAULT_AGENT_IDENTITY` introduces Hermes Turbo as a
   modified, faster Hermes — same surface, lower latency, tighter project
   on-ramps.
 
-## What's preserved from prior Tota releases
+## What's preserved from prior Hermes Turbo releases
 
-All Tota-specific customizations from `0.13.0 → 0.13.2` are intact:
+All Hermes Turbo-specific customizations from `0.13.0 → 0.13.2` are intact:
 
-- Tota home (`TOTA_HOME`) with legacy `HERMES_HOME` fallback —
+- Hermes Turbo home (`HERMES_TURBO_HOME`) with legacy `HERMES_HOME` fallback —
   `hermes_constants.py`.
 - Rust `hermes_fast` PyO3 extension (Phase 3 perf) —
   `rust_ext/`, `pyproject.toml` dev extra `maturin>=1.0,<2.0`.
@@ -44,15 +44,15 @@ All Tota-specific customizations from `0.13.0 → 0.13.2` are intact:
   `pyproject.toml`.
 - Hierarchical cache + metrics — see prior PR #17 / #18.
 - Streaming-on-by-default + `parallel_tool_calls` — PR #11.
-- Context retention + tota benchmark surfaces (`tota-agent.html`,
-  `tota_agent_benchmark_report.pdf`).
-- Tota launch battlecards and brand site (`website/`).
+- Context retention + tota benchmark surfaces (`hermes-turbo-agent.html`,
+  `hermes_turbo_agent_benchmark_report.pdf`).
+- Hermes Turbo launch battlecards and brand site (`website/`).
 - Fork-specific gateway service names — `hermes_cli/gateway.py`.
 
 ## Upstream changes covered by this sync
 
 The version bump captures Hermes' 1,053 upstream commits between
-`v2026.5.7` and `v2026.5.16` at the *manifest* level. Because Tota's
+`v2026.5.7` and `v2026.5.16` at the *manifest* level. Because Hermes Turbo's
 dependency pins were already congruent with upstream, no transitive
 upgrades are required for this sync to succeed.
 
@@ -69,11 +69,11 @@ keeps the surface narrow:
 
 ### Why core, not optional
 
-Tota's speed claim depends on never paying the onboarding tax twice.
+Hermes Turbo's speed claim depends on never paying the onboarding tax twice.
 `llm-project-mapper` canonicalizes any code repository into an
 `AGENTS.md` + `INIT.md` + `.specs/` + `.skills/` scaffold the agent can
 read in O(1) on every subsequent visit. The memory file in
-`$TOTA_HOME/mapped_projects.json` remembers which projects have been
+`$HERMES_TURBO_HOME/mapped_projects.json` remembers which projects have been
 mapped — runs after the first are no-ops unless the mapping is older
 than 30 days or `--force` is passed.
 
@@ -86,7 +86,7 @@ python skills/software-development/llm-project-mapper/scripts/map_project.py \
 
 The script:
 
-1. Resolves `TOTA_HOME` → `HERMES_HOME` → `~/.tota`.
+1. Resolves `HERMES_TURBO_HOME` → `HERMES_HOME` → `~/.hermes-turbo`.
 2. Checks `mapped_projects.json` for a fresh fingerprint.
 3. Spawns `npx --yes @wesleysimplicio/llm-project-mapper` inside the
    project root when needed.
@@ -97,25 +97,25 @@ The script:
 
 ### Default agent directive
 
-`agent/prompt_builder.DEFAULT_AGENT_IDENTITY` now includes a Tota-core
+`agent/prompt_builder.DEFAULT_AGENT_IDENTITY` now includes a Hermes Turbo-core
 directive: "for any code project you touch, run the
 `llm-project-mapper` skill first". Operators who want to disable this
 behaviour can override the identity via `SOUL.md` in their
-`$TOTA_HOME`.
+`$HERMES_TURBO_HOME`.
 
-## Local `.tota/` defaults
+## Local `.hermes-turbo/` defaults
 
-New repo-local directory `.tota/` ships the canonical Tota defaults:
+New repo-local directory `.hermes-turbo/` ships the canonical Hermes Turbo defaults:
 
 | Path | Contents |
 | --- | --- |
-| `.tota/version` | `0.14.0` |
-| `.tota/HERMES_BASE` | Upstream Hermes baseline + tagline |
-| `.tota/memories/MEMORY.md` | Seed memory (identity, mapping directive) |
-| `.tota/mapped_projects.json` | Empty registry, copied into `$TOTA_HOME` on first run |
-| `.tota/README.md` | How resolution and seeding work |
+| `.hermes-turbo/version` | `0.14.0` |
+| `.hermes-turbo/HERMES_BASE` | Upstream Hermes baseline + tagline |
+| `.hermes-turbo/memories/MEMORY.md` | Seed memory (identity, mapping directive) |
+| `.hermes-turbo/mapped_projects.json` | Empty registry, copied into `$HERMES_TURBO_HOME` on first run |
+| `.hermes-turbo/README.md` | How resolution and seeding work |
 
-Setup scripts can copy these into the operator's `$TOTA_HOME` to keep
+Setup scripts can copy these into the operator's `$HERMES_TURBO_HOME` to keep
 defaults in sync with the fork.
 
 ## Tests + breakage risk

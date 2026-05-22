@@ -151,16 +151,16 @@ def _apply_profile_override() -> None:
             profile_name = None
             consume = 0
 
-    # 1.5 If TOTA_HOME/HERMES_HOME is already set and no explicit flag was given, trust it
+    # 1.5 If HERMES_TURBO_HOME/HERMES_HOME is already set and no explicit flag was given, trust it
     # only when it already points to a specific profile directory.  The
     # distinguishing heuristic: a profile path has "profiles" as its immediate
-    # parent directory name (e.g. ~/.tota/profiles/coder or
+    # parent directory name (e.g. ~/.hermes-turbo/profiles/coder or
     # /opt/data/profiles/coder).  If HERMES_HOME points to the hermes root
     # instead (e.g. systemd hardcodes HERMES_HOME=/root/.tota), we must
     # still read active_profile — the user may have switched profiles via
     # `hermes profile use` and the gateway should honour that choice.
     # See issue #22502.
-    hermes_home_env = os.environ.get("TOTA_HOME", "") or os.environ.get("HERMES_HOME", "")
+    hermes_home_env = os.environ.get("HERMES_TURBO_HOME", "") or os.environ.get("HERMES_HOME", "")
     if profile_name is None and hermes_home_env:
         if Path(hermes_home_env).parent.name == "profiles":
             return
@@ -249,8 +249,8 @@ try:
 except Exception:
     pass  # best-effort — don't crash the CLI if logging setup fails
 
-# Seed the runtime $TOTA_HOME with the fork's opinionated defaults shipped
-# under the repo's .tota/ tree (HERMES_BASE, version, memories/MEMORY.md,
+# Seed the runtime $HERMES_TURBO_HOME with the fork's opinionated defaults shipped
+# under the repo's .hermes-turbo/ tree (HERMES_BASE, version, memories/MEMORY.md,
 # mapped_projects.json). Idempotent and non-destructive — existing operator
 # files are never overwritten.
 #
@@ -279,9 +279,9 @@ def _should_run_agent_side_effects() -> bool:
     Bootstrap + auto-mapper are gated behind this so `hermes --help` and
     other cheap-utility paths don't trigger filesystem writes or npx spawns.
     Default: True (run them) unless we can clearly identify a cheap path.
-    Tota-set ``TOTA_SKIP_STARTUP_HOOKS=1`` forces a skip.
+    Hermes Turbo-set ``HERMES_TURBO_SKIP_STARTUP_HOOKS=1`` forces a skip.
     """
-    if (os.environ.get("TOTA_SKIP_STARTUP_HOOKS") or "").strip() in {"1", "true", "yes", "on"}:
+    if (os.environ.get("HERMES_TURBO_SKIP_STARTUP_HOOKS") or "").strip() in {"1", "true", "yes", "on"}:
         return False
     if len(sys.argv) <= 1:
         return True  # bare `hermes` → interactive chat
@@ -307,17 +307,17 @@ def _should_run_agent_side_effects() -> bool:
 
 if _should_run_agent_side_effects():
     try:
-        from agent.tota_home_bootstrap import bootstrap_tota_home as _bootstrap_tota_home
+        from agent.hermes_turbo_home_bootstrap import bootstrap_hermes_turbo_home as _bootstrap_hermes_turbo_home
 
-        _bootstrap_tota_home()
+        _bootstrap_hermes_turbo_home()
     except Exception:
         pass  # best-effort — agent works fine without seed files
 
-    # Tota-core directive: auto-invoke llm-project-mapper on first turn in
+    # Hermes Turbo-core directive: auto-invoke llm-project-mapper on first turn in
     # any code project. Idempotent across sessions (the mapper itself
-    # dedups via $TOTA_HOME/mapped_projects.json) and within a session
-    # (auto_mapper dedups per process). Disabled by TOTA_AUTO_MAP=0 or by
-    # a sentinel file in $TOTA_HOME/.disable_auto_mapper.
+    # dedups via $HERMES_TURBO_HOME/mapped_projects.json) and within a session
+    # (auto_mapper dedups per process). Disabled by HERMES_TURBO_AUTO_MAP=0 or by
+    # a sentinel file in $HERMES_TURBO_HOME/.disable_auto_mapper.
     try:
         from agent.auto_mapper import maybe_map_project as _maybe_map_project
 

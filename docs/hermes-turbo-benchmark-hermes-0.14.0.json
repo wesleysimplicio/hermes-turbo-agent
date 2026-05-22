@@ -5,22 +5,22 @@
     "status": "blocked"
   },
   "generated_at": "2026-05-19 17:21:45 -0300",
-  "json_path": "C:\\Users\\wesley.simplicio\\Documents\\Codex\\2026-05-18\\termine-todas-as-issues-https-github-2\\hermes-turbo-agent\\docs\\tota-benchmark-hermes-0.14.0.json",
+  "json_path": "C:\\Users\\wesley.simplicio\\Documents\\Codex\\2026-05-18\\termine-todas-as-issues-https-github-2\\hermes-turbo-agent\\docs\\hermes-turbo-benchmark-hermes-0.14.0.json",
   "local_python": "C:\\Users\\wesley.simplicio\\AppData\\Local\\Microsoft\\WindowsApps\\python.EXE",
-  "md_path": "C:\\Users\\wesley.simplicio\\Documents\\Codex\\2026-05-18\\termine-todas-as-issues-https-github-2\\hermes-turbo-agent\\docs\\tota-benchmark-hermes-0.14.0.md",
+  "md_path": "C:\\Users\\wesley.simplicio\\Documents\\Codex\\2026-05-18\\termine-todas-as-issues-https-github-2\\hermes-turbo-agent\\docs\\hermes-turbo-benchmark-hermes-0.14.0.md",
   "metrics": {
     "async_1000_task_ms": {
       "local": 166.51870001805946,
       "local_meta": {
         "uvloop_requested": true
       },
-      "notes": "Tota run requested uvloop; stock stayed on default asyncio.",
+      "notes": "Hermes Turbo run requested uvloop; stock stayed on default asyncio.",
       "speedup": 1.0045778641298517,
       "stock": 167.28100000182167,
       "stock_meta": {
         "uvloop_requested": false
       },
-      "winner": "Tota Agent"
+      "winner": "Hermes Turbo Agent"
     },
     "browser_console_p99_ms": {
       "local": null,
@@ -34,7 +34,7 @@
       "notes": "Fresh subprocess import of model_tools as a cold-start proxy.",
       "speedup": 1.707651727925677,
       "stock": 4894.323499989696,
-      "winner": "Tota Agent"
+      "winner": "Hermes Turbo Agent"
     },
     "integration_breadth": {
       "local": 31.0,
@@ -57,11 +57,11 @@
       "local_meta": {
         "have_rust": false
       },
-      "notes": "Tota uses estimate_messages_tokens; stock uses estimate_messages_tokens_rough.",
+      "notes": "Hermes Turbo uses estimate_messages_tokens; stock uses estimate_messages_tokens_rough.",
       "speedup": 4.145957059954664,
       "stock": 453.3735333243385,
       "stock_meta": {},
-      "winner": "Tota Agent"
+      "winner": "Hermes Turbo Agent"
     },
     "tool_call_parse_us": {
       "local": 6.651126667081068,

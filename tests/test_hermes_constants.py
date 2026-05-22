@@ -19,27 +19,27 @@ from hermes_constants import (
 class TestGetHermesHome:
     """Tests for the fork-specific home directory resolution."""
 
-    def test_default_home_uses_tota_dir(self, tmp_path, monkeypatch):
-        """When no home env var is set, new Tota installs use ~/.tota."""
-        monkeypatch.delenv("TOTA_HOME", raising=False)
+    def test_default_home_uses_hermes_turbo_dir(self, tmp_path, monkeypatch):
+        """When no home env var is set, new Hermes Turbo installs use ~/.hermes-turbo."""
+        monkeypatch.delenv("HERMES_TURBO_HOME", raising=False)
         monkeypatch.delenv("HERMES_HOME", raising=False)
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-        assert get_hermes_home() == tmp_path / ".tota"
+        assert get_hermes_home() == tmp_path / ".hermes-turbo"
 
-    def test_tota_home_override_wins(self, tmp_path, monkeypatch):
-        """TOTA_HOME is the fork-native override and wins over legacy HERMES_HOME."""
-        tota_home = tmp_path / "tota-data"
+    def test_hermes_turbo_home_override_wins(self, tmp_path, monkeypatch):
+        """HERMES_TURBO_HOME is the fork-native override and wins over legacy HERMES_HOME."""
+        hermes_turbo_home = tmp_path / "hermes-turbo-data"
         hermes_home = tmp_path / "hermes-data"
-        monkeypatch.setenv("TOTA_HOME", str(tota_home))
+        monkeypatch.setenv("HERMES_TURBO_HOME", str(hermes_turbo_home))
         monkeypatch.setenv("HERMES_HOME", str(hermes_home))
 
-        assert get_hermes_home() == tota_home
+        assert get_hermes_home() == hermes_turbo_home
 
     def test_legacy_hermes_home_override_still_works(self, tmp_path, monkeypatch):
         """Existing hermes2 wrappers can keep using HERMES_HOME explicitly."""
         hermes_home = tmp_path / ".hermes2"
-        monkeypatch.delenv("TOTA_HOME", raising=False)
+        monkeypatch.delenv("HERMES_TURBO_HOME", raising=False)
         monkeypatch.setenv("HERMES_HOME", str(hermes_home))
 
         assert get_hermes_home() == hermes_home
@@ -49,24 +49,24 @@ class TestGetDefaultHermesRoot:
     """Tests for get_default_hermes_root() — Docker/custom deployment awareness."""
 
     def test_no_hermes_home_returns_native(self, tmp_path, monkeypatch):
-        """When HERMES_HOME is not set, returns ~/.tota."""
-        monkeypatch.delenv("TOTA_HOME", raising=False)
+        """When HERMES_HOME is not set, returns ~/.hermes-turbo."""
+        monkeypatch.delenv("HERMES_TURBO_HOME", raising=False)
         monkeypatch.delenv("HERMES_HOME", raising=False)
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-        assert get_default_hermes_root() == tmp_path / ".tota"
+        assert get_default_hermes_root() == tmp_path / ".hermes-turbo"
 
     def test_hermes_home_is_native(self, tmp_path, monkeypatch):
-        """When HERMES_HOME = ~/.tota, returns ~/.tota."""
-        native = tmp_path / ".tota"
+        """When HERMES_HOME = ~/.hermes-turbo, returns ~/.hermes-turbo."""
+        native = tmp_path / ".hermes-turbo"
         native.mkdir()
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
         monkeypatch.setenv("HERMES_HOME", str(native))
         assert get_default_hermes_root() == native
 
     def test_hermes_home_is_profile(self, tmp_path, monkeypatch):
-        """When HERMES_HOME is a profile under ~/.tota, returns ~/.tota."""
-        native = tmp_path / ".tota"
+        """When HERMES_HOME is a profile under ~/.hermes-turbo, returns ~/.hermes-turbo."""
+        native = tmp_path / ".hermes-turbo"
         profile = native / "profiles" / "coder"
         profile.mkdir(parents=True)
         monkeypatch.setattr(Path, "home", lambda: tmp_path)

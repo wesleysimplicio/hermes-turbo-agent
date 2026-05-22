@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Daily Tota Agent sync routine.
+"""Daily Hermes Turbo Agent sync routine.
 
-The routine keeps Tota Agent close to NousResearch/hermes-agent while preserving
-Tota-specific speed and branding work. It runs in an isolated checkout, creates
+The routine keeps Hermes Turbo Agent close to NousResearch/hermes-agent while preserving
+Hermes Turbo-specific speed and branding work. It runs in an isolated checkout, creates
 a dated branch, runs the project's own update path, merges upstream Hermes, then
 validates before committing and pushing the sync branch.
 """
@@ -21,10 +21,10 @@ from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-ORIGIN_URL = "https://github.com/wesleysimplicio/tota-agent.git"
+ORIGIN_URL = "https://github.com/wesleysimplicio/hermes-turbo-agent.git"
 UPSTREAM_URL = "https://github.com/NousResearch/hermes-agent.git"
 DEFAULT_PYTHON = "3.14.5"
-STATE_DIR = Path.home() / ".local" / "state" / "tota-agent" / "hermes-sync"
+STATE_DIR = Path.home() / ".local" / "state" / "hermes-turbo-agent" / "hermes-sync"
 
 
 class StepError(RuntimeError):
@@ -88,7 +88,7 @@ def _write_report(report: dict[str, Any], state_dir: Path) -> None:
     latest_md = state_dir / "latest.md"
     latest_json.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     lines = [
-        "# Tota Agent Daily Hermes Sync",
+        "# Hermes Turbo Agent Daily Hermes Sync",
         "",
         f"- Status: `{report['status']}`",
         f"- Started: `{report['started_at']}`",
@@ -186,8 +186,8 @@ def _run_validation(worktree: Path, skip_tests: bool) -> None:
             str(python_bin),
             "-m",
             "py_compile",
-            "scripts/tota_hermes_daily_update.py",
-            "scripts/benchmark_tota_vs_hermes_0140.py",
+            "scripts/hermes_turbo_daily_update.py",
+            "scripts/benchmark_hermes_turbo_vs_hermes_0140.py",
             "run_agent.py",
             "agent/transports/types.py",
         ],
@@ -241,11 +241,11 @@ def _run_benchmark_refresh(worktree: Path, state_dir: Path) -> Path:
     return pr_body
 
 
-def _assert_tota_personality(worktree: Path) -> None:
+def _assert_hermes_turbo_personality(worktree: Path) -> None:
     checks = {
-        "README.md": "Tota Agent",
+        "README.md": "Hermes Turbo Agent",
         "pyproject.toml": "msgspec",
-        "hermes_constants.py": "TOTA_HOME",
+        "hermes_constants.py": "HERMES_TURBO_HOME",
         "agent/_fastjson.py": "orjson",
     }
     missing = []
@@ -254,7 +254,7 @@ def _assert_tota_personality(worktree: Path) -> None:
         if not path.exists() or needle not in path.read_text(encoding="utf-8", errors="ignore"):
             missing.append(f"{rel_path}: missing {needle!r}")
     if missing:
-        raise StepError("Tota personalization checks failed:\n" + "\n".join(missing))
+        raise StepError("Hermes Turbo personalization checks failed:\n" + "\n".join(missing))
 
 
 def _commit_and_push(worktree: Path, branch: str, dry_run: bool) -> str:
@@ -264,14 +264,14 @@ def _commit_and_push(worktree: Path, branch: str, dry_run: bool) -> str:
     if dry_run:
         return "changes left uncommitted because --dry-run was used"
     _git(worktree, "add", "-A")
-    _git(worktree, "commit", "-m", f"chore: sync Tota Agent with Hermes upstream {time.strftime('%Y-%m-%d')}")
+    _git(worktree, "commit", "-m", f"chore: sync Hermes Turbo Agent with Hermes upstream {time.strftime('%Y-%m-%d')}")
     _git(worktree, "push", "-u", "origin", branch)
     return "committed and pushed"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo", default=str(REPO_ROOT), help="Tota Agent repository path")
+    parser.add_argument("--repo", default=str(REPO_ROOT), help="Hermes Turbo Agent repository path")
     parser.add_argument("--state-dir", default=str(STATE_DIR), help="State/report directory")
     parser.add_argument("--python-version", default=DEFAULT_PYTHON)
     parser.add_argument("--skip-tool-upgrade", action="store_true")
@@ -281,7 +281,7 @@ def main() -> int:
 
     repo = Path(args.repo).expanduser().resolve()
     state_dir = Path(args.state_dir).expanduser().resolve()
-    branch = f"codex/tota-hermes-daily-{time.strftime('%Y%m%d-%H%M%S')}"
+    branch = f"codex/hermes-turbo-daily-{time.strftime('%Y%m%d-%H%M%S')}"
     worktree = state_dir / "checkout"
     report: dict[str, Any] = {
         "status": "running",
@@ -303,8 +303,8 @@ def main() -> int:
         report["steps"].append("created dated sync branch after hermes update")
         _merge_upstream(worktree)
         report["steps"].append("merged upstream/main from NousResearch/hermes-agent")
-        _assert_tota_personality(worktree)
-        report["steps"].append("verified Tota identity and speed customizations are still present")
+        _assert_hermes_turbo_personality(worktree)
+        report["steps"].append("verified Hermes Turbo identity and speed customizations are still present")
         _run_validation(worktree, skip_tests=args.skip_tests)
         report["steps"].append("ran focused validation and taskflow")
         pr_body_path = _run_benchmark_refresh(worktree, state_dir)

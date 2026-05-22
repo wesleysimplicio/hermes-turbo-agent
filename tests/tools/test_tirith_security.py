@@ -1004,7 +1004,7 @@ class TestHermesHomeIsolation:
             # falls back to the account database; compute expected under the
             # same environment instead of after patch.dict restores HOME.
             os.environ.pop("HERMES_HOME", None)
-            expected = os.path.join(os.path.expanduser("~"), ".tota")
+            expected = os.path.join(os.path.expanduser("~"), ".hermes-turbo")
             result = _get_hermes_home()
         assert result == expected
 

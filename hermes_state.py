@@ -36,7 +36,7 @@ DEFAULT_DB_PATH = get_hermes_home() / "state.db"
 
 SCHEMA_VERSION = 11
 
-_FAST_STATE_ENV = "TOTA_FAST_STATE"
+_FAST_STATE_ENV = "HERMES_TURBO_FAST_STATE"
 _FAST_STATE_TRUTHY = {"1", "true", "yes", "on"}
 
 
@@ -44,7 +44,7 @@ def _fast_state_enabled() -> bool:
     """Return whether fast JSON is enabled for state payloads.
 
     Default remains OFF so SQLite persistence semantics stay unchanged unless
-    the caller explicitly opts in via ``TOTA_FAST_STATE=1``.
+    the caller explicitly opts in via ``HERMES_TURBO_FAST_STATE=1``.
     """
     return os.getenv(_FAST_STATE_ENV, "").strip().lower() in _FAST_STATE_TRUTHY
 

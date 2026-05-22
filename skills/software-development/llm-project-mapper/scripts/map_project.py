@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Map a code project with @wesleysimplicio/llm-project-mapper.
 
-Tota Agent treats project mapping as a core onboarding step. This script is
+Hermes Turbo Agent treats project mapping as a core onboarding step. This script is
 idempotent: re-running on an already-mapped project is a no-op unless
 ``--force`` is passed.
 
-Memory lives in ``$TOTA_HOME/mapped_projects.json`` (falling back to
-``$HERMES_HOME``, then ``~/.tota``) so mapping survives across sessions and
+Memory lives in ``$HERMES_TURBO_HOME/mapped_projects.json`` (falling back to
+``$HERMES_HOME``, then ``~/.hermes-turbo``) so mapping survives across sessions and
 profiles.
 """
 
@@ -36,12 +36,12 @@ _RALPH_MIN_ARTIFACTS = ("AGENTS.md", "INIT.md", "_BOOTSTRAP.md")
 _MAPPER_VERSION_RE = re.compile(r"v(\d+\.\d+\.\d+(?:[-+][\w.]+)?)")
 
 
-def _tota_home() -> Path:
-    """Return ``$TOTA_HOME`` falling back to ``$HERMES_HOME`` then ``~/.tota``.
+def _hermes_turbo_home() -> Path:
+    """Return ``$HERMES_TURBO_HOME`` falling back to ``$HERMES_HOME`` then ``~/.hermes-turbo``.
 
     Imports ``hermes_constants.get_hermes_home`` when available so the
     profile-aware resolution stays in one place.  Falls back to a stdlib-
-    only lookup when the script runs outside the Tota process tree (e.g.
+    only lookup when the script runs outside the Hermes Turbo process tree (e.g.
     a fresh checkout, CI, system Python).
     """
     try:
@@ -53,15 +53,15 @@ def _tota_home() -> Path:
         from hermes_constants import get_hermes_home  # type: ignore[import-not-found]
         return get_hermes_home()
     except (ImportError, ModuleNotFoundError, ValueError):
-        for env_var in ("TOTA_HOME", "HERMES_HOME"):
+        for env_var in ("HERMES_TURBO_HOME", "HERMES_HOME"):
             val = os.environ.get(env_var, "").strip()
             if val:
                 return Path(val).expanduser()
-        return Path.home() / ".tota"
+        return Path.home() / ".hermes-turbo"
 
 
 def _memory_path() -> Path:
-    home = _tota_home()
+    home = _hermes_turbo_home()
     home.mkdir(parents=True, exist_ok=True)
     return home / MEMORY_FILENAME
 

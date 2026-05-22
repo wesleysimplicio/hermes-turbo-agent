@@ -3,7 +3,7 @@ name: Benchmark Refresh After Sync
 on:
   push:
     branches:
-      - "codex/tota-hermes-daily-*"
+      - "codex/hermes-turbo-daily-*"
   workflow_dispatch:
 
 jobs:
@@ -32,9 +32,9 @@ jobs:
         with:
           name: benchmark-refresh
           path: |
-            docs/tota-benchmark-hermes-0.14.0.json
-            docs/tota-benchmark-hermes-0.14.0.md
+            docs/hermes-turbo-benchmark-hermes-0.14.0.json
+            docs/hermes-turbo-benchmark-hermes-0.14.0.md
             docs/benchmark-refresh-status.json
             docs/benchmark-refresh-status.md
-            docs/assets/tota-benchmark/battles
-            tota_agent_benchmark_report.pdf
+            docs/assets/hermes-turbo-benchmark/battles
+            hermes_turbo_agent_benchmark_report.pdf

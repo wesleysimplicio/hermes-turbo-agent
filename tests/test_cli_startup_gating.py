@@ -65,7 +65,7 @@ def test_agent_subcommands_run_hooks(gating):
 
 
 def test_explicit_disable_overrides_subcommand(gating, monkeypatch):
-    monkeypatch.setenv("TOTA_SKIP_STARTUP_HOOKS", "1")
+    monkeypatch.setenv("HERMES_TURBO_SKIP_STARTUP_HOOKS", "1")
     assert gating(["chat"]) is False
     assert gating([]) is False
 

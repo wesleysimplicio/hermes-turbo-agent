@@ -1,7 +1,7 @@
-# `.tota/` — Project-local Tota Agent home
+# `.hermes-turbo/` — Project-local Hermes Turbo Agent home
 
-This directory is the **project-local** Tota Agent home. It mirrors the
-runtime layout of the user-level `$TOTA_HOME` (default `~/.tota`) so the
+This directory is the **project-local** Hermes Turbo Agent home. It mirrors the
+runtime layout of the user-level `$HERMES_TURBO_HOME` (default `~/.hermes-turbo`) so the
 repository ships its own opinionated defaults.
 
 | Path | Purpose |
@@ -13,25 +13,25 @@ repository ships its own opinionated defaults.
 
 ## Resolution order
 
-Tota resolves its runtime home from the first match below:
+Hermes Turbo resolves its runtime home from the first match below:
 
-1. `TOTA_HOME` environment variable
+1. `HERMES_TURBO_HOME` environment variable
 2. `HERMES_HOME` environment variable (legacy, still respected)
-3. `~/.tota` (default)
+3. `~/.hermes-turbo` (default)
 
-This project-local `.tota/` is **not** the runtime home — it is the
+This project-local `.hermes-turbo/` is **not** the runtime home — it is the
 authoritative source for fork-level defaults and seed data. Production
 deployments copy / symlink the relevant files into the runtime home
 during setup.
 
-## Why a separate directory from `~/.tota`?
+## Why a separate directory from `~/.hermes-turbo`?
 
 Two reasons:
 
 - **Reviewability.** Defaults that affect every operator land in version
   control, with the same review discipline as code.
 - **Profile isolation.** Operators can still keep multiple personal
-  `$TOTA_HOME` profiles without forking the repository.
+  `$HERMES_TURBO_HOME` profiles without forking the repository.
 
 See `hermes_constants.py` for the runtime resolution code and
 `skills/software-development/llm-project-mapper/SKILL.md` for the

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Benchmark Tota Agent against upstream Hermes Agent 0.14.0.
+"""Benchmark Hermes Turbo Agent against upstream Hermes Agent 0.14.0.
 
 This script provisions a temporary upstream checkout at tag ``v2026.5.16``
 (``version = "0.14.0"``), creates an isolated venv for the stock baseline,
@@ -7,8 +7,8 @@ and measures the benchmark rows needed by issue #38 where the local host has
 enough machinery.
 
 The browser-console row is intentionally conservative: this host needs a local
-Chrome/Chromium binary, and the repo currently only ships a Tota-side browser
-eval harness, not a stock/Tota parity harness. When either prerequisite is
+Chrome/Chromium binary, and the repo currently only ships a Hermes Turbo-side browser
+eval harness, not a stock/Hermes Turbo parity harness. When either prerequisite is
 missing, the row is emitted as blocked instead of fabricating a comparison.
 """
 
@@ -34,8 +34,8 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_LOCAL_PYTHON = ROOT / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
-DEFAULT_OUTPUT_JSON = ROOT / "docs" / "tota-benchmark-hermes-0.14.0.json"
-DEFAULT_OUTPUT_MD = ROOT / "docs" / "tota-benchmark-hermes-0.14.0.md"
+DEFAULT_OUTPUT_JSON = ROOT / "docs" / "hermes-turbo-benchmark-hermes-0.14.0.json"
+DEFAULT_OUTPUT_MD = ROOT / "docs" / "hermes-turbo-benchmark-hermes-0.14.0.md"
 UPSTREAM_REMOTE = "https://github.com/NousResearch/hermes-agent.git"
 UPSTREAM_REF = "v2026.5.16"
 EXPECTED_STOCK_VERSION = "0.14.0"
@@ -110,7 +110,7 @@ def _percentile(values: list[float], q: float) -> float:
 
 
 def _start_headless_chrome(browser_binary: str, port: int) -> tuple[subprocess.Popen[str], Path, str]:
-    profile = Path(tempfile.mkdtemp(prefix="tota-browser-bench-"))
+    profile = Path(tempfile.mkdtemp(prefix="hermes-turbo-browser-bench-"))
     stdout_log = (profile / "chrome.stdout.log").open("w", encoding="utf-8")
     stderr_log = (profile / "chrome.stderr.log").open("w", encoding="utf-8")
     proc = subprocess.Popen(
@@ -403,8 +403,8 @@ def _winner(row: MetricRow, local_value: float, stock_value: float) -> str:
     if abs(local_value - stock_value) < 1e-12:
         return "Tie"
     if row.lower_is_better:
-        return "Tota Agent" if local_value < stock_value else "Hermes 0.14.0"
-    return "Tota Agent" if local_value > stock_value else "Hermes 0.14.0"
+        return "Hermes Turbo Agent" if local_value < stock_value else "Hermes 0.14.0"
+    return "Hermes Turbo Agent" if local_value > stock_value else "Hermes 0.14.0"
 
 
 def _speedup(row: MetricRow, local_value: float, stock_value: float) -> float:
@@ -422,23 +422,23 @@ def _format_value(value: float, unit: str) -> str:
 
 
 def _build_markdown(report: dict[str, Any]) -> str:
-    wins = sum(1 for metric in report["metrics"].values() if metric["winner"] == "Tota Agent")
+    wins = sum(1 for metric in report["metrics"].values() if metric["winner"] == "Hermes Turbo Agent")
     losses = sum(1 for metric in report["metrics"].values() if metric["winner"] == "Hermes 0.14.0")
     ties = sum(1 for metric in report["metrics"].values() if metric["winner"] == "Tie")
     blocked = sum(1 for metric in report["metrics"].values() if metric["winner"] == "Blocked")
     lines = [
-        "# Tota Agent vs Hermes 0.14.0",
+        "# Hermes Turbo Agent vs Hermes 0.14.0",
         "",
         f"- Generated: {report['generated_at']}",
         f"- Stock ref: `{report['stock_ref']}` (`version = {report['stock_version']}`)",
         f"- Local Python: `{report['local_python']}`",
         f"- Stock Python: `{report['stock_python']}`",
         f"- Browser benchmark: **{report['browser_console']['status']}**",
-        f"- Measured rows: **{wins} wins / {losses} losses / {ties} ties / {blocked} blocked** for Tota Agent on this host",
+        f"- Measured rows: **{wins} wins / {losses} losses / {ties} ties / {blocked} blocked** for Hermes Turbo Agent on this host",
         "",
         "## Side-by-side rows",
         "",
-        "| Row | Hermes 0.14.0 | Tota Agent | Winner | Delta | Notes |",
+        "| Row | Hermes 0.14.0 | Hermes Turbo Agent | Winner | Delta | Notes |",
         "| --- | ---: | ---: | --- | --- | --- |",
     ]
     for row in ROWS:
@@ -464,7 +464,7 @@ def _build_markdown(report: dict[str, Any]) -> str:
                 "",
                 report["browser_console"]["reason"],
                 "",
-                "Because the browser row is still blocked and the measurable rows on this host land below the acceptance target, this pass does not regenerate `tota_agent_benchmark_report.pdf`.",
+                "Because the browser row is still blocked and the measurable rows on this host land below the acceptance target, this pass does not regenerate `hermes_turbo_agent_benchmark_report.pdf`.",
                 "",
             ]
         )
@@ -482,7 +482,7 @@ def _build_markdown(report: dict[str, Any]) -> str:
             "## Commands",
             "",
             "```bash",
-            f"{report['local_python']} scripts/benchmark_tota_vs_hermes_0140.py --output-json {report['json_path']} --output-md {report['md_path']}",
+            f"{report['local_python']} scripts/benchmark_hermes_turbo_vs_hermes_0140.py --output-json {report['json_path']} --output-md {report['md_path']}",
             "```",
         ]
     )
@@ -503,7 +503,7 @@ def main() -> int:
     if not local_python.exists():
         raise SystemExit(f"local python not found: {local_python}")
 
-    temp_root = Path(tempfile.mkdtemp(prefix="tota-vs-hermes-0140-"))
+    temp_root = Path(tempfile.mkdtemp(prefix="hermes-turbo-vs-hermes-0140-"))
     try:
         stock_repo, stock_python = _bootstrap_stock_checkout(temp_root, local_python)
 
@@ -573,11 +573,11 @@ def main() -> int:
                     "stock_meta": {k: v for k, v in stock_payload.items() if k not in {"metric", "value"}},
                 }
                 if key == "tool_call_parse_us" and local_payload.get("have_rust"):
-                    metrics[key]["notes"] = "Tota path uses the Rust parser."
+                    metrics[key]["notes"] = "Hermes Turbo path uses the Rust parser."
                 elif key == "async_1000_task_ms":
-                    metrics[key]["notes"] = "Tota run requested uvloop; stock stayed on default asyncio."
+                    metrics[key]["notes"] = "Hermes Turbo run requested uvloop; stock stayed on default asyncio."
                 elif key == "token_estimate_batch_us":
-                    metrics[key]["notes"] = "Tota uses estimate_messages_tokens; stock uses estimate_messages_tokens_rough."
+                    metrics[key]["notes"] = "Hermes Turbo uses estimate_messages_tokens; stock uses estimate_messages_tokens_rough."
             elif key == "cold_start_ms":
                 local_samples = []
                 stock_samples = []

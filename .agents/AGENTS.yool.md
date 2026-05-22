@@ -68,7 +68,7 @@ Guardrails (`cpu_quota_pct`, `disk_quota_mb`) are MANDATORY per spec §11.
     disk_quota_mb: 500
     timeout_s: 600
 - description: Persists and compacts long-term memory artifacts under
-  `.tota/memories`. Higher disk quota to absorb consolidation passes.
+  `.hermes-turbo/memories`. Higher disk quota to absorb consolidation passes.
 
 ### Hermes Code Review
 

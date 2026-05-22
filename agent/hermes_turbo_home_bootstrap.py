@@ -1,12 +1,12 @@
-"""Bootstrap the runtime ``$TOTA_HOME`` directory from repo-local ``.tota/`` defaults.
+"""Bootstrap the runtime ``$HERMES_TURBO_HOME`` directory from repo-local ``.hermes-turbo/`` defaults.
 
-When an operator first runs Tota Agent against a fresh ``$TOTA_HOME``, this
+When an operator first runs Hermes Turbo Agent against a fresh ``$HERMES_TURBO_HOME``, this
 module idempotently seeds the directory with the fork's opinionated defaults
-shipped under the repo's ``.tota/`` tree:
+shipped under the repo's ``.hermes-turbo/`` tree:
 
 - ``HERMES_BASE`` — upstream Hermes baseline marker.
-- ``version`` — Tota version pin.
-- ``memories/MEMORY.md`` — seed memory entries (Tota identity, project-mapping
+- ``version`` — Hermes Turbo version pin.
+- ``memories/MEMORY.md`` — seed memory entries (Hermes Turbo identity, project-mapping
   directive, home resolution).
 - ``mapped_projects.json`` — empty registry for the ``llm-project-mapper``
   skill.
@@ -16,7 +16,7 @@ file-by-file, skip-if-exists. Each missing file is copied; each existing file
 is left alone.
 
 The bootstrap runs at most once per process and logs every action it takes (or
-skips). Failures land in ``$TOTA_HOME/logs/errors.log`` via the standard
+skips). Failures land in ``$HERMES_TURBO_HOME/logs/errors.log`` via the standard
 logging setup and do not interrupt agent startup — the agent works fine
 without the seed files, the operator just misses the curated defaults.
 """
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 _BOOTSTRAP_DONE: bool = False
 
-# Files copied from `.tota/` into the runtime home. Order doesn't matter
+# Files copied from `.hermes-turbo/` into the runtime home. Order doesn't matter
 # (each file is independent), but the list is sorted to make the bootstrap
 # log deterministic.
 _BOOTSTRAP_FILES: tuple[str, ...] = (
@@ -45,16 +45,16 @@ _BOOTSTRAP_FILES: tuple[str, ...] = (
 
 
 def _repo_root() -> Path:
-    """Resolve the repo root (``.tota/`` source) from this module's location."""
+    """Resolve the repo root (``.hermes-turbo/`` source) from this module's location."""
     return Path(__file__).resolve().parents[1]
 
 
 def _source_dir() -> Path:
-    return _repo_root() / ".tota"
+    return _repo_root() / ".hermes-turbo"
 
 
-def bootstrap_tota_home(force_reseed: bool = False) -> dict[str, str]:
-    """Idempotently copy ``.tota/`` defaults into the runtime ``$TOTA_HOME``.
+def bootstrap_hermes_turbo_home(force_reseed: bool = False) -> dict[str, str]:
+    """Idempotently copy ``.hermes-turbo/`` defaults into the runtime ``$HERMES_TURBO_HOME``.
 
     Args:
         force_reseed: When True, also copy files that already exist in the
@@ -72,7 +72,7 @@ def bootstrap_tota_home(force_reseed: bool = False) -> dict[str, str]:
 
     source = _source_dir()
     if not source.is_dir():
-        logger.debug("Tota bootstrap: no .tota/ source at %s, skipping.", source)
+        logger.debug("Hermes Turbo bootstrap: no .hermes-turbo/ source at %s, skipping.", source)
         _BOOTSTRAP_DONE = True
         return {}
 
@@ -80,7 +80,7 @@ def bootstrap_tota_home(force_reseed: bool = False) -> dict[str, str]:
     try:
         home.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
-        logger.warning("Tota bootstrap: cannot create %s: %s", home, exc)
+        logger.warning("Hermes Turbo bootstrap: cannot create %s: %s", home, exc)
         return {"_home": f"error:{exc}"}
 
     results: dict[str, str] = {}
@@ -97,10 +97,10 @@ def bootstrap_tota_home(force_reseed: bool = False) -> dict[str, str]:
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
             results[relpath] = "copied"
-            logger.info("Tota bootstrap: copied %s -> %s", relpath, dst)
+            logger.info("Hermes Turbo bootstrap: copied %s -> %s", relpath, dst)
         except OSError as exc:
             results[relpath] = f"error:{exc}"
-            logger.warning("Tota bootstrap: failed to copy %s: %s", relpath, exc)
+            logger.warning("Hermes Turbo bootstrap: failed to copy %s: %s", relpath, exc)
 
     _BOOTSTRAP_DONE = True
     return results

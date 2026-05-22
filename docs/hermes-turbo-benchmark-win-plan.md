@@ -1,7 +1,7 @@
-# Tota Agent Benchmark Win Plan
+# Hermes Turbo Agent Benchmark Win Plan
 
-This note tracks the post-benchmark changes made to push Tota Agent toward
-winning every practical row in the Hermes Original vs Tota Agent vs OpenClaw
+This note tracks the post-benchmark changes made to push Hermes Turbo Agent toward
+winning every practical row in the Hermes Original vs Hermes Turbo Agent vs OpenClaw
 comparison.
 
 ## Implemented
@@ -54,7 +54,7 @@ venv/bin/python -c "from agent._hermes_fast import HAVE_RUST; print(HAVE_RUST)"
   policy when available. This improves real Hermes async paths, but a synthetic
   1,000-task scheduler test can still favor native Node/libuv. Winning that row
   outright would require a larger Rust/Tokio gateway or sidecar architecture.
-- `Integrations`: the benchmark PDF measured only WhatsApp and HTTP for Tota
+- `Integrations`: the benchmark PDF measured only WhatsApp and HTTP for Hermes Turbo
   Agent, but the current checkout already contains gateway adapters for
   Telegram, Discord, Slack, Matrix, Signal, email, SMS, API server, and more.
   Future benchmark reports should score the current gateway surface rather than

@@ -41,12 +41,12 @@ try:
     from hermes_constants import get_hermes_home
 except ImportError:
     def get_hermes_home() -> Path:  # type: ignore[misc]
-        # Resolution order: TOTA_HOME → HERMES_HOME (legacy) → ~/.tota.
+        # Resolution order: HERMES_TURBO_HOME → HERMES_HOME (legacy) → ~/.hermes-turbo.
         val = (
-            (os.environ.get("TOTA_HOME") or "").strip()
+            (os.environ.get("HERMES_TURBO_HOME") or "").strip()
             or (os.environ.get("HERMES_HOME") or "").strip()
         )
-        return Path(val) if val else Path.home() / ".tota"
+        return Path(val) if val else Path.home() / ".hermes-turbo"
 
 DEFAULT_TUI_DIR = Path(
     os.environ.get("HERMES_TUI_DIR")

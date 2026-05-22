@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the Tota Agent benchmark and launch report PDF."""
+"""Generate the Hermes Turbo Agent benchmark and launch report PDF."""
 
 from __future__ import annotations
 
@@ -24,11 +24,11 @@ from reportlab.platypus import (
 
 
 ROOT = Path(__file__).resolve().parent.parent
-OUTPUT = ROOT / "tota_agent_benchmark_report.pdf"
-HERMES_0140_REPORT = ROOT / "docs" / "tota-benchmark-hermes-0.14.0.json"
-LOGO = ROOT / "docs/assets/tota-brand/tota-agent-logo.png"
-OG = ROOT / "docs/assets/tota-brand/tota-agent-og.png"
-CHART_DIR = ROOT / "docs/assets/tota-benchmark/generated"
+OUTPUT = ROOT / "hermes_turbo_agent_benchmark_report.pdf"
+HERMES_0140_REPORT = ROOT / "docs" / "hermes-turbo-benchmark-hermes-0.14.0.json"
+LOGO = ROOT / "docs/assets/hermes-turbo-brand/hermes-turbo-agent-logo.png"
+OG = ROOT / "docs/assets/hermes-turbo-brand/hermes-turbo-agent-og.png"
+CHART_DIR = ROOT / "docs/assets/hermes-turbo-benchmark/generated"
 
 PAGE_WIDTH, PAGE_HEIGHT = A4
 MARGIN_X = 1.45 * cm
@@ -76,7 +76,7 @@ def hermes_0140_summary(report: dict | None) -> tuple[int, int, int, int]:
     if not report:
         return (0, 0, 0, 0)
     metrics = report.get("metrics", {}).values()
-    wins = sum(1 for metric in metrics if metric.get("winner") == "Tota Agent")
+    wins = sum(1 for metric in metrics if metric.get("winner") == "Hermes Turbo Agent")
     losses = sum(1 for metric in metrics if metric.get("winner") == "Hermes 0.14.0")
     ties = sum(1 for metric in metrics if metric.get("winner") == "Tie")
     blocked = sum(1 for metric in metrics if metric.get("winner") == "Blocked")
@@ -252,7 +252,7 @@ def branded_page(canvas, doc):
     canvas.rect(PAGE_WIDTH * 0.81, PAGE_HEIGHT - 0.45 * cm, PAGE_WIDTH * 0.19, 0.45 * cm, stroke=0, fill=1)
     canvas.setFont("Helvetica", 7)
     canvas.setFillColor(MUTED)
-    canvas.drawString(MARGIN_X, 0.72 * cm, "Tota Agent Benchmark Report - updated launch edition")
+    canvas.drawString(MARGIN_X, 0.72 * cm, "Hermes Turbo Agent Benchmark Report - updated launch edition")
     canvas.drawRightString(PAGE_WIDTH - MARGIN_X, 0.72 * cm, f"Page {doc.page}")
     canvas.restoreState()
 
@@ -267,17 +267,17 @@ def story() -> list:
     s.append(Spacer(1, 0.7 * cm))
     s.append(Image(str(LOGO), width=CONTENT_WIDTH, height=CONTENT_WIDTH / 3))
     s.append(Spacer(1, 0.45 * cm))
-    s.append(p("Tota Agent Benchmark Report", STYLES["Title"]))
+    s.append(p("Hermes Turbo Agent Benchmark Report", STYLES["Title"]))
     s.append(
         p(
-            "Hermes Original vs Tota Agent vs OpenClaw - updated after the Tota Agent launch package",
+            "Hermes Original vs Hermes Turbo Agent vs OpenClaw - updated after the Hermes Turbo Agent launch package",
             STYLES["Subtitle"],
         )
     )
     s.append(
         metric_cards(
             [
-                ("Hermes 0.14.0", f"{hermes_0140_wins} / 7", "Measured rows won by Tota Agent", "#19D27F"),
+                ("Hermes 0.14.0", f"{hermes_0140_wins} / 7", "Measured rows won by Hermes Turbo Agent", "#19D27F"),
                 ("JSON encode", "7.1x", "Current .venv vs stdlib", "#FFE15A"),
                 ("Session batch", "5.3x", "180-message append speedup", "#32B7FF"),
                 ("Rust path", "ON", "HAVE_RUST=True", "#FF5D6C"),
@@ -287,7 +287,7 @@ def story() -> list:
     s.append(Spacer(1, 0.35 * cm))
     s.append(
         p(
-            "Generated May 17, 2026 on Apple Silicon ARM. This edition keeps the original benchmark comparison and adds the new Tota Agent brand system, GPT-image-2 visual chart pack, standalone HTML site, README launch story, and current-checkout validation from the local .venv.",
+            "Generated May 17, 2026 on Apple Silicon ARM. This edition keeps the original benchmark comparison and adds the new Hermes Turbo Agent brand system, GPT-image-2 visual chart pack, standalone HTML site, README launch story, and current-checkout validation from the local .venv.",
             STYLES["Body"],
         )
     )
@@ -304,7 +304,7 @@ def story() -> list:
         )
     s.append(
         p(
-            "Repository: github.com/wesleysimplicio/tota-agent | Upstream: NousResearch/hermes-agent | Site: tota-agent.html",
+            "Repository: github.com/wesleysimplicio/hermes-turbo-agent | Upstream: NousResearch/hermes-agent | Site: hermes-turbo-agent.html",
             STYLES["Small"],
         )
     )
@@ -329,13 +329,13 @@ def story() -> list:
     s.append(p("1. Executive Summary", STYLES["H1"]))
     s.append(
         p(
-            "Tota Agent is a branded and performance-oriented fork of Hermes Agent. The original benchmark already showed Tota Agent leading the practical scorecard against Hermes Original and OpenClaw: stronger JSON performance, lower memory footprint than Node/V8, higher message throughput, faster startup, and a Python-native operating model.",
+            "Hermes Turbo Agent is a branded and performance-oriented fork of Hermes Agent. The original benchmark already showed Hermes Turbo Agent leading the practical scorecard against Hermes Original and OpenClaw: stronger JSON performance, lower memory footprint than Node/V8, higher message throughput, faster startup, and a Python-native operating model.",
             STYLES["Body"],
         )
     )
     s.append(
         p(
-            "This new report adds the launch layer requested for the project: a Tota Agent logo, a standalone HTML site, updated README positioning, benchmark images generated with GPT-image-2, and a fresh validation pass from the active local .venv. The current environment confirms that the fast path is installed: orjson, msgspec, uvloop, and the Rust extension are all available.",
+            "This new report adds the launch layer requested for the project: a Hermes Turbo Agent logo, a standalone HTML site, updated README positioning, benchmark images generated with GPT-image-2, and a fresh validation pass from the active local .venv. The current environment confirms that the fast path is installed: orjson, msgspec, uvloop, and the Rust extension are all available.",
             STYLES["Body"],
         )
     )
@@ -343,10 +343,10 @@ def story() -> list:
         para_table(
             [
                 ["Decision area", "Result"],
-                ["Best practical agent fork", "Tota Agent: 44 / 50 consolidated benchmark score."],
+                ["Best practical agent fork", "Hermes Turbo Agent: 44 / 50 consolidated benchmark score."],
                 ["Best raw async scheduler", "OpenClaw still wins synthetic libuv scheduling."],
-                ["Best low-memory deployment", "Tota Agent / Hermes Python line: about 30 MB RSS in the original comparison."],
-                ["Best launch package", "Tota Agent now has logo, site, README story, PDF and visual benchmark deck."],
+                ["Best low-memory deployment", "Hermes Turbo Agent / Hermes Python line: about 30 MB RSS in the original comparison."],
+                ["Best launch package", "Hermes Turbo Agent now has logo, site, README story, PDF and visual benchmark deck."],
                 ["Current local fast path", "orjson, msgspec, uvloop and Rust extension active in .venv."],
             ],
             [4.3 * cm, CONTENT_WIDTH - 4.3 * cm],
@@ -359,40 +359,40 @@ def story() -> list:
         para_table(
             [
                 ["Area", "New artifact", "Impact"],
-                ["Brand", "docs/assets/tota-brand/tota-agent-logo.png and .svg", "Gives the fork a distinct Tota Agent identity while preserving Hermes attribution."],
+                ["Brand", "docs/assets/hermes-turbo-brand/hermes-turbo-agent-logo.png and .svg", "Gives the fork a distinct Hermes Turbo Agent identity while preserving Hermes attribution."],
                 ["Visual identity", "GPT-image-2 emblem plus deterministic typography", "Brazil-to-US streaming energy without using a portrait or implying official endorsement."],
-                ["Website", "tota-agent.html", "Standalone site with install flow, benchmark story, report links, and full comparison tables."],
-                ["README", "README.md", "Repositioned as Tota Agent by Hermes Agent with install, performance extras, assets and usage guidance."],
+                ["Website", "hermes-turbo-agent.html", "Standalone site with install flow, benchmark story, report links, and full comparison tables."],
+                ["README", "README.md", "Repositioned as Hermes Turbo Agent by Hermes Agent with install, performance extras, assets and usage guidance."],
                 ["Charts", "8 generated PNG benchmark visuals", "Readable image set for README and site: JSON, memory, throughput, tools, tokens, async, startup, scorecard."],
-                ["Report", "tota_agent_benchmark_report.pdf", "This updated PDF packages the benchmark and launch changes in one artifact."],
+                ["Report", "hermes_turbo_agent_benchmark_report.pdf", "This updated PDF packages the benchmark and launch changes in one artifact."],
             ],
             [3.2 * cm, 6.4 * cm, CONTENT_WIDTH - 9.6 * cm],
         )
     )
     s.append(Spacer(1, 0.2 * cm))
     s.append(Image(str(OG), width=CONTENT_WIDTH, height=CONTENT_WIDTH * 9 / 16))
-    s.append(p("Open graph launch image for the Tota Agent site and README ecosystem.", STYLES["Small"]))
+    s.append(p("Open graph launch image for the Hermes Turbo Agent site and README ecosystem.", STYLES["Small"]))
     s.append(PageBreak())
 
     s.append(p("3. System Overview", STYLES["H1"]))
     s.append(
         para_table(
             [
-                ["Attribute", "Hermes Original", "Tota Agent", "OpenClaw"],
+                ["Attribute", "Hermes Original", "Hermes Turbo Agent", "OpenClaw"],
                 ["Language", "Python 3.14", "Python 3.11.14", "TypeScript / Node.js 22"],
                 ["JSON engine", "stdlib json", "orjson plus fast shim", "V8 built-in JSON"],
                 ["Event loop", "asyncio", "uvloop when fast extra is installed", "libuv"],
                 ["Struct decode", "None", "msgspec", "None"],
                 ["Native extension", "None", "Rust / PyO3 active in local .venv", "None"],
                 ["Main category", "AI Agent", "Optimized Python AI Agent", "Multi-channel AI Gateway"],
-                ["Brand layer", "Hermes Agent", "Tota Agent by Hermes Agent", "OpenClaw"],
+                ["Brand layer", "Hermes Agent", "Hermes Turbo Agent by Hermes Agent", "OpenClaw"],
             ],
             [3.2 * cm, 4.3 * cm, 4.8 * cm, CONTENT_WIDTH - 12.3 * cm],
         )
     )
     s.append(
         p(
-            "Tota Agent keeps the Hermes operating model and adds a sharper performance and product story. OpenClaw remains the strongest comparison point for pure Node/libuv scheduling and multi-channel breadth, while Tota Agent has the best balance of Python ergonomics, footprint, startup and hot-path speed.",
+            "Hermes Turbo Agent keeps the Hermes operating model and adds a sharper performance and product story. OpenClaw remains the strongest comparison point for pure Node/libuv scheduling and multi-channel breadth, while Hermes Turbo Agent has the best balance of Python ergonomics, footprint, startup and hot-path speed.",
             STYLES["Body"],
         )
     )
@@ -409,7 +409,7 @@ def story() -> list:
         para_table(
             [
                 ["Metric", "Current .venv result", "Interpretation"],
-                ["Python", "3.11.14 arm64", "Matches the benchmarked Tota Agent runtime family."],
+                ["Python", "3.11.14 arm64", "Matches the benchmarked Hermes Turbo Agent runtime family."],
                 ["orjson loads", "1.708 us vs stdlib 4.000 us", "2.3x faster decode on realistic message payload."],
                 ["orjson dumps", "0.833 us vs stdlib 5.917 us", "7.1x faster encode on realistic message payload."],
                 ["_fast_loads shim", "1.750 us", "Transparent fast-json wrapper keeps orjson-class decode speed."],
@@ -438,7 +438,7 @@ def story() -> list:
 
     s.append(p("5. Benchmark Comparison", STYLES["H1"]))
     if hermes_0140_report:
-        rows = [["Metric", "Hermes 0.14.0", "Tota Agent", "Winner", "Delta"]]
+        rows = [["Metric", "Hermes 0.14.0", "Hermes Turbo Agent", "Winner", "Delta"]]
         for key, (label, unit) in HERMES_0140_LABELS.items():
             metric = hermes_0140_report["metrics"][key]
             rows.append(
@@ -467,15 +467,15 @@ def story() -> list:
     s.append(
         para_table(
             [
-                ["Metric", "Hermes Original", "Tota Agent", "OpenClaw", "Winner"],
-                ["Total score", "30 / 50", "44 / 50", "36 / 50", "Tota Agent"],
-                ["JSON dumps, large payload", "18.40 us", "3.20 us", "5.80 us", "Tota Agent"],
-                ["JSON loads, large payload", "12.80 us", "2.80 us", "5.20 us", "Tota Agent"],
-                ["Medium message pipeline", "7.50 us", "2.20 us", "3.46 us", "Tota Agent"],
-                ["Medium throughput", "133k msg/s", "454k msg/s", "289k msg/s", "Tota Agent"],
-                ["Tool-call typed parse", "Error / N/A", "0.45 us", "N/A", "Tota Agent"],
+                ["Metric", "Hermes Original", "Hermes Turbo Agent", "OpenClaw", "Winner"],
+                ["Total score", "30 / 50", "44 / 50", "36 / 50", "Hermes Turbo Agent"],
+                ["JSON dumps, large payload", "18.40 us", "3.20 us", "5.80 us", "Hermes Turbo Agent"],
+                ["JSON loads, large payload", "12.80 us", "2.80 us", "5.20 us", "Hermes Turbo Agent"],
+                ["Medium message pipeline", "7.50 us", "2.20 us", "3.46 us", "Hermes Turbo Agent"],
+                ["Medium throughput", "133k msg/s", "454k msg/s", "289k msg/s", "Hermes Turbo Agent"],
+                ["Tool-call typed parse", "Error / N/A", "0.45 us", "N/A", "Hermes Turbo Agent"],
                 ["Async 1,000 tasks", "2.50 ms", "1.40 ms", "0.08 ms", "OpenClaw"],
-                ["Cold start", "~52 ms", "~50 ms", "~280 ms", "Tota Agent"],
+                ["Cold start", "~52 ms", "~50 ms", "~280 ms", "Hermes Turbo Agent"],
                 ["RSS memory", "~30 MB", "~30 MB", "~97 MB", "Python line"],
             ],
             [4.5 * cm, 3.2 * cm, 3.1 * cm, 3.1 * cm, CONTENT_WIDTH - 13.9 * cm],
@@ -483,7 +483,7 @@ def story() -> list:
     )
     s.append(
         p(
-            "The comparison still says the same thing after the launch update: Tota Agent is the strongest practical fork for Python-based AI agent deployments. OpenClaw wins pure scheduler microbenchmarks, but Tota Agent wins the mixed operational score.",
+            "The comparison still says the same thing after the launch update: Hermes Turbo Agent is the strongest practical fork for Python-based AI agent deployments. OpenClaw wins pure scheduler microbenchmarks, but Hermes Turbo Agent wins the mixed operational score.",
             STYLES["Body"],
         )
     )
@@ -491,20 +491,20 @@ def story() -> list:
 
     s.append(p("6. Benchmark Visuals", STYLES["H1"]))
     for file_name, caption in [
-        ("gpt-image-2-tota-benchmark-json-latency.png", "Figure 1 - JSON serialization latency. Lower is better."),
-        ("gpt-image-2-tota-benchmark-memory-footprint.png", "Figure 2 - Memory and footprint comparison."),
-        ("gpt-image-2-tota-benchmark-message-throughput.png", "Figure 3 - Message throughput and pipeline latency."),
-        ("gpt-image-2-tota-benchmark-tool-call-parsing.png", "Figure 4 - Tool-call parsing fast path."),
-        ("gpt-image-2-tota-benchmark-token-counting.png", "Figure 5 - Token counting benchmark."),
-        ("gpt-image-2-tota-benchmark-concurrency-async.png", "Figure 6 - Concurrency and async scheduling."),
-        ("gpt-image-2-tota-benchmark-startup-time.png", "Figure 7 - Startup time and cold-start behavior."),
-        ("gpt-image-2-tota-benchmark-ecosystem-scorecard.png", "Figure 8 - Consolidated category scorecard."),
+        ("gpt-image-2-hermes-turbo-benchmark-json-latency.png", "Figure 1 - JSON serialization latency. Lower is better."),
+        ("gpt-image-2-hermes-turbo-benchmark-memory-footprint.png", "Figure 2 - Memory and footprint comparison."),
+        ("gpt-image-2-hermes-turbo-benchmark-message-throughput.png", "Figure 3 - Message throughput and pipeline latency."),
+        ("gpt-image-2-hermes-turbo-benchmark-tool-call-parsing.png", "Figure 4 - Tool-call parsing fast path."),
+        ("gpt-image-2-hermes-turbo-benchmark-token-counting.png", "Figure 5 - Token counting benchmark."),
+        ("gpt-image-2-hermes-turbo-benchmark-concurrency-async.png", "Figure 6 - Concurrency and async scheduling."),
+        ("gpt-image-2-hermes-turbo-benchmark-startup-time.png", "Figure 7 - Startup time and cold-start behavior."),
+        ("gpt-image-2-hermes-turbo-benchmark-ecosystem-scorecard.png", "Figure 8 - Consolidated category scorecard."),
     ]:
         s.append(chart(file_name, caption))
         if file_name in {
-            "gpt-image-2-tota-benchmark-message-throughput.png",
-            "gpt-image-2-tota-benchmark-token-counting.png",
-            "gpt-image-2-tota-benchmark-startup-time.png",
+            "gpt-image-2-hermes-turbo-benchmark-message-throughput.png",
+            "gpt-image-2-hermes-turbo-benchmark-token-counting.png",
+            "gpt-image-2-hermes-turbo-benchmark-startup-time.png",
         }:
             s.append(PageBreak())
 
@@ -537,7 +537,7 @@ def story() -> list:
         para_table(
             [
                 ["Step", "Command"],
-                ["Clone", "git clone https://github.com/wesleysimplicio/tota-agent.git"],
+                ["Clone", "git clone https://github.com/wesleysimplicio/hermes-turbo-agent.git"],
                 ["Create env", "uv venv .venv --python 3.11 && source .venv/bin/activate"],
                 ["Install", "uv pip install -e \".[all,dev]\""],
                 ["Fast extra", "uv pip install -e \".[fast]\""],
@@ -562,19 +562,19 @@ def story() -> list:
         para_table(
             [
                 ["Scenario", "Recommended", "Reason"],
-                ["WhatsApp / HTTP AI agent", "Tota Agent", "Hermes-compatible Python model with materially faster JSON hot paths."],
-                ["Serverless / cold-start sensitive", "Tota Agent", "Original comparison shows about 50 ms cold start vs about 280 ms for OpenClaw."],
-                ["Low memory density", "Tota Agent", "Python line keeps RSS far lower than the Node/V8 comparison point."],
+                ["WhatsApp / HTTP AI agent", "Hermes Turbo Agent", "Hermes-compatible Python model with materially faster JSON hot paths."],
+                ["Serverless / cold-start sensitive", "Hermes Turbo Agent", "Original comparison shows about 50 ms cold start vs about 280 ms for OpenClaw."],
+                ["Low memory density", "Hermes Turbo Agent", "Python line keeps RSS far lower than the Node/V8 comparison point."],
                 ["Pure scheduler stress", "OpenClaw", "Native libuv wins synthetic async scheduling."],
                 ["Upstream contribution baseline", "Hermes Agent", "Canonical upstream architecture and community."],
-                ["Public fork launch", "Tota Agent", "Now has brand identity, site, README, visuals and updated PDF."],
+                ["Public fork launch", "Hermes Turbo Agent", "Now has brand identity, site, README, visuals and updated PDF."],
             ],
             [4.2 * cm, 3.1 * cm, CONTENT_WIDTH - 7.3 * cm],
         )
     )
     s.append(
         p(
-            "Final conclusion: Tota Agent is now more than a fast fork. It has a complete launch package and a benchmark narrative that is legible to both engineers and product readers. The next highest-impact technical work is to keep the Rust path active in release builds, expand measured integration scoring to the full current gateway adapter surface, and rerun OpenClaw/Hermes comparisons under the same host whenever a release candidate is cut.",
+            "Final conclusion: Hermes Turbo Agent is now more than a fast fork. It has a complete launch package and a benchmark narrative that is legible to both engineers and product readers. The next highest-impact technical work is to keep the Rust path active in release builds, expand measured integration scoring to the full current gateway adapter surface, and rerun OpenClaw/Hermes comparisons under the same host whenever a release candidate is cut.",
             STYLES["Body"],
         )
     )
@@ -585,7 +585,7 @@ def story() -> list:
         para_table(
             [
                 ["Topic", "Detail"],
-                ["Original comparison", "Based on the May 2026 benchmark PDF comparing Hermes Original, Tota Agent and OpenClaw across 8 dimensions."],
+                ["Original comparison", "Based on the May 2026 benchmark PDF comparing Hermes Original, Hermes Turbo Agent and OpenClaw across 8 dimensions."],
                 ["Current validation", "Collected from the local .venv on May 17, 2026 with Python 3.11.14 on Apple Silicon ARM."],
                 ["Brand update", "Assets were generated for the launch package; logo typography was composed deterministically for exact text."],
                 ["Images", "Benchmark visuals are PNG assets generated with GPT-image-2 and overlaid with deterministic benchmark data."],
@@ -597,7 +597,7 @@ def story() -> list:
     )
     s.append(
         p(
-            "Primary local artifacts: README.md, tota-agent.html, docs/assets/tota-brand/*, docs/assets/tota-benchmark/generated/*, docs/tota-benchmark-win-plan.md, benchmark-report.md and this PDF.",
+            "Primary local artifacts: README.md, hermes-turbo-agent.html, docs/assets/hermes-turbo-brand/*, docs/assets/hermes-turbo-benchmark/generated/*, docs/hermes-turbo-benchmark-win-plan.md, benchmark-report.md and this PDF.",
             STYLES["Small"],
         )
     )
@@ -612,7 +612,7 @@ def main() -> int:
         leftMargin=MARGIN_X,
         topMargin=MARGIN_Y,
         bottomMargin=MARGIN_Y,
-        title="Tota Agent Benchmark Report - Updated Launch Edition",
+        title="Hermes Turbo Agent Benchmark Report - Updated Launch Edition",
         author="Wesley Simplicio",
         subject="AI Agent Framework Performance Comparison",
     )

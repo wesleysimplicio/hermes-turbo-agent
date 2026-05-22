@@ -2105,7 +2105,7 @@ def _hermes_home_for_target_user(target_home_dir: str) -> str:
     When installing a system service via sudo, get_hermes_home() resolves to
     root's home.  This translates it to the target user's equivalent path:
       /root/.tota                      → /home/alice/.tota
-      /root/.tota/profiles/coder       → /home/alice/.tota/profiles/coder
+      /root/.hermes-turbo/profiles/coder       → /home/alice/.hermes-turbo/profiles/coder
       /root/.hermes/profiles/coder     → /home/alice/.hermes/profiles/coder
       /opt/custom-hermes               → /opt/custom-hermes  (kept as-is)
     """
@@ -2864,7 +2864,7 @@ def generate_launchd_plist() -> str:
     from xml.sax.saxutils import escape as _xml_escape
 
     extra_env = []
-    for key in ("TOTA_HOME", "HERMES_GATEWAY_SERVICE_BASE", "HERMES_LAUNCHD_LABEL_BASE"):
+    for key in ("HERMES_TURBO_HOME", "HERMES_GATEWAY_SERVICE_BASE", "HERMES_LAUNCHD_LABEL_BASE"):
         value = os.environ.get(key, "").strip()
         if value:
             extra_env.append(f"<key>{key}</key>\n        <string>{_xml_escape(value)}</string>")

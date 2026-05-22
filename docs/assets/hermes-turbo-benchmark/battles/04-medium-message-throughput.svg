@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
   <title id="title">Medium Message Throughput comparison battle card</title>
-  <desc id="desc">Tota Agent, Hermes Agent, and OpenClaw comparison card generated from the Tota Agent benchmark report.</desc>
+  <desc id="desc">Hermes Turbo Agent, Hermes Agent, and OpenClaw comparison card generated from the Hermes Turbo Agent benchmark report.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#030712"/>
@@ -37,9 +37,9 @@
     <text x="112" y="742" fill="#9ed8ff" font-family="Helvetica" font-size="19" font-weight="900" letter-spacing="2">RULE</text>
     <text x="112" y="774" fill="#ffffff" font-family="Helvetica" font-size="28" font-weight="900">Higher throughput wins</text>
     <text x="524" y="742" fill="#19D27F" font-family="Helvetica" font-size="19" font-weight="900" letter-spacing="2">BATTLE RESULT</text>
-    <text x="524" y="774" fill="#ffffff" font-family="Helvetica" font-size="28" font-weight="900">Tota Agent wins</text>
+    <text x="524" y="774" fill="#ffffff" font-family="Helvetica" font-size="28" font-weight="900">Hermes Turbo Agent wins</text>
     <text x="936" y="742" fill="#FFE15A" font-family="Helvetica" font-size="19" font-weight="900" letter-spacing="2">NOTE</text>
-    <text x="936" y="770" fill="#c6d8ef" font-family="Helvetica" font-size="20" font-weight="800">Tota pushes the medium pipeline to 454k msg/s.</text>
+    <text x="936" y="770" fill="#c6d8ef" font-family="Helvetica" font-size="20" font-weight="800">Hermes Turbo pushes the medium pipeline to 454k msg/s.</text>
   </g>
 
   <g filter="url(#shadow)">
@@ -98,6 +98,6 @@
 
   </g>
 
-  <text x="80" y="838" fill="#7f93ad" font-family="Helvetica" font-size="16" font-weight="700">Source: Tota Agent benchmark report linked in README, May 17 2026.</text>
-  <text x="80" y="866" fill="#7f93ad" font-family="Helvetica" font-size="16" font-weight="700">Runtime caveat: Hermes CPython 3.14, Tota CPython 3.11.14, OpenClaw Node.js 22. Once you're Tota, you'll never be OpenClaw.</text>
+  <text x="80" y="838" fill="#7f93ad" font-family="Helvetica" font-size="16" font-weight="700">Source: Hermes Turbo Agent benchmark report linked in README, May 17 2026.</text>
+  <text x="80" y="866" fill="#7f93ad" font-family="Helvetica" font-size="16" font-weight="700">Runtime caveat: Hermes CPython 3.14, Hermes Turbo CPython 3.11.14, OpenClaw Node.js 22. Once you're Hermes Turbo, you'll never be OpenClaw.</text>
 </svg>
