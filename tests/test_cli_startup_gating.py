@@ -64,7 +64,7 @@ def test_agent_subcommands_run_hooks(gating):
         assert gating([cmd]) is True, f"Expected {cmd} to run hooks"
 
 
-def test_tota_update_check_runs_with_agent_hooks(gating):
+def test_hermes_turbo_update_check_runs_with_agent_hooks(gating):
     assert gating(["chat"]) is True
     assert gating(["update"]) is False
 

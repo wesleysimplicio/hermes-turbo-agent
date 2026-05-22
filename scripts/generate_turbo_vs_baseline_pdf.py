@@ -3,7 +3,7 @@
 
 Reads ``docs/perf/turbo-vs-baseline-baseline.json`` (or another path via
 ``--input``) and writes ``docs/perf/turbo-vs-baseline.pdf``. Uses
-``reportlab`` (already a transitive dep via ``generate_tota_benchmark_report``)
+``reportlab`` (already a transitive dep via ``generate_hermes_turbo_benchmark_report``)
 with no extra packages.
 
 Usage::

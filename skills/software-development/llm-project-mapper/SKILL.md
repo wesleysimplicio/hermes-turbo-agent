@@ -6,7 +6,7 @@ author: Hermes Turbo Agent (wraps wesleysimplicio/llm-project-mapper).
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
-  tota:
+  hermes-turbo:
     core: true
     category: software-development
     tags: [project-mapping, onboarding, agents-md, scaffolding, ralph]

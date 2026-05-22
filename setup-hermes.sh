@@ -393,7 +393,7 @@ fi
 # Seed bundled skills into the configured home skills directory.
 # ============================================================================
 
-HERMES_SKILLS_DIR="${HERMES_TURBO_HOME:-${HERMES_HOME:-$HOME/.tota}}/skills"
+HERMES_SKILLS_DIR="${HERMES_TURBO_HOME:-${HERMES_HOME:-$HOME/.hermes-turbo}}/skills"
 mkdir -p "$HERMES_SKILLS_DIR"
 
 echo ""

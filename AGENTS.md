@@ -7,7 +7,7 @@ Instructions for AI coding assistants and developers working on the Hermes Turbo
 > still ships as `hermes-agent` so installer scripts and the `hermes` CLI
 > command keep working unchanged. The fork name **Hermes Turbo Agent** carries
 > the performance + project-on-ramp customizations: `HERMES_TURBO_HOME`,
-> legacy `TOTA_HOME`, Rust `hermes_fast` extension, hierarchical cache,
+> legacy `HERMES_TURBO_HOME`, Rust `hermes_fast` extension, hierarchical cache,
 > streaming-on-by-default gateway, and core
 > integration of `llm-project-mapper` for project onboarding.
 
@@ -15,7 +15,7 @@ Instructions for AI coding assistants and developers working on the Hermes Turbo
 be mapped by `llm-project-mapper` first. The skill at
 `skills/software-development/llm-project-mapper/` is idempotent and tracks
 state in the active Hermes home, usually `$HERMES_TURBO_HOME/mapped_projects.json`
-or the backward-compatible `~/.tota/mapped_projects.json`. Re-running on a
+or the backward-compatible `~/.hermes-turbo/mapped_projects.json`. Re-running on a
 fresh project is a no-op.
 
 ## Development Environment

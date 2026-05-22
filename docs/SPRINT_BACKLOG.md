@@ -34,7 +34,7 @@ codebase can find the plan without leaving their editor.
 - ✅ #34 — Adopt upstream cold-start wave (~19s win) — landed via upstream merge `ab61ec254`.
 - ✅ #35 — Phase 2 `msgspec.Struct` migration for `transports/types.py::ToolCall` — shipped via `d0a6401bd` per ADR-0006 (compat-mixin approach).
 - ✅ #36 — Phase 1.5 `run_agent.py` `_fast_loads`/`_fast_dumps` migration — shipped via `d0a6401bd` per ADR-0004.
-- ✅ #37 — Phase 1.5 `hermes_state.py` `orjson` migration — shipped via `d0a6401bd` per ADR-0005; opt-in via `HERMES_TURBO_FAST_STATE=1` (legacy `TOTA_FAST_STATE=1` still honored).
+- ✅ #37 — Phase 1.5 `hermes_state.py` `orjson` migration — shipped via `d0a6401bd` per ADR-0005; opt-in via `HERMES_TURBO_FAST_STATE=1`.
 - ✅ #38 — Refresh benchmark report vs Hermes 0.14.0 — shipped via `d0a6401bd` per ADR-0007 (`scripts/benchmark_hermes_turbo_vs_hermes_0140.py`, `docs/hermes-turbo-benchmark-hermes-0.14.0.{json,md}`).
 
 ## Sprint 3 — Distribution + identity polish ✅
@@ -46,7 +46,7 @@ codebase can find the plan without leaving their editor.
 - ✅ #43 — Brand consistency pass (default + 4 neutral skins, CLI welcome banner, SOUL.md template).
 - ✅ #44 — `SOUL.md` override docs page (`docs/hermes-turbo-identity-customization.md`).
 - ✅ #45 — Native Windows beta integration test pass — shipped via `d0a6401bd` per ADR-0008 (`.github/workflows/tests.yml::windows-smoke (blocking)`).
-- ✅ #46 — `hermes-turbo` / `hermes-turbo-agent` / `hermes-turbo-acp` `console_scripts` aliases added (legacy `tota` / `tota-agent` / `tota-acp` kept for backward compat).
+- ✅ #46 — `hermes-turbo` / `hermes-turbo-agent` / `hermes-turbo-acp` `console_scripts` aliases added (legacy `hermes-turbo` / `hermes-turbo-agent` / `hermes-turbo-acp` kept for backward compat).
 
 ## Sprint 4 — Features, skills, nice-to-have ✅
 
@@ -86,9 +86,9 @@ codebase can find the plan without leaving their editor.
 
 The 33-issue roadmap closed in three waves:
 
-1. **Manual implementations** (PR #21, #61, #62, #68) — auto-mapper, `.tota/` bootstrap, mapper tests, `HERMES_HOME` consolidation, brand pass, `tota` aliases, SOUL.md docs, PyPI ADR, lint.yml ADR, security ADR, sprint backlog mirror, subcommand gating, Copilot review fixes.
+1. **Manual implementations** (PR #21, #61, #62, #68) — auto-mapper, `.hermes-turbo/` bootstrap, mapper tests, `HERMES_HOME` consolidation, brand pass, `hermes-turbo` aliases, SOUL.md docs, PyPI ADR, lint.yml ADR, security ADR, sprint backlog mirror, subcommand gating, Copilot review fixes.
 2. **Upstream Hermes v0.14.0 merge** (`ab61ec254`, 2026-05-18) — closed 13 cherry-pick issues at once (Claude cache, file-mutation footer, browser_console, cold-start, lazy-deps, tiered install, OpenAI proxy, /handoff, /subgoal, LSP, vision pixels, clarify buttons, OSC8 URLs, Brave/DuckDuckGo, 4 skills, huggingface tap).
-3. **Tota perf sprint** (`d0a6401bd`) — landed msgspec migration, run_agent.py fastjson, hermes_state.py feature-flagged migration, benchmark refresh, Windows CI.
+3. **Hermes Turbo perf sprint** (`d0a6401bd`) — landed msgspec migration, run_agent.py fastjson, hermes_state.py feature-flagged migration, benchmark refresh, Windows CI.
 4. **Security trio** (`9f16d52e4`, `8204a329c`, `0f3f23c19`) — sudo brute-force block, dangerous-command bypass closures, tool-error sanitization.
 
 ## Process notes
@@ -96,5 +96,5 @@ The 33-issue roadmap closed in three waves:
 - One PR per child issue wherever possible.
 - Cherry-picks were scoped tight: identify the upstream commit, apply, resolve conflicts preferring Hermes Turbo's perf customizations + upstream's behavior, test.
 - Sprints were sequential. Each sprint's DoD held before the next sprint started.
-- The `.hermes-turbo/` repo directory is the source of truth for runtime defaults; `$HERMES_TURBO_HOME` is the operator-mutable runtime home (legacy `.tota/` + `$TOTA_HOME` still honored for backward compatibility).
+- The `.hermes-turbo/` repo directory is the source of truth for runtime defaults; `$HERMES_TURBO_HOME` is the operator-mutable runtime home (legacy `.hermes-turbo/` + `$HERMES_TURBO_HOME` still honored for backward compatibility).
 - The upstream Hermes v0.14.0 merge (commit `ab61ec254`, 2026-05-18) closed 13 cherry-pick issues at once.

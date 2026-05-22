@@ -66,9 +66,9 @@ def _resolve_hermes_turbo_home_fallback() -> Path:
     a blank/whitespace setting doesn't yield an unintended path (closes
     Copilot review on PR #61).
     """
-    tota = (os.environ.get("HERMES_TURBO_HOME") or "").strip()
+    hermes-turbo = (os.environ.get("HERMES_TURBO_HOME") or "").strip()
     legacy = (os.environ.get("HERMES_HOME") or "").strip()
-    raw = tota or legacy
+    raw = hermes-turbo or legacy
     if raw:
         return Path(os.path.expanduser(raw))
     return Path.home() / ".hermes-turbo"

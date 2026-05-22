@@ -269,7 +269,7 @@ policy. Helper `run_batch(factory, n)` agenda N corotinas com
 `Semaphore(max_concurrency)` + `asyncio.gather`.
 
 ### Por que existe
-README compara Tota/Hermes vs OpenClaw em "async 1000 tasks": OpenClaw
+README compara Hermes Turbo/Hermes vs OpenClaw em "async 1000 tasks": OpenClaw
 ganha (12.500/s vs 714/s) porque libuv é faster que asyncio nativo. Com
 uvloop, Python iguala/se aproxima. Aqui é **trazer o melhor do OpenClaw
 sem reescrever em TS**.

@@ -21,12 +21,12 @@ This campaign frames Hermes Agent as Hermes Turbo Agent's engineering partner an
 
 | Frame | Asset | Scene | On-image Copy | Benchmark Proof |
 | --- | --- | --- | --- | --- |
-| 01 | `docs/assets/hermes-turbo-social/final/storyboard-01-hermes-turbo-vs-openclaw.png` | Hermes Turbo Agent and Hermes push forward together while the claw monster gets knocked back. | `TOTA AGENT + HERMES AGENT`; slogan; credits/footer | `44/50`, `3.20 us`, `454k/s`, `~50 ms` |
+| 01 | `docs/assets/hermes-turbo-social/final/storyboard-01-hermes-turbo-vs-openclaw.png` | Hermes Turbo Agent and Hermes push forward together while the claw monster gets knocked back. | `HERMES_TURBO AGENT + HERMES AGENT`; slogan; credits/footer | `44/50`, `3.20 us`, `454k/s`, `~50 ms` |
 | 02 | `docs/assets/hermes-turbo-social/final/storyboard-02-benchmark-table.png` | Split-screen comparison table: Hermes Turbo + Hermes versus the OpenClaw monster. | `BENCHMARK STORYBOARD`; slogan; credits/footer | Total score, JSON dumps, JSON loads, pipeline, cold start, RSS memory |
-| 03 | `docs/assets/hermes-turbo-social/final/storyboard-03-slogan-poster.png` | Hero poster with Hermes Turbo badge, Hermes wing energy, and monster behind. | `THE CLAW CAN CHASE`; `BUT TOTA SETS THE PACE`; slogan | `44/50` vs `36/50` |
+| 03 | `docs/assets/hermes-turbo-social/final/storyboard-03-slogan-poster.png` | Hero poster with Hermes Turbo badge, Hermes wing energy, and monster behind. | `THE CLAW CAN CHASE`; `BUT HERMES_TURBO SETS THE PACE`; slogan | `44/50` vs `36/50` |
 | 04 | `docs/assets/hermes-turbo-social/final/hermes-turbo-vs-openclaw-drag-race.png` | Hermes Turbo race machine crosses ahead while claw monster spins in the dust. | `5.6x FASTER COLD START` | `~50 ms` vs `~280 ms`; `454k/s` vs `289k/s`; `~30 MB` vs `~97 MB` |
-| 05 | `docs/assets/hermes-turbo-social/final/hermes-turbo-vs-openclaw-scorecard.png` | Hermes Turbo badge dominates the frame while the claw rival is shown as dizzy. | `TOTA AGENT OUTRUNS OPENCLAW` | `44/50`, `1.8x faster`, `1.9x faster` |
-| 06 | `docs/assets/hermes-turbo-brand/hermes-turbo-agent-og.png` | Clean launch-card version for Open Graph and link previews. | `TOTA AGENT`; `FASTER WHERE PRODUCTION AGENTS FEEL IT` | `44/50`, `~50 ms`, `~30 MB` |
+| 05 | `docs/assets/hermes-turbo-social/final/hermes-turbo-vs-openclaw-scorecard.png` | Hermes Turbo badge dominates the frame while the claw rival is shown as dizzy. | `HERMES_TURBO AGENT OUTRUNS OPENCLAW` | `44/50`, `1.8x faster`, `1.9x faster` |
+| 06 | `docs/assets/hermes-turbo-brand/hermes-turbo-agent-og.png` | Clean launch-card version for Open Graph and link previews. | `HERMES_TURBO AGENT`; `FASTER WHERE PRODUCTION AGENTS FEEL IT` | `44/50`, `~50 ms`, `~30 MB` |
 
 Ready-to-upload JPEG exports live in `docs/assets/hermes-turbo-social/linkedin-upload/`.
 

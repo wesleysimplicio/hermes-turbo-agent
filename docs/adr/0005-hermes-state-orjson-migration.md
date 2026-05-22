@@ -21,14 +21,14 @@ breakage risk in the codebase:
 
 ## Feature-flag rollout
 
-Ship behind `TOTA_FAST_STATE=1`.  Default: OFF for at least one full
+Ship behind `HERMES_TURBO_FAST_STATE=1`.  Default: OFF for at least one full
 release cycle.  Operators opt in.
 
 ```python
 import os
 
 _USE_FAST_STATE = (
-    (os.environ.get("TOTA_FAST_STATE") or "").strip().lower()
+    (os.environ.get("HERMES_TURBO_FAST_STATE") or "").strip().lower()
     in {"1", "true", "yes", "on"}
 )
 

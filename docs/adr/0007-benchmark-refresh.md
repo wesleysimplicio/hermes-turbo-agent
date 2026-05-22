@@ -6,7 +6,7 @@
 
 ## Context
 
-`tota_agent_benchmark_report.pdf` was generated against Tota 0.13.x.
+`hermes_turbo_agent_benchmark_report.pdf` was generated against Hermes Turbo 0.13.x.
 After the upstream Hermes v0.14.0 merge into main (commit
 `ab61ec254`) and the post-merge perf wave landings, the numbers in
 the PDF no longer reflect the live performance surface.  We need a
@@ -16,15 +16,15 @@ faster Hermes" claim stays defensible.
 ## What needs running
 
 The benchmark script lives at
-`scripts/generate_tota_benchmark_report.py` (~544 LOC).  It generates
+`scripts/generate_hermes_turbo_benchmark_report.py` (~544 LOC).  It generates
 the PDF from numbers fed in via the matching data files under
-`docs/assets/tota-benchmark/`.  Those data files need refresh.
+`docs/assets/hermes-turbo-benchmark/`.  Those data files need refresh.
 
-Benchmark surface (per `docs/tota-benchmark-win-plan.md`):
+Benchmark surface (per `docs/hermes-turbo-benchmark-win-plan.md`):
 
-| Row | Workload | Tota target |
+| Row | Workload | Hermes Turbo target |
 | --- | --- | --- |
-| Cold start | Time-to-first-prompt for `tota` vs stock `hermes` | within 1.5× upstream |
+| Cold start | Time-to-first-prompt for `hermes-turbo` vs stock `hermes` | within 1.5× upstream |
 | `browser_console` | 1000 evaluations p99 | match upstream's 180× post-merge |
 | JSON dumps short | Internal hot-path bytes encode | ≤V8 |
 | Tool-call parse | Rust direct-to-Python conversion | ≥3× stdlib |
@@ -34,7 +34,7 @@ Benchmark surface (per `docs/tota-benchmark-win-plan.md`):
 
 ## Runtime requirements
 
-- Tota local install with `[fast]` + `[perf]` extras + Rust extension
+- Hermes Turbo local install with `[fast]` + `[perf]` extras + Rust extension
   built (`scripts/install-rust.sh`).
 - Hermes 0.14.0 stock install in a sibling venv for side-by-side.
 - Node.js + Playwright for the browser_console benchmark.
@@ -43,17 +43,17 @@ Benchmark surface (per `docs/tota-benchmark-win-plan.md`):
 
 ## Output
 
-- Updated `tota_agent_benchmark_report.pdf` committed to repo root.
-- Refreshed assets under `docs/assets/tota-benchmark/generated/`.
+- Updated `hermes_turbo_agent_benchmark_report.pdf` committed to repo root.
+- Refreshed assets under `docs/assets/hermes-turbo-benchmark/generated/`.
 - README's "Performance" section refreshed.
-- Tota vs Hermes vs OpenClaw comparison rows in the PDF intro updated.
+- Hermes Turbo vs Hermes vs OpenClaw comparison rows in the PDF intro updated.
 
 ## Acceptance criteria
 
-- Tota wins ≥5 of 7 rows.
-- For any row Tota loses, document the gap and the closing strategy.
+- Hermes Turbo wins ≥5 of 7 rows.
+- For any row Hermes Turbo loses, document the gap and the closing strategy.
 - The PDF is reproducible via
-  `python scripts/generate_tota_benchmark_report.py` from the
+  `python scripts/generate_hermes_turbo_benchmark_report.py` from the
   refreshed data files (no manual chart editing).
 
 ## Why this is open
@@ -67,7 +67,7 @@ half-day.
 
 ## References
 
-- `scripts/generate_tota_benchmark_report.py` (the generator).
-- `docs/tota-benchmark-win-plan.md` (the per-row plan).
-- `tota_agent_benchmark_report.pdf` (the current report).
+- `scripts/generate_hermes_turbo_benchmark_report.py` (the generator).
+- `docs/hermes-turbo-benchmark-win-plan.md` (the per-row plan).
+- `hermes_turbo_agent_benchmark_report.pdf` (the current report).
 - Issue #38.

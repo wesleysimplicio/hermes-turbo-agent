@@ -1,7 +1,7 @@
 """Regression tests for the Hermes Turbo brand-consistency pass.
 
 Ensures user-facing surfaces lead with "Hermes Turbo Agent" while keeping
-legacy Tota aliases available for existing operators. The fork still
+legacy Hermes Turbo aliases available for existing operators. The fork still
 describes itself as *a modified, faster Hermes* — that exact phrasing is
 intentional and should NOT be flagged.
 """
@@ -37,7 +37,7 @@ def test_default_identity_introduces_hermes_turbo():
     from agent.prompt_builder import DEFAULT_AGENT_IDENTITY
 
     assert "Hermes Turbo Agent" in DEFAULT_AGENT_IDENTITY
-    assert "formerly Tota Agent" in DEFAULT_AGENT_IDENTITY
+    assert "formerly Hermes Turbo Agent" in DEFAULT_AGENT_IDENTITY
     assert "modified and faster Hermes" in DEFAULT_AGENT_IDENTITY
 
 
