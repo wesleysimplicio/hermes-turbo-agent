@@ -1,0 +1,13 @@
+{
+  "name": "grep_diff_mixed",
+  "kind": "grep_diff",
+  "input": "src/auth/login.ts:42:  const token = req.headers.authorization;\nsrc/auth/login.ts:43:  if (!token) return res.status(401).send('no token');\nsrc/auth/login.ts:44:  const claims = jwt.verify(token, SECRET);\n\ndiff --git a/src/auth/login.ts b/src/auth/login.ts\nindex 1234abc..5678def 100644\n--- a/src/auth/login.ts\n+++ b/src/auth/login.ts\n@@ -42,3 +42,4 @@ export function login(req, res) {\n   const token = req.headers.authorization;\n-  if (!token) return res.status(401).send('no token');\n+  if (!token) return res.status(401).json({ error: 'no token' });\n+  log.info('login attempt');\n   const claims = jwt.verify(token, SECRET);",
+  "expected_preserved": [
+    "src/auth/login.ts",
+    "jwt.verify",
+    "401",
+    "no token",
+    "@@ -42",
+    "log.info"
+  ]
+}

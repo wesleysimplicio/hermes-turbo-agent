@@ -1,82 +1,123 @@
-"""Content-hash keyed LRU token-count cache.
+"""Incremental token-estimate cache (issue #83).
 
-Tokenization is hot on the request path: every turn re-estimates the cost of
-the same system prompt, the same skill docs, the same prior assistant turns.
-This module memoizes ``len(tokenize(content))`` by ``(tokenizer_key, hash)``
-so the second call is a dict lookup.
+Caches the token count of each conversation segment by a stable content
+hash. Subsequent requests for the same segment avoid re-tokenizing,
+which matters when the conversation grows append-only and the volatile
+tail is small relative to the stable prefix.
 
-Cache safety:
-- Keys include a ``tokenizer_key`` (model name or tokenizer fingerprint).
-  Switching tokenizer never returns a stale count.
-- Content is hashed with SHA-256; collisions are not a practical concern.
-- Bounded by ``maxsize``; oldest entries are evicted (LRU).
-- Cleared on ``invalidate()`` or ``invalidate(tokenizer_key=...)``.
+Cache key is ``(model_id, blake2b(content))`` — invalidating by model
+keeps us safe across tokenizer changes. Hits are recorded so the
+telemetry layer can confirm savings vs. uncached estimation.
 """
 
 from __future__ import annotations
 
 import hashlib
 from collections import OrderedDict
-from typing import Callable, Optional
+from dataclasses import dataclass
+from threading import RLock
+from typing import Callable, Optional, Tuple
+
+Tokenizer = Callable[[str], int]
 
 
-def _content_hash(content: str) -> str:
-    return hashlib.sha256(content.encode("utf-8")).hexdigest()
+@dataclass(frozen=True)
+class CacheStats:
+    hits: int
+    misses: int
+    size: int
+
+    @property
+    def hit_rate(self) -> float:
+        total = self.hits + self.misses
+        return self.hits / total if total else 0.0
 
 
-class TokenCache:
-    """Bounded LRU cache: (tokenizer_key, content_hash) -> token_count."""
+class TokenEstimateCache:
+    """Bounded LRU cache mapping ``(model, content_hash) -> token_count``.
 
-    def __init__(self, maxsize: int = 4096) -> None:
-        if maxsize <= 0:
-            raise ValueError("maxsize must be positive")
-        self._maxsize = maxsize
-        self._data: "OrderedDict[tuple, int]" = OrderedDict()
+    Safe to share across coroutines (RLock). Eviction is LRU; the cache
+    never tries to hold the conversation in memory — it stores only an
+    integer per segment.
+    """
+
+    def __init__(self, *, max_entries: int = 10_000) -> None:
+        if max_entries <= 0:
+            raise ValueError("max_entries must be positive")
+        self._cap = max_entries
+        self._lock = RLock()
+        self._store: "OrderedDict[Tuple[str, str], int]" = OrderedDict()
         self._hits = 0
         self._misses = 0
 
-    def count(
-        self,
-        content: str,
-        tokenizer_key: str,
-        compute: Callable[[str], int],
-    ) -> int:
-        """Return cached count or compute, store, and return it."""
-        key = (tokenizer_key, _content_hash(content))
-        cached = self._data.get(key)
-        if cached is not None:
-            self._data.move_to_end(key)
+    @staticmethod
+    def _hash(content: str) -> str:
+        return hashlib.blake2b(content.encode("utf-8", "replace"), digest_size=16).hexdigest()
+
+    def stats(self) -> CacheStats:
+        with self._lock:
+            return CacheStats(hits=self._hits, misses=self._misses, size=len(self._store))
+
+    def clear(self) -> None:
+        with self._lock:
+            self._store.clear()
+            self._hits = 0
+            self._misses = 0
+
+    def invalidate_model(self, model: str) -> int:
+        """Drop every entry tied to ``model`` (e.g. tokenizer changed)."""
+        removed = 0
+        with self._lock:
+            for key in list(self._store.keys()):
+                if key[0] == model:
+                    del self._store[key]
+                    removed += 1
+        return removed
+
+    def get(self, content: str, *, model: str) -> Optional[int]:
+        key = (model, self._hash(content))
+        with self._lock:
+            value = self._store.get(key)
+            if value is None:
+                self._misses += 1
+                return None
+            self._store.move_to_end(key)
             self._hits += 1
+            return value
+
+    def put(self, content: str, count: int, *, model: str) -> None:
+        if count < 0:
+            raise ValueError("count must be >= 0")
+        key = (model, self._hash(content))
+        with self._lock:
+            if key in self._store:
+                self._store.move_to_end(key)
+                self._store[key] = count
+                return
+            self._store[key] = count
+            if len(self._store) > self._cap:
+                self._store.popitem(last=False)
+
+    def estimate(
+        self, content: str, *, model: str, tokenizer: Tokenizer
+    ) -> int:
+        """Return token count, computing only on miss."""
+        cached = self.get(content, model=model)
+        if cached is not None:
             return cached
-        self._misses += 1
-        value = int(compute(content))
-        self._data[key] = value
-        self._data.move_to_end(key)
-        if len(self._data) > self._maxsize:
-            self._data.popitem(last=False)
-        return value
+        count = int(tokenizer(content))
+        if count < 0:
+            count = 0
+        self.put(content, count, model=model)
+        return count
 
-    def invalidate(self, tokenizer_key: Optional[str] = None) -> int:
-        """Drop entries. With ``tokenizer_key``, drop only that bucket."""
-        if tokenizer_key is None:
-            n = len(self._data)
-            self._data.clear()
-            return n
-        to_drop = [k for k in self._data if k[0] == tokenizer_key]
-        for k in to_drop:
-            self._data.pop(k, None)
-        return len(to_drop)
 
-    def stats(self) -> dict:
-        total = self._hits + self._misses
-        hit_rate = (self._hits / total) if total else 0.0
-        return {
-            "size": len(self._data),
-            "maxsize": self._maxsize,
-            "hits": self._hits,
-            "misses": self._misses,
-            "hit_rate": hit_rate,
-        }
-
-    def __len__(self) -> int:
-        return len(self._data)
+def incremental_total(
+    segments: list[str],
+    *,
+    model: str,
+    tokenizer: Tokenizer,
+    cache: TokenEstimateCache,
+) -> int:
+    """Sum token counts segment-by-segment, leveraging the cache."""
+    return sum(cache.estimate(seg, model=model, tokenizer=tokenizer) for seg in segments)
