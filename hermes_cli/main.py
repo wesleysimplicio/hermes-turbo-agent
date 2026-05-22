@@ -156,7 +156,7 @@ def _apply_profile_override() -> None:
     # distinguishing heuristic: a profile path has "profiles" as its immediate
     # parent directory name (e.g. ~/.hermes-turbo/profiles/coder or
     # /opt/data/profiles/coder).  If HERMES_HOME points to the hermes root
-    # instead (e.g. systemd hardcodes HERMES_HOME=/root/.tota), we must
+    # instead (e.g. systemd hardcodes HERMES_HOME=/root/.hermes-turbo), we must
     # still read active_profile — the user may have switched profiles via
     # `hermes profile use` and the gateway should honour that choice.
     # See issue #22502.
@@ -325,12 +325,12 @@ if _should_run_agent_side_effects():
     except Exception:
         pass  # best-effort — agent works fine without the mapper
 
-    # Installed users should see Tota releases the same way modern CLIs do:
+    # Installed users should see Hermes Turbo releases the same way modern CLIs do:
     # when a newer release exists, ask once per day whether to update.
     try:
-        from hermes_cli.tota_update_prompt import maybe_prompt_for_tota_update as _maybe_prompt_for_tota_update
+        from hermes_cli.hermes_turbo_update_prompt import maybe_prompt_for_hermes_turbo_update as _maybe_prompt_for_hermes_turbo_update
 
-        _maybe_prompt_for_tota_update()
+        _maybe_prompt_for_hermes_turbo_update()
     except SystemExit:
         raise
     except Exception:

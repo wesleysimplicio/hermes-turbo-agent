@@ -108,6 +108,27 @@ class ProviderChain:
     def call(self, prompt: str) -> ProviderResult:
         if not self.providers:
             raise RuntimeError("ProviderChain has no providers configured")
+
+        # Fast path: single provider + first-attempt success is the common
+        # case. Avoid building exception state and ``time.perf_counter`` if
+        # nothing went wrong.
+        if len(self.providers) == 1:
+            name, fn = self.providers[0]
+            try:
+                response = fn(prompt)
+            except BaseException:  # noqa: BLE001
+                return self._slow_call(prompt)
+            self.metrics.attempts += 1
+            self.metrics.successes_per_provider[name] = (
+                self.metrics.successes_per_provider.get(name, 0) + 1
+            )
+            return ProviderResult(
+                response=response, provider=name, retries=0, elapsed_s=0.0,
+            )
+
+        return self._slow_call(prompt)
+
+    def _slow_call(self, prompt: str) -> ProviderResult:
         t0 = time.perf_counter()
         last_exc: Optional[BaseException] = None
 

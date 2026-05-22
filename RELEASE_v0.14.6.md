@@ -4,8 +4,8 @@
 
 **Previous version:** `0.14.5`.
 
-This release completes the visible rename pass after the Tota-to-Hermes Turbo
-transition. Legacy `tota*` commands, `TOTA_HOME`, and `.tota` storage remain
+This release completes the visible rename pass after the Hermes Turbo-to-Hermes Turbo
+transition. Legacy `hermes-turbo*` commands, `HERMES_TURBO_HOME`, and `.hermes-turbo` storage remain
 supported for existing installations, but new public copy now leads with
 `Hermes Turbo Agent`.
 
@@ -17,15 +17,15 @@ supported for existing installations, but new public copy now leads with
 - **README cleanup:** local checkout instructions, performance extras, daily
   sync copy, and release notes now use Hermes Turbo Agent terminology.
 - **Runtime wording cleanup:** update prompts and CLI skins now display Hermes
-  Turbo Agent instead of Tota Agent.
+  Turbo Agent instead of Hermes Turbo Agent.
 - **Sync routine cleanup:** the daily upstream sync routine now points at
   `wesleysimplicio/hermes-turbo-agent`, writes state under
   `~/.local/state/hermes-turbo-agent/`, and validates the Hermes Turbo identity.
 - **Microsite polish:** the HTML landing page leads with desktop/car profiles
-  and keeps Tota references only as compatibility context.
+  and keeps Hermes Turbo references only as compatibility context.
 
 ## Validation
 
-- `python -m ruff check hermes_cli/__init__.py hermes_cli/tota_update_prompt.py hermes_cli/skin_engine.py scripts/tota_hermes_daily_update.py`
+- `python -m ruff check hermes_cli/__init__.py hermes_cli/hermes_turbo_update_prompt.py hermes_cli/skin_engine.py scripts/hermes_turbo_daily_update.py`
 - `python -m pytest tests/test_hermes_constants.py tests/test_subprocess_home_isolation.py -q`
-- `taskflow run /Users/wesleysimplicio/Projetos/contribuicoes/hermes/tota-agent-main`
+- `taskflow run /Users/wesleysimplicio/Projetos/contribuicoes/hermes/hermes-turbo-agent-main`

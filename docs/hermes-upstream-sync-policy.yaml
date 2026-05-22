@@ -26,7 +26,7 @@ rules:
   - pattern: hermes-turbo-agent.html
     mode: keep-turbo
     reason: Hermes Turbo launch page is fork-owned and should not be overwritten by upstream.
-  - pattern: tota-agent.html
+  - pattern: hermes-turbo-agent.html
     mode: manual-review
     reason: Legacy benchmark microsite is retained for compatibility but can receive measured benchmark refreshes.
   - pattern: distributions/hermes-turbo-*
@@ -34,7 +34,7 @@ rules:
     reason: Desktop and car profile distributions are fork-owned product surfaces.
   - pattern: hermes_constants.py
     mode: merge
-    reason: Preserve upstream constants while keeping HERMES_TURBO_HOME, TOTA_HOME, and storage compatibility.
+    reason: Preserve upstream constants while keeping HERMES_TURBO_HOME, HERMES_TURBO_HOME, and storage compatibility.
   - pattern: pyproject.toml
     mode: merge
     reason: Accept upstream dependency and entrypoint changes while preserving Hermes Turbo metadata and optional performance extras.
@@ -50,7 +50,7 @@ rules:
   - pattern: docs/hermes-100x-fast-*
     mode: regenerate
     reason: Performance docs should be regenerated from measured benchmark data after upstream sync.
-  - pattern: docs/tota-benchmark-*
+  - pattern: docs/hermes-turbo-benchmark-*
     mode: regenerate
     reason: Benchmark claims must track current measured data after upstream sync.
   - pattern: docs/assets/hermes-turbo-brand/**

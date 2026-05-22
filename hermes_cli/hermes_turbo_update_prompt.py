@@ -18,8 +18,8 @@ from pathlib import Path
 from typing import Any
 
 
-TOTA_RELEASES_API = "https://api.github.com/repos/wesleysimplicio/hermes-turbo-agent/releases/latest"
-TOTA_GIT_URL = "https://github.com/wesleysimplicio/hermes-turbo-agent.git"
+HERMES_TURBO_RELEASES_API = "https://api.github.com/repos/wesleysimplicio/hermes-turbo-agent/releases/latest"
+HERMES_TURBO_GIT_URL = "https://github.com/wesleysimplicio/hermes-turbo-agent.git"
 PROMPT_CACHE_SECONDS = 24 * 3600
 CHECK_CACHE_SECONDS = 6 * 3600
 
@@ -29,8 +29,8 @@ def _truthy_env(name: str) -> bool:
 
 
 def _disabled() -> bool:
-    return _truthy_env("TOTA_SKIP_UPDATE_PROMPT") or (
-        (os.environ.get("TOTA_UPDATE_PROMPT") or "").strip().lower() in {"0", "false", "no", "off"}
+    return _truthy_env("HERMES_TURBO_SKIP_UPDATE_PROMPT") or (
+        (os.environ.get("HERMES_TURBO_UPDATE_PROMPT") or "").strip().lower() in {"0", "false", "no", "off"}
     )
 
 
@@ -45,9 +45,9 @@ def _cache_path() -> Path:
     try:
         from hermes_constants import get_hermes_home
 
-        return get_hermes_home() / ".tota_update_prompt.json"
+        return get_hermes_home() / ".hermes_turbo_update_prompt.json"
     except Exception:
-        return Path.home() / ".tota_update_prompt.json"
+        return Path.home() / ".hermes_turbo_update_prompt.json"
 
 
 def _read_cache() -> dict[str, Any]:
@@ -87,10 +87,10 @@ def _fetch_latest_release() -> dict[str, str] | None:
 
     try:
         req = urllib.request.Request(
-            TOTA_RELEASES_API,
+            HERMES_TURBO_RELEASES_API,
             headers={
                 "Accept": "application/vnd.github+json",
-                "User-Agent": "tota-agent-update-check",
+                "User-Agent": "hermes-turbo-agent-update-check",
             },
         )
         with urllib.request.urlopen(req, timeout=2.5) as response:
@@ -111,7 +111,7 @@ def _fetch_latest_release() -> dict[str, str] | None:
 
 
 def latest_release_update(current_version: str | None = None) -> dict[str, str] | None:
-    """Return latest release metadata when Tota has a newer release."""
+    """Return latest release metadata when Hermes Turbo has a newer release."""
     if current_version is None:
         from hermes_cli import __version__
 
@@ -146,22 +146,22 @@ def _record_prompt(tag: str, answer: str) -> None:
 
 
 def update_command() -> list[str]:
-    """Return the command used when a user accepts the Tota update prompt."""
+    """Return the command used when a user accepts the Hermes Turbo update prompt."""
     project_root = Path(__file__).resolve().parents[1]
     if (project_root / ".git").is_dir():
         return [sys.executable, "-m", "hermes_cli.main", "update", "--yes"]
 
     uv = shutil.which("uv")
     if uv:
-        return [uv, "pip", "install", "--upgrade", f"git+{TOTA_GIT_URL}"]
-    return [sys.executable, "-m", "pip", "install", "--upgrade", f"git+{TOTA_GIT_URL}"]
+        return [uv, "pip", "install", "--upgrade", f"git+{HERMES_TURBO_GIT_URL}"]
+    return [sys.executable, "-m", "pip", "install", "--upgrade", f"git+{HERMES_TURBO_GIT_URL}"]
 
 
 def update_command_label() -> str:
     return " ".join(update_command())
 
 
-def maybe_prompt_for_tota_update() -> bool:
+def maybe_prompt_for_hermes_turbo_update() -> bool:
     """Ask interactive users whether they want to update to a new Hermes Turbo release.
 
     Returns True only when the prompt ran an update command successfully enough
@@ -198,7 +198,7 @@ def maybe_prompt_for_tota_update() -> bool:
         return False
 
     env = os.environ.copy()
-    env["TOTA_SKIP_UPDATE_PROMPT"] = "1"
+    env["HERMES_TURBO_SKIP_UPDATE_PROMPT"] = "1"
     result = subprocess.run(update_command(), env=env)
     if result.returncode == 0:
         print("Hermes Turbo Agent updated. Restart the command to use the new version.")

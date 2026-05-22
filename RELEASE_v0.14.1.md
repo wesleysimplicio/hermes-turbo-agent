@@ -1,7 +1,7 @@
-# Tota Agent v0.14.1 — Security advisory for Sprint 4 hardening trio
+# Hermes Turbo Agent v0.14.1 — Security advisory for Sprint 4 hardening trio
 
 **Release type:** Security advisory / patch release.
-**Previous Tota version:** `0.14.0`.
+**Previous Hermes Turbo version:** `0.14.0`.
 **Issue:** `#55` — Cherry-pick upstream security trio.
 
 This patch release lands the full Sprint 4 security trio requested in
@@ -58,12 +58,12 @@ Result: `402 passed`.
 Repo validation:
 
 ```bash
-~/.local/bin/taskflow run /Users/wesleysimplicio/Projetos/contribuicoes/hermes/tota-agent-main
+~/.local/bin/taskflow run /Users/wesleysimplicio/Projetos/contribuicoes/hermes/hermes-turbo-agent-main
 ```
 
 Result: `passed`.
 
-Human checklist: `/Users/wesleysimplicio/.config/taskflow/reports/tota-agent-main-bde2378f/human-review.md`
+Human checklist: `/Users/wesleysimplicio/.config/taskflow/reports/hermes-turbo-agent-main-bde2378f/human-review.md`
 
 ## Advisory summary
 

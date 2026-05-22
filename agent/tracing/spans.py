@@ -136,6 +136,8 @@ def span(
 
     The current-span contextvar establishes parent/child relationships
     automatically (works across asyncio tasks because of contextvars).
+    Hot path: when ``attributes`` is None we reuse a shared empty dict so
+    spans with no extra attrs do not allocate.
     """
 
     rec = recorder or _default_recorder
@@ -145,8 +147,8 @@ def span(
         trace_id=parent.trace_id if parent else _new_trace_id(),
         span_id=_new_span_id(),
         parent_span_id=parent.span_id if parent else None,
-        attributes=dict(attributes or {}),
-        start_ns=time.time_ns(),
+        attributes=attributes if attributes is not None else {},
+        start_ns=time.perf_counter_ns(),
     )
     token = _current_span.set(new_span)
     try:
@@ -158,6 +160,6 @@ def span(
         new_span.error_message = repr(exc)
         raise
     finally:
-        new_span.end_ns = time.time_ns()
+        new_span.end_ns = time.perf_counter_ns()
         _current_span.reset(token)
         rec.emit(new_span)

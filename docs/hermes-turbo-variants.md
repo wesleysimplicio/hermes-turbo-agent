@@ -41,6 +41,6 @@ hermes profile install ./distributions/hermes-turbo-car --name hermes-turbo-car 
 
 - Prefer the new installed commands: `hermes-turbo`, `hermes-turbo-agent`, and
   `hermes-turbo-acp`.
-- The runtime still accepts `TOTA_HOME` and old `tota*` commands.
+- The runtime still accepts `HERMES_TURBO_HOME` and old `hermes-turbo*` commands.
 - `HERMES_TURBO_HOME` is the new preferred home override.
-- The default storage directory remains `~/.tota` for backward compatibility.
+- The default storage directory remains `~/.hermes-turbo` for backward compatibility.

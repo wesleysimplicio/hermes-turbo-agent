@@ -20,13 +20,13 @@
 # Env inputs (set before sourcing to override defaults):
 #   HERMES_NODE_MIN_VERSION   (default: 20)   — accepted on PATH
 #   HERMES_NODE_TARGET_MAJOR  (default: 22)   — installed when we install
-#   HERMES_TURBO_HOME                 (default: $HOME/.tota)
+#   HERMES_TURBO_HOME                 (default: $HOME/.hermes-turbo)
 #   HERMES_HOME               legacy override, used when HERMES_TURBO_HOME is unset
 # ============================================================================
 
 HERMES_NODE_MIN_VERSION="${HERMES_NODE_MIN_VERSION:-20}"
 HERMES_NODE_TARGET_MAJOR="${HERMES_NODE_TARGET_MAJOR:-22}"
-HERMES_HOME="${HERMES_TURBO_HOME:-${HERMES_HOME:-$HOME/.tota}}"
+HERMES_HOME="${HERMES_TURBO_HOME:-${HERMES_HOME:-$HOME/.hermes-turbo}}"
 HERMES_NODE_AVAILABLE=false
 
 # ---------------------------------------------------------------------------

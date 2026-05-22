@@ -10,14 +10,10 @@ from pathlib import Path
 
 
 DEFAULT_HOME_DIRNAME = ".hermes-turbo"
-LEGACY_HOME_DIRNAME = ".tota"
 HERMES_TURBO_HOME_ENV = "HERMES_TURBO_HOME"
-LEGACY_TOTA_HOME_ENV = "TOTA_HOME"  # Deprecated; honored with a warning until removal.
 LEGACY_HOME_ENV = "HERMES_HOME"
 
 _profile_fallback_warned: bool = False
-_tota_env_deprecation_warned: bool = False
-_tota_dir_deprecation_warned: bool = False
 
 _UNSET = object()
 _HERMES_HOME_OVERRIDE: ContextVar[str | object] = ContextVar(
@@ -49,34 +45,9 @@ def get_hermes_home_override() -> str | None:
 
 
 def _default_home() -> Path:
-    """Return the canonical home directory.
+    """Return the canonical home directory ``~/.hermes-turbo``."""
 
-    Resolution order when no env var is set:
-      1. ``~/.hermes-turbo`` (canonical)
-      2. ``~/.tota`` if it exists and ``~/.hermes-turbo`` does not (legacy fallback;
-         warns once per process to prompt migration).
-    """
-    canonical = Path.home() / DEFAULT_HOME_DIRNAME
-    if canonical.exists():
-        return canonical
-    legacy = Path.home() / LEGACY_HOME_DIRNAME
-    if legacy.exists():
-        global _tota_dir_deprecation_warned
-        if not _tota_dir_deprecation_warned:
-            _tota_dir_deprecation_warned = True
-            import sys
-
-            try:
-                sys.stderr.write(
-                    f"[hermes-turbo] deprecation: using legacy ~/{LEGACY_HOME_DIRNAME} "
-                    f"as home directory. Migrate to ~/{DEFAULT_HOME_DIRNAME} via "
-                    f"`mv ~/{LEGACY_HOME_DIRNAME} ~/{DEFAULT_HOME_DIRNAME}`.\n"
-                )
-                sys.stderr.flush()
-            except Exception:
-                pass
-        return legacy
-    return canonical
+    return Path.home() / DEFAULT_HOME_DIRNAME
 
 
 def _configured_home_env() -> str:
@@ -84,29 +55,11 @@ def _configured_home_env() -> str:
 
     Order:
       1. ``HERMES_TURBO_HOME`` (canonical fork-native env var)
-      2. ``TOTA_HOME`` (deprecated; honored with a one-shot warning)
-      3. ``HERMES_HOME`` (legacy upstream env var, unchanged behavior)
+      2. ``HERMES_HOME`` (legacy upstream env var, unchanged behavior)
     """
     val = os.environ.get(HERMES_TURBO_HOME_ENV, "").strip()
     if val:
         return val
-    legacy_tota = os.environ.get(LEGACY_TOTA_HOME_ENV, "").strip()
-    if legacy_tota:
-        global _tota_env_deprecation_warned
-        if not _tota_env_deprecation_warned:
-            _tota_env_deprecation_warned = True
-            import sys
-
-            try:
-                sys.stderr.write(
-                    f"[hermes-turbo] deprecation: {LEGACY_TOTA_HOME_ENV} is honored "
-                    f"for backward compatibility but will be removed in a future "
-                    f"release. Rename to {HERMES_TURBO_HOME_ENV}.\n"
-                )
-                sys.stderr.flush()
-            except Exception:
-                pass
-        return legacy_tota
     return os.environ.get(LEGACY_HOME_ENV, "").strip()
 
 
@@ -116,9 +69,9 @@ def get_hermes_home() -> Path:
     Resolution order:
       1. Context-local override (``set_hermes_home_override``)
       2. ``HERMES_TURBO_HOME`` env var
-      3. ``TOTA_HOME`` env var (deprecated; warns once)
+      3. ``HERMES_TURBO_HOME`` env var (deprecated; warns once)
       4. ``HERMES_HOME`` env var (legacy upstream)
-      5. ``~/.hermes-turbo`` (canonical) or ``~/.tota`` (legacy fallback with warning)
+      5. ``~/.hermes-turbo`` (canonical) or ``~/.hermes-turbo`` (legacy fallback with warning)
 
     This is the single source of truth — all other copies should import this.
 
@@ -161,7 +114,7 @@ def get_hermes_home() -> Path:
             # on consoles where a StreamHandler is already attached.
             import sys
             msg = (
-                f"[HERMES_HOME fallback] HERMES_TURBO_HOME/TOTA_HOME/HERMES_HOME are unset but active "
+                f"[HERMES_HOME fallback] HERMES_TURBO_HOME/HERMES_TURBO_HOME/HERMES_HOME are unset but active "
                 f"profile is {active!r}. Falling back to ~/{DEFAULT_HOME_DIRNAME}, which "
                 f"is the DEFAULT profile — not {active!r}. Any data this "
                 f"process writes will land in the wrong profile. The "

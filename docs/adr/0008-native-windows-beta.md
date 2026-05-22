@@ -11,7 +11,7 @@ Hermes 0.14.0 shipped 40+ Windows-specific fixes alongside the
 the upstream merge (commit `ab61ec254`).  We need a Windows CI runner
 to validate that:
 
-1. Tota Agent boots on a fresh Windows 11 box without WSL.
+1. Hermes Turbo Agent boots on a fresh Windows 11 box without WSL.
 2. The Rust `hermes_fast` extension builds (or gracefully skips) on
    Windows.
 3. The smoke suite passes end-to-end.
@@ -49,15 +49,15 @@ Windows.  Add `rustup-init.exe` to the Windows job's setup:
 
 ### 3. Smoke test
 
-Tota-specific smoke test that proves the native-Windows path works:
+Hermes Turbo-specific smoke test that proves the native-Windows path works:
 
 ```powershell
 # tests/smoke/test_windows_smoke.ps1
-tota --version
-tota status
-tota config show
-tota tools list
-tota skills list
+hermes-turbo --version
+hermes-turbo status
+hermes-turbo config show
+hermes-turbo tools list
+hermes-turbo skills list
 ```
 
 ### 4. Known Windows gotchas to test
@@ -67,7 +67,7 @@ tota skills list
 - MinGit auto-install when system git is missing.
 - MS Store python stub detection.
 - npm prefix handling for `npx --yes @wesleysimplicio/llm-project-mapper`.
-- Path normalisation in `$TOTA_HOME` (`C:\Users\...\.tota`).
+- Path normalisation in `$HERMES_TURBO_HOME` (`C:\Users\...\.hermes-turbo`).
 - File-locking semantics in `hermes_state.py` (TOCTOU fix
   `7fee1f61e`).
 

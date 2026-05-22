@@ -64,9 +64,9 @@ that, set `HERMES_TURBO_AUTO_MAP=0` or touch `$HERMES_TURBO_HOME/.disable_auto_m
 profiles system:
 
 ```bash
-tota profile create coder
-tota profile create reviewer
-tota profile use coder
+hermes-turbo profile create coder
+hermes-turbo profile create reviewer
+hermes-turbo profile use coder
 # Edit $HERMES_TURBO_HOME/profiles/coder/SOUL.md → coder persona
 # Edit $HERMES_TURBO_HOME/profiles/reviewer/SOUL.md → reviewer persona
 ```
@@ -88,14 +88,14 @@ corresponding tool from the toolset.
 ## How to verify your override is active
 
 ```bash
-HERMES_TURBO_DEBUG_DUMP_SYSTEM_PROMPT=1 tota --help
+HERMES_TURBO_DEBUG_DUMP_SYSTEM_PROMPT=1 hermes-turbo --help
 # The dumped prompt prints to stderr; grep for your SOUL.md content.
 ```
 
 Or check the active profile's `_cached_system_prompt` via the dump tool:
 
 ```bash
-tota dump --component=system_prompt
+hermes-turbo dump --component=system_prompt
 ```
 
 ## Operator best practices
@@ -107,7 +107,7 @@ tota dump --component=system_prompt
   mapping output.
 - **Re-test after upgrades.** A Hermes Turbo minor version bump can change the
   surrounding guidance blocks. Re-run your golden-path prompts after
-  every `tota update`.
+  every `hermes-turbo update`.
 - **Version-control your `SOUL.md`** in your operator's config repo so the
   override is reviewable and recoverable.
 

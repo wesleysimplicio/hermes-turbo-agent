@@ -4,12 +4,12 @@ import json
 import sys
 from pathlib import Path
 
-from hermes_cli import tota_update_prompt as prompt
+from hermes_cli import hermes_turbo_update_prompt as prompt
 
 
 def test_version_tuple_accepts_tags():
     assert prompt._version_tuple("v0.14.3") == (0, 14, 3)
-    assert prompt._version_tuple("Tota Agent v1.2.0") == (1, 2, 0)
+    assert prompt._version_tuple("Hermes Turbo Agent v1.2.0") == (1, 2, 0)
 
 
 def test_latest_release_update_ignores_current_or_older(monkeypatch):
@@ -45,7 +45,7 @@ def test_prompt_throttle_is_per_release(tmp_path, monkeypatch):
 
 
 def test_update_command_uses_module_update_for_git_checkout(monkeypatch, tmp_path):
-    fake_module = tmp_path / "hermes_cli" / "tota_update_prompt.py"
+    fake_module = tmp_path / "hermes_cli" / "hermes_turbo_update_prompt.py"
     fake_module.parent.mkdir()
     fake_module.write_text("", encoding="utf-8")
     (tmp_path / ".git").mkdir()
@@ -54,8 +54,8 @@ def test_update_command_uses_module_update_for_git_checkout(monkeypatch, tmp_pat
     assert prompt.update_command() == [sys.executable, "-m", "hermes_cli.main", "update", "--yes"]
 
 
-def test_update_command_uses_tota_git_url_for_packaged_install(monkeypatch, tmp_path):
-    fake_module = tmp_path / "hermes_cli" / "tota_update_prompt.py"
+def test_update_command_uses_hermes_turbo_git_url_for_packaged_install(monkeypatch, tmp_path):
+    fake_module = tmp_path / "hermes_cli" / "hermes_turbo_update_prompt.py"
     fake_module.parent.mkdir()
     fake_module.write_text("", encoding="utf-8")
 
@@ -67,5 +67,5 @@ def test_update_command_uses_tota_git_url_for_packaged_install(monkeypatch, tmp_
         "pip",
         "install",
         "--upgrade",
-        f"git+{prompt.TOTA_GIT_URL}",
+        f"git+{prompt.HERMES_TURBO_GIT_URL}",
     ]

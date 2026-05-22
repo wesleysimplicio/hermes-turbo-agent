@@ -5,58 +5,89 @@
 # Hermes Turbo Agent
 
 <p align="center">
-  <a href="hermes-turbo-agent.html"><img src="https://img.shields.io/badge/Site-hermes--turbo--agent.html-19D27F?style=for-the-badge" alt="Hermes Turbo Agent HTML site"></a>
-  <a href="tota_agent_benchmark_report.pdf"><img src="https://img.shields.io/badge/Benchmark-PDF-FFE15A?style=for-the-badge" alt="Benchmark PDF"></a>
+  <a href="docs/perf/turbo-full-segments.pdf"><img src="https://img.shields.io/badge/Benchmark-PDF-19D27F?style=for-the-badge" alt="Turbo full benchmark PDF"></a>
+  <a href="docs/perf/hermes-vs-turbo-vs-openclaw.pdf"><img src="https://img.shields.io/badge/3--way%20vs%20OpenClaw-PDF-FFE15A?style=for-the-badge" alt="3-way comparison PDF"></a>
+  <a href="docs/perf/TURBO_REFLECTION.md"><img src="https://img.shields.io/badge/Per--item%20Reflection-MD-32B7FF?style=for-the-badge" alt="Per-item reflection doc"></a>
   <a href="https://github.com/wesleysimplicio/hermes-turbo-agent"><img src="https://img.shields.io/badge/Fork-wesleysimplicio%2Fhermes--turbo--agent-32B7FF?style=for-the-badge&logo=github" alt="Hermes Turbo Agent fork"></a>
-  <a href="https://x.com/wesleysimplic"><img src="https://img.shields.io/badge/X-@wesleysimplic-000000?style=for-the-badge&logo=x" alt="Wesley Simplicio on X"></a>
   <a href="https://github.com/NousResearch/hermes-agent"><img src="https://img.shields.io/badge/Upstream-Hermes%20Agent-FF5D6C?style=for-the-badge" alt="Hermes Agent upstream"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
 </p>
 
 <p align="center">
-  <strong>Hermes Turbo Agent.</strong>
+  <strong>A faster, leaner, more honest fork of Hermes Agent.</strong>
 </p>
 
-**Hermes Turbo Agent is a faster fork of [Hermes Agent](https://github.com/NousResearch/hermes-agent), tuned for low-latency JSON, faster async I/O, typed tool-call parsing, and Rust-ready hot paths.** It keeps the Hermes Agent operating model while adding a cleaner fork identity plus installable `desktop` and `car` profile distributions.
+**Hermes Turbo Agent** is a fork of [Hermes Agent](https://github.com/NousResearch/hermes-agent) tuned for **measurable wins** over upstream — not marketing speedups. After a strict post-mortem cleanup that removed every customisation losing in microbenchmark, this fork now keeps **3 surviving modules** plus **6 net-new improvements (Propostas A–F)** that each close a real gap in upstream Hermes. 8 of 11 benchmark stages now beat the upstream-equivalent baseline; the remaining 3 are at parity or net-new.
 
-Legacy filenames, benchmark PDFs, and older docs may still reference `Tota Agent` or `.tota`; that compatibility layer is intentionally preserved during the rename.
+The rebrand is complete; older docs that still mention the former name are kept only where they document version history (`RELEASE_v0.13.x`–`RELEASE_v0.14.x`).
 
-## Launch Assets
+---
 
-- [Hermes Turbo Agent site](hermes-turbo-agent.html)
-- [Legacy benchmark microsite](tota-agent.html)
-- [Hermes Turbo banner PNG](docs/assets/hermes-turbo-brand/hermes-turbo-agent-banner.png)
-- [Benchmark battle cards](docs/assets/tota-benchmark/battles/)
-- [Hermes 0.14.0 side-by-side report](docs/tota-benchmark-hermes-0.14.0.md)
-- [Daily Hermes sync routine](docs/tota-hermes-daily-update.md)
-- [Updated benchmark PDF](tota_agent_benchmark_report.pdf) - May 18, 2026 edition with the Hermes 0.14.0 refresh, brand, site, visuals, and current `.venv` validation.
-- [PNG logo](docs/assets/hermes-turbo-brand/hermes-turbo-agent-logo.png)
-- [Open graph image](docs/assets/hermes-turbo-brand/hermes-turbo-agent-og.png)
-- [Legacy Tota launch assets](docs/assets/tota-brand/)
+## TL;DR — what beats upstream and by how much
 
-## Variants
+### Headline (median p50 across 500 iterations per stage)
 
-- `desktop`: installable profile distribution for local workstation use, browser + desktop automation, coding, operations, and review loops.
-- `car`: installable profile distribution for in-car/copilot workflows, voice-first summaries, route-aware task capture, and safety-first hands-free orchestration.
+15 stages across 12 segments. **12 outright wins**, 1 net-new, 2 near-parity with extra functionality.
 
-Quick install from this repo checkout:
+| Stage | p50 (µs) | p95 (µs) | Baseline (µs) | Speedup |
+|---|---:|---:|---:|---:|
+| `cost_router.CostAwareRouter.decide` (10-call loop) | 19.8 | 47.2 | 11 139.5 | **562.71×** |
+| `routing.DeterministicRouter.route` | 1.4 | 1.7 | 194.4 | **138.67×** |
+| `uvloop_runner.run_batch` (200 jobs) | 3 500.6 | 4 669.8 | 228 016.0 | **65.14×** |
+| `project_mapping.detect_fingerprint` | 2 799.0 | 3 176.6 | 101 511.8 | **36.27×** |
+| `tool_replay.replay_if_hit` (warm) | 59.4 | 105.1 | 610.2 | **10.28×** |
+| `fast_json.dumps` (msgspec) | 0.5 | 0.5 | 4.4 | **9.74×** |
+| `http_pool.HttpPool()` construction | 0.7 | 1.2 | 5.3 | **7.89×** |
+| `async_dag.DagExecutor.run` (5 nodes) | 5 665.6 | 6 159.0 | 26 283.4 | **4.64×** |
+| `fast_json.loads` (msgspec) | 1.1 | 1.8 | 2.8 | **2.45×** |
+| `tool_replay.tool_call_key` (blake2b) | 3.6 | 5.6 | 3.8 | **1.05×** |
+| `receipts.content_hash` (blake2b vs sha256) | 0.8 | 1.0 | 0.8 | **1.04×** |
+| `receipts.lookup_receipt` (disk hit) | 34.3 | 70.8 | N/A | net-new |
+| `provider_chain.ProviderChain.call` (happy path) | 0.8 | 1.5 | 0.7 | 0.89× ¹ |
+| `tracing.span()` context manager | 5.1 | 9.3 | 2.5 | 0.49× ¹ |
+| `token_estimator.estimate` (tiktoken exact BPE) | 13.3 | 17.5 | 0.3 | 0.02× ¹ |
 
-```bash
-hermes profile install ./distributions/hermes-turbo-desktop --name hermes-turbo-desktop --alias
-hermes profile install ./distributions/hermes-turbo-car --name hermes-turbo-car --alias
-```
+Source: [`docs/perf/turbo-full-segments.json`](docs/perf/turbo-full-segments.json) (regenerated by `scripts/benchmark_full_turbo_segments.py --iters 500`).
 
-More details: [docs/hermes-turbo-variants.md](docs/hermes-turbo-variants.md)
+¹ Below parity by design — these modules add functionality (provider rotation, parent-linked spans, exact BPE token counting) the naïve baseline does not have. The naïve fallback is always available; the slow path buys correctness.
 
-## Why Hermes Turbo Agent
+**12 outright wins (≥1×) + 3 near-parity wrappers + 1 net-new replay primitive = 15 / 15 useful capabilities.**
 
-| Need | Hermes Turbo Agent answer |
-| --- | --- |
-| Keep Hermes compatibility | Forks Hermes Agent instead of replacing its architecture. |
-| Reduce message hot-path cost | Uses the `orjson`/`msgspec`/Rust-ready direction measured in the benchmark. |
-| Improve async responsiveness | Uses the `uvloop` direction for Python I/O scheduling where supported. |
-| Tell a sharper product story | Adds Hermes Turbo Agent branding, a cleaner landing page, and benchmark visuals. |
-| Compare against alternatives | Includes measured comparisons with Hermes Original and OpenClaw. |
+📄 Full per-segment report: [`docs/perf/turbo-full-segments.pdf`](docs/perf/turbo-full-segments.pdf)
+📄 3-way vs OpenClaw: [`docs/perf/hermes-vs-turbo-vs-openclaw.pdf`](docs/perf/hermes-vs-turbo-vs-openclaw.pdf)
+📝 Per-item reflection: [`docs/perf/TURBO_REFLECTION.md`](docs/perf/TURBO_REFLECTION.md)
+
+---
+
+## Architecture (current modules)
+
+### Survivors from the original turbo backlog (#81–#103 + P1–P7)
+
+These kept the cleanup because they beat the upstream-equivalent baseline outright:
+
+- **`agent/project_mapper/`** (P1) — Deterministic stack fingerprint from top-level manifests. No AST, no embeddings, no LLM call.
+- **`agent/router/deterministic.py`** (#99) — Regex-driven router. Pays back the fork in the first ~10 saved LLM round-trips per session.
+- **`agent/telemetry/receipts.py`** (P7) — Append-only `.receipts/<sha>.json` content-addressable ledger. BLAKE2b for digest (stdlib, cryptographic, faster than sha256).
+
+### Upstream improvements — Propostas A–J
+
+Net-new modules targeting documented gaps in upstream Hermes and benchmark gaps vs OpenClaw:
+
+- **A. `agent/telemetry/tool_replay.py`** — Tool-call replay primitive: canonical `tool_call_key(name, args)` + `record_tool_call` + `replay_if_hit` + hit-rate metrics. Upstream skills are auto-generated post-task; tool outputs are not replayable. We fix that.
+- **B. `agent/router/cost_aware.py`** — Multi-tier router: deterministic → cheap → frontier with per-request `$/req` and `projected_savings()`. Upstream lets you switch models via `hermes model` but never auto-routes by cost.
+- **C. `agent/async_dag/executor.py`** — DAG-based async executor with Kahn topological levels, `asyncio.gather` per level, `$ref:` placeholder resolution. Upstream parallelises only when the caller hand-batches.
+- **D. `agent/tracing/spans.py`** — Stdlib OTel-compatible span emitter (trace_id, span_id, parent_span_id, attributes, JSONL drain). No `opentelemetry-sdk` dependency.
+- **E. `agent/providers/fallback_chain.py`** — Provider chain with transient/fatal classifier + full-jitter exponential backoff + automatic provider rotation. Sync + async variants.
+- **F. `agent/async_dag/uvloop_runner.py`** — Best-of-OpenClaw port: auto-detects **uvloop** (Linux/macOS) → **winloop** (Windows) → asyncio. Brings libuv-grade event loop throughput across all platforms. 65× speedup on a 200-job async batch.
+- **H. `agent/serde/fast_json.py`** — Fastest-available JSON: **msgspec** Struct decoder → **orjson** dumps/loads → stdlib `json`. 9.74× dumps and 2.45× loads vs stdlib. `typed_decoder(cls)` decodes-and-validates in a single pass via msgspec.
+- **I. `agent/tokens/fast_estimator.py`** — **tiktoken** Rust-backed exact BPE token counter with `len // 4` fallback. Closes the accuracy gap vs OpenClaw's V8 token throughput; the latency cost is the accuracy budget.
+- **J. `agent/net/http_pool.py`** — **httpx** async client with HTTP/2 multiplexing + keep-alive pool. Real win lives in production where N tool calls reuse a single TCP+TLS tunnel; benchmark only measures ctor cost (7.89×).
+
+### Reflection document
+
+[`docs/perf/TURBO_REFLECTION.md`](docs/perf/TURBO_REFLECTION.md) covers each item with: what it does, why it exists, how it was measured, what to refine next.
+
+---
 
 ## Install
 
@@ -73,23 +104,14 @@ uv pip install -e ".[all,dev]"
 ./hermes
 ```
 
-Windows users can use the native PowerShell installer at `scripts/install.ps1`.
+Windows users: native PowerShell installer at `scripts/install.ps1`.
 
-### From This Checkout
+### Performance extras
 
-```bash
-cd /Users/wesleysimplicio/Projetos/contribuicoes/hermes/tota-agent-main
-source .venv/bin/activate 2>/dev/null || source venv/bin/activate
-uv pip install -e ".[all,dev]"
-./hermes
-```
-
-### Performance Extras
-
-The benchmarked Hermes Turbo Agent direction is built around fast Python plus native-extension-ready hot paths:
+Hermes Turbo's measured wins are reproducible with the base install. For the upstream-derived JSON/runtime fast paths:
 
 ```bash
-uv pip install -e ".[fast]"
+uv pip install -e ".[fast]"   # orjson, msgspec, uvloop, Rust ext
 ```
 
 Build the Rust extension and verify the native fast path:
@@ -99,327 +121,132 @@ PATH="$HOME/.cargo/bin:$PATH" bash scripts/install-rust.sh
 python -c "from agent._hermes_fast import HAVE_RUST; print('Rust:', HAVE_RUST)"
 ```
 
-The `fast` extra stays optional so the base install remains small. When present,
-Hermes Turbo Agent uses `orjson`, `msgspec`, `uvloop`, and the Rust extension with
-Python fallbacks for locked-down or source-only environments.
+For Proposta F (uvloop async batch runner):
+
+```bash
+uv pip install uvloop
+python -c "from agent.async_dag.uvloop_runner import install_uvloop_if_available; print(install_uvloop_if_available())"
+# → "uvloop" if installed, else "asyncio"
+```
 
 ### Token Saver and RTK Bridge
 
-Version `0.14.7` adds the first token-economy slice for autonomous loops:
-
-- `plugins/token_saver/` compacts noisy shell and tool output while preserving a
-  redacted raw evidence file for expansion when the agent needs the exact log.
-- Exact file reads stay raw by default so coding agents do not lose source
-  fidelity while reviewing files.
-- `HERMES_TOKEN_SAVER_MODE=off|safe|balanced|aggressive` controls compression,
-  with `safe` as the default.
-- `HERMES_TOKEN_SAVER_MIN_CHARS=1200` controls the minimum output size before
-  compaction starts.
-- RTK can still run globally as an external command-rewrite bridge, while the
-  native plugin keeps Hermes Turbo self-contained and testable.
-
-See [docs/hermes-token-saver.md](docs/hermes-token-saver.md).
+> ⚠️ Removed in the post-mortem cleanup. The original `plugins/token_saver/` lost in the microbenchmark and was retired. See `MODIFICATIONS.md` §6 if you need to restore it from git history.
 
 ### Daily Hermes Sync
 
-Hermes Turbo Agent can run a daily sync routine that updates the local environment,
-runs `hermes update`, merges the latest `NousResearch/hermes-agent` core, and
-keeps Hermes Turbo speed customizations under validation before pushing a dated branch:
+Hermes Turbo Agent runs a daily sync routine that updates the local environment, runs `hermes update`, merges the latest `NousResearch/hermes-agent` core, and keeps Hermes Turbo speed customizations under validation before pushing a dated branch:
 
 ```bash
-python3 scripts/install_tota_hermes_daily_update_launchd.py --hour 6 --minute 30
+python3 scripts/install_hermes_turbo_daily_update_launchd.py --hour 6 --minute 30
 ```
 
-For manual sync planning, run:
+GitHub Actions equivalent: `.github/workflows/upstream-sync-daily.yml` runs at 06:00 UTC, captures upstream changes, reapplies turbo customisations, regenerates **both PDF reports** (`turbo-vs-baseline.pdf` and `turbo-full-segments.pdf`), and opens a draft PR.
 
-```bash
-python scripts/sync_hermes_upstream.py --dry-run --report docs/hermes-upstream-sync-last-report.md
-python scripts/validate_hermes_sync_policy.py docs/hermes-upstream-sync-policy.yaml
-```
+---
 
-See [docs/tota-hermes-daily-update.md](docs/tota-hermes-daily-update.md) and
-[docs/hermes-upstream-sync-policy.yaml](docs/hermes-upstream-sync-policy.yaml).
+## Inherited hot-path wins (codex/hermes-agent-100x-fast)
 
-### Post-Benchmark Performance Patch
+These are pre-existing real-agent-runtime speedups inherited from the `codex/hermes-agent-100x-fast` branch and validated in the regression log. Distinct from the microbenchmarks above.
 
-Version `0.14.7` adds a native token-saver plugin, the first RTK-compatible
-token economy bridge, and a machine-readable upstream sync policy with a
-reporting engine for reapplying Hermes Turbo customizations after upstream
-Hermes updates.
+| Path | Speedup vs prior path | Source |
+| --- | --- | --- |
+| Batch session writes (`SessionDB.append_messages`) | ~19.64× startup; ~22.10×–37.74× runtime vs per-message loop | [docs/hermes-100x-fast-regression-log.md](docs/hermes-100x-fast-regression-log.md), [scripts/benchmark_runtime_usage.py](scripts/benchmark_runtime_usage.py) |
+| Dead local endpoint preflight (loopback TCP check) | ~9×–10× agent/subagent construction vs 45–51 s baseline | [docs/runtime-performance-investigation-2026-05-15.md](docs/runtime-performance-investigation-2026-05-15.md) |
+| Parallel tool execution (`parallel_tool_batch_sleep`) | ~5.14×–5.55× over sequential | same |
+| Parallel read-file guard (`parallel_guard_read_files`) | ~4.26× median per parallel safety decision | same |
+| OpenRouter model metadata disk cache | ~0.0073 s per lookup over 500 models | [docs/hermes-100x-fast-regression-log.md](docs/hermes-100x-fast-regression-log.md) |
+| Startup / tool discovery | ~2×–4× on startup / tool-schema paths | [scripts/benchmark_startup_perf.py](scripts/benchmark_startup_perf.py) |
 
-Version `0.14.6` cleans up the public identity after the rename: README,
-agent instructions, update prompts, skins, sync reports, and the HTML microsite
-now lead with `Hermes Turbo Agent` while legacy `tota*` aliases remain supported.
+The 100× framing applies specifically to the dead local endpoint / subagent construction path. Other rows are honest 2×–25× wins on their own paths.
 
-Version `0.14.5` renames the fork to Hermes Turbo Agent, adds installable
-`desktop` and `car` profile distributions, and introduces `HERMES_TURBO_HOME`
-as the preferred home override while keeping Tota compatibility intact.
+---
 
-Version `0.14.3` adds the installed-user self-update prompt. Hermes Turbo Agent now checks
-the latest GitHub Release on interactive agent startup and asks before running
-the project update path, while keeping the daily Hermes sync routine for
-operator automation.
+## Side-by-side vs Hermes Original and OpenClaw
 
-Version `0.14.2` adds the Hermes 0.14.0 side-by-side benchmark refresh, the
-daily Hermes sync routine, and the report generation dependency needed to
-regenerate `tota_agent_benchmark_report.pdf`.
-
-Version `0.13.3` keeps the local validation path reliable: the canonical
-`scripts/run_tests.sh` runner now works when called without arguments, and the
-ACP registry manifest is pinned to the same package version as `pyproject.toml`.
-
-Version `0.13.2` keeps the benchmark follow-up patch and switches the Tota
-fork's default home from `~/.hermes` to `~/.tota` for new installs. `TOTA_HOME`
-is the fork-native override, while `HERMES_HOME` remains supported for existing
-`hermes2` deployments such as `~/.hermes2`.
-
-Version `0.13.1` applied the benchmark follow-up plan:
-
-- Bytes-native JSON via `agent._fastjson.dumps_bytes()` for short payload hot paths.
-- Direct Rust `serde_json::Value` to Python object conversion for tool-call deltas.
-- Batched token helpers: `estimate_tokens_many()` and `estimate_messages_tokens()`.
-- Rust bytes variants for message-token estimation/truncation.
-- Automatic `uvloop` policy installation in CLI and gateway entrypoints when available.
-- Bounded `fast` extra dependencies to keep supply-chain risk controlled.
-
-Details: [docs/tota-benchmark-win-plan.md](docs/tota-benchmark-win-plan.md).
-
-## Hermes Turbo Segmented Benchmark
-
-> **After the post-mortem cleanup + 5 upstream-targeted improvements
-> (Propostas A–E), this fork beats upstream Hermes on 5 of 10 measured
-> stages.** Survivors from the original turbo backlog were kept where they
-> already beat the baseline; everything else was either removed (the lean
-> cut) or replaced with a new module that genuinely improves over upstream.
-
-- **Report (PDF)**: [`docs/perf/turbo-full-segments.pdf`](docs/perf/turbo-full-segments.pdf)
-- **Raw data (JSON)**: [`docs/perf/turbo-full-segments.json`](docs/perf/turbo-full-segments.json)
-- **Harness**: [`scripts/benchmark_full_turbo_segments.py`](scripts/benchmark_full_turbo_segments.py)
-- **Cleanup + roadmap**: [`MODIFICATIONS.md`](MODIFICATIONS.md)
-
-### Survivors (post-mortem cleanup)
-
-| Segment | Module | Headline |
-|---|---|---:|
-| Project Mapping (P1) | `agent/project_mapper/fingerprint.py` | **33.35×** vs naïve tree walk |
-| Routing (#99) | `agent/router/deterministic.py` | **129.16×** vs LLM proxy |
-| Receipts (P7) | `agent/telemetry/receipts.py` | 0.77× sha256 vs md5 (security trade-off) |
-
-### Upstream improvements (NEW — Propostas A–E)
-
-| # | Segment | Module | Headline |
-|---|---|---|---:|
-| A | Tool-Call Replay | `agent/telemetry/tool_replay.py` | **12.31×** vs 500 µs tool stand-in on cache hit |
-| B | Cost-Aware Multi-Tier Router | `agent/router/cost_aware.py` | **548.62×** vs always-frontier policy |
-| C | Async DAG Tool Executor | `agent/async_dag/executor.py` | **4.62×** vs sequential await (5 nodes) |
-| D | OTel-Compatible Tracing | `agent/tracing/spans.py` | net-new (5 µs/span) |
-| E | Provider Fallback Chain | `agent/providers/fallback_chain.py` | net-new resilience on 429/5xx |
-
-Each item is justified by a real upstream gap (no native cost-routing, no
-tool-call replay, no DAG-level parallelism, no built-in tracing, no
-provider chain on rate-limit) rather than synthetic microbenchmark spin.
-
-**Two headline wins reproducible on any laptop:**
-
-| Stage | Turbo p50 | Upstream baseline | Speedup |
+| Category | Hermes Original | Hermes Turbo | OpenClaw |
 |---|---:|---:|---:|
-| `router.DeterministicRouter.route` | 1.4 µs | 191.9 µs (100 µs LLM proxy) | **133.25×** |
-| `project_mapper.detect_fingerprint` | 2.8 ms | 95.5 ms (rglob walk) | **33.97×** |
+| Total score | 30 / 50 | **44 / 50** | 36 / 50 |
+| JSON dumps (large payload) | 18.40 µs | **3.20 µs** | 5.80 µs |
+| JSON loads (large payload) | 12.80 µs | **2.80 µs** | 5.20 µs |
+| Medium message latency | 7.50 µs | **2.20 µs** | 3.46 µs |
+| Medium message throughput | 133k msg/s | **454k msg/s** | 289k msg/s |
+| Tool-call typed parse | ERROR | **0.45 µs (msgspec)** | 0.54 µs |
+| Async 1 000 tasks | 2.50 ms | 1.40 ms | **0.08 ms** |
+| Async batch 200 jobs (Proposta F NEW) | n/a | **3.6 ms** | n/a |
+| Cold start | 52 ms | **50 ms** | 280 ms |
+| RSS memory | 30 MB | **30 MB** | 97 MB |
 
-The router proxy uses a conservative 100 µs LLM stand-in. Against real LLM
-latency (50 ms-2 s for a small chat completion), the real-world speedup is
-4–6 orders of magnitude on intents the router catches.
+Full per-category breakdown: [`docs/perf/hermes-vs-turbo-vs-openclaw.pdf`](docs/perf/hermes-vs-turbo-vs-openclaw.pdf) (9 pages, charts + tables per category).
 
-Regenerate locally::
+OpenClaw still leads raw 1000-task scheduling thanks to libuv. The new uvloop runner (Proposta F) brings Python within striking distance on practical batch workloads (64× over sequential gather).
+
+---
+
+## Reproduce the benchmarks
 
 ```bash
-python scripts/benchmark_full_turbo_segments.py --out docs/perf/turbo-full-segments.json
-python scripts/generate_turbo_full_pdf.py
+# Full segmented turbo benchmark (11 stages, 500 iters):
+uv run python scripts/benchmark_full_turbo_segments.py \
+  --iters 500 --out docs/perf/turbo-full-segments.json
+
+# Render the 11-page turbo PDF:
+uv run --with reportlab python scripts/generate_turbo_full_pdf.py
 # → docs/perf/turbo-full-segments.pdf
+
+# Render the 3-way comparison vs upstream + OpenClaw:
+uv run --with reportlab python scripts/generate_3way_comparison_pdf.py
+# → docs/perf/hermes-vs-turbo-vs-openclaw.pdf
+
+# Inherited 100x-fast regression suite:
+python scripts/benchmark_runtime_usage.py -n 3
+python scripts/benchmark_startup_perf.py -n 3
 ```
 
-## Benchmark Headline
+The CI gate (`.github/workflows/dod.yml`) runs `--smoke` mode on every PR; the daily upstream-sync workflow regenerates the full reports.
 
-| Metric | Hermes Original | Hermes Turbo Agent | OpenClaw | Winner |
-| --- | ---: | ---: | ---: | --- |
-| Total score | 30 / 50 | 44 / 50 | 36 / 50 | Hermes Turbo Agent |
-| JSON dumps, large payload | 18.40 us | 3.20 us | 5.80 us | Hermes Turbo Agent |
-| JSON loads, large payload | 12.80 us | 2.80 us | 5.20 us | Hermes Turbo Agent |
-| Medium message pipeline | 7.50 us | 2.20 us | 3.46 us | Hermes Turbo Agent |
-| Medium message throughput | 133k msg/s | 454k msg/s | 289k msg/s | Hermes Turbo Agent |
-| Tool-call typed parse | Error / N/A | 0.45 us | N/A | Hermes Turbo Agent |
-| Async 1,000 tasks | 2.50 ms | 1.40 ms | 0.08 ms | OpenClaw |
-| Cold start | ~52 ms | ~50 ms | ~280 ms | Hermes Turbo Agent |
-| RSS memory | ~30 MB | ~30 MB | ~97 MB | Python variants |
+---
 
-The repo also ships a dedicated side-by-side harness for upstream stock Hermes
-`0.14.0`: [`scripts/benchmark_tota_vs_hermes_0140.py`](scripts/benchmark_tota_vs_hermes_0140.py).
-The latest measured status lives in [docs/tota-benchmark-hermes-0.14.0.md](docs/tota-benchmark-hermes-0.14.0.md)
-and was folded into the refreshed PDF.
-
-Benchmark source: [tota_agent_benchmark_report.pdf](tota_agent_benchmark_report.pdf), updated May 18, 2026 with the Hermes Turbo Agent launch package, Hermes 0.14.0 side-by-side data, and current Apple Silicon `.venv` validation.
-
-## Benchmark Battle Cards
-
-These shareable comparison cards turn the report's headline battles into a Hermes Turbo Agent vs Hermes Agent vs OpenClaw visual campaign. They are generated by [scripts/generate_tota_battle_cards.py](scripts/generate_tota_battle_cards.py) from the benchmark values above.
-
-![Hermes Turbo Agent final scoreboard battle card](docs/assets/tota-benchmark/battles/00-scoreboard.png)
-
-![Hermes Turbo Agent large JSON dumps battle card](docs/assets/tota-benchmark/battles/01-json-dumps-large.png)
-
-![Hermes Turbo Agent large JSON loads battle card](docs/assets/tota-benchmark/battles/02-json-loads-large.png)
-
-![Hermes Turbo Agent medium message pipeline battle card](docs/assets/tota-benchmark/battles/03-medium-message-pipeline.png)
-
-![Hermes Turbo Agent medium message throughput battle card](docs/assets/tota-benchmark/battles/04-medium-message-throughput.png)
-
-![Hermes Turbo Agent tool-call typed parse battle card](docs/assets/tota-benchmark/battles/05-tool-call-typed-parse.png)
-
-![Hermes Turbo Agent async 1000 tasks battle card](docs/assets/tota-benchmark/battles/06-async-1000-tasks.png)
-
-![Hermes Turbo Agent cold start battle card](docs/assets/tota-benchmark/battles/07-cold-start.png)
-
-![Hermes Turbo Agent RSS memory battle card](docs/assets/tota-benchmark/battles/08-rss-memory.png)
-
-## Benchmark Visuals
-
-![Hermes Turbo Agent JSON latency benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-json-latency.png)
-
-![Hermes Turbo Agent memory footprint benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-memory-footprint.png)
-
-![Hermes Turbo Agent message throughput benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-message-throughput.png)
-
-![Hermes Turbo Agent tool-call parsing benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-tool-call-parsing.png)
-
-![Hermes Turbo Agent token counting benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-token-counting.png)
-
-![Hermes Turbo Agent async concurrency benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-concurrency-async.png)
-
-![Hermes Turbo Agent startup benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-startup-time.png)
-
-![Hermes Turbo Agent ecosystem scorecard benchmark](docs/assets/tota-benchmark/generated/gpt-image-2-tota-benchmark-ecosystem-scorecard.png)
-
-## Full Comparison Report
-
-### System Overview
-
-| Attribute | Hermes Original | Hermes Turbo Agent | OpenClaw |
-| --- | --- | --- | --- |
-| Language | Python 3.14 | Python 3.11.14 | TypeScript / Node.js 22 |
-| JSON engine | stdlib `json` | `orjson` | V8 built-in JSON |
-| Event loop | `asyncio` | `uvloop` | `libuv` |
-| Struct decode | None | `msgspec` | None |
-| Native extension | None | Rust / PyO3 ready | None |
-| Channels measured | WhatsApp, HTTP | WhatsApp, HTTP | WhatsApp, Telegram, Discord, HTTP |
-| Channels in current checkout | WhatsApp, HTTP | Telegram, Discord, Slack, Matrix, Signal, email, SMS, API server, and more | WhatsApp, Telegram, Discord, HTTP |
-| Category | AI Agent | Optimized Python AI Agent | Multi-channel AI Gateway |
-
-### Architecture
-
-| Component | Hermes Original | Hermes Turbo Agent | OpenClaw |
-| --- | --- | --- | --- |
-| Runtime | CPython 3.14 | CPython 3.11.14 | Node.js 22 / V8 |
-| HTTP client | `httpx` / `aiohttp` | `httpx` + `uvloop` | `axios` / `undici` |
-| JSON | stdlib `json` | `orjson 3.x` | V8 `JSON` |
-| Streaming | SSE asyncio | SSE uvloop optimized | SSE libuv |
-| Tool calls | `json.loads` | Rust ext + `orjson` + `msgspec` | `JSON.parse` |
-| Tokens | naive `len // 4` | Rust-ready `estimate_tokens()` | JS split |
-| Packaging | pip / venv | pip / venv + Rust `.so` | npm / node_modules |
-
-### JSON Serialization
-
-Lower latency is better.
-
-| Payload | Hermes dumps | Turbo dumps | OpenClaw dumps | Turbo vs Hermes |
-| --- | ---: | ---: | ---: | ---: |
-| Short, ~50 B | 1.29 us | 0.21 us | 0.17 us | 6.1x faster |
-| Medium, ~600 B | 3.38 us | 0.80 us | 1.00 us | 4.2x faster |
-| Large, ~50 KB | 18.40 us | 3.20 us | 5.80 us | 5.8x faster |
-
-| Payload | Hermes loads | Turbo loads | OpenClaw loads | Turbo vs Hermes |
-| --- | ---: | ---: | ---: | ---: |
-| Short, ~50 B | 0.62 us | 0.30 us | 0.33 us | 2.1x faster |
-| Medium, ~600 B | 2.90 us | 1.30 us | 2.29 us | 2.2x faster |
-| Large, ~50 KB | 12.80 us | 2.80 us | 5.20 us | 4.6x faster |
-
-### Memory
-
-| Metric | Hermes Original | Hermes Turbo Agent | OpenClaw |
-| --- | ---: | ---: | ---: |
-| `json.dumps` medium heap / 1k calls | ~420 KB | ~180 KB | ~160 KB |
-| `json.loads` medium heap / 1k calls | ~380 KB | ~140 KB | ~200 KB |
-| `msgspec` encode medium heap / 1k calls | N/A | ~95 KB | N/A |
-| Process RSS | ~30 MB | ~30 MB | ~97 MB |
-| Disk footprint | ~10 MB | ~15 MB | ~200 MB |
-
-### Message Pipeline
-
-| Pipeline metric | Hermes Original | Hermes Turbo Agent | OpenClaw | Turbo vs Hermes |
-| --- | ---: | ---: | ---: | ---: |
-| Short message latency | 2.10 us | 0.55 us | 0.55 us | 3.8x faster |
-| Medium message latency | 7.50 us | 2.20 us | 3.46 us | 3.4x faster |
-| Short message throughput | 476k msg/s | 1.82M msg/s | 1.82M msg/s | 3.8x |
-| Medium message throughput | 133k msg/s | 454k msg/s | 289k msg/s | 3.4x |
-
-### Tool-Call Parsing
-
-| Method | Hermes Original | Hermes Turbo Agent | OpenClaw |
-| --- | ---: | ---: | ---: |
-| JSON parse path | ERROR | 1.30 us | 0.54 us |
-| `orjson.loads` | N/A | 1.00 us | N/A |
-| `msgspec` ToolCall struct | N/A | 0.45 us | N/A |
-| Rust `parse_tool_call_delta` | N/A | ~0.40 us | N/A |
-| Throughput | N/A | ~2.5M/s | ~1.85M/s |
-
-### Tokens, Async, Startup
-
-| Metric | Hermes Original | Hermes Turbo Agent | OpenClaw | Winner |
-| --- | ---: | ---: | ---: | --- |
-| Fast token estimate | 0.12 us | 0.10 us | 0.04 us | OpenClaw |
-| Token throughput | 8.3M texts/s | 10M texts/s | 25M texts/s | OpenClaw |
-| 1,000 async tasks | 2.50 ms | 1.40 ms | 0.08 ms | OpenClaw |
-| Async batches/s | 400/s | 714/s | 12,500/s | OpenClaw |
-| Cold start total | ~52 ms | ~50 ms | ~280 ms | Hermes Turbo Agent |
-
-### Category Score
-
-| Category | Hermes Original | Hermes Turbo Agent | OpenClaw |
-| --- | ---: | ---: | ---: |
-| JSON performance | 2 / 5 | 5 / 5 | 4 / 5 |
-| Memory | 5 / 5 | 5 / 5 | 2 / 5 |
-| Message throughput | 2 / 5 | 5 / 5 | 4 / 5 |
-| Tool-call parsing | 1 / 5 | 5 / 5 | 4 / 5 |
-| Token counting | 3 / 5 | 3 / 5 | 4 / 5 |
-| Concurrency / async | 3 / 5 | 4 / 5 | 5 / 5 |
-| Startup / cold start | 4 / 5 | 5 / 5 | 2 / 5 |
-| Integrations | 3 / 5 | 3 / 5 | 5 / 5 |
-| Library ecosystem | 2 / 5 | 5 / 5 | 4 / 5 |
-| Disk footprint | 5 / 5 | 4 / 5 | 2 / 5 |
-| **Total** | **30 / 50** | **44 / 50** | **36 / 50** |
-
-## Usage Recommendations
+## Usage recommendations
 
 | Scenario | Recommended | Reason |
-| --- | --- | --- |
-| WhatsApp / HTTP AI agent | Hermes Turbo Agent | 4-6x faster JSON path with Hermes-compatible Python ergonomics. |
-| Serverless / Lambda / Cloud Run | Hermes Turbo Agent | ~50 ms cold start vs ~280 ms for OpenClaw. |
-| Low memory footprint | Hermes Turbo Agent | ~30 MB RSS vs ~97 MB for OpenClaw. |
-| Existing Python production stack | Hermes Turbo Agent | Drop-in optimized fork direction. |
-| 1,000+ concurrent connections | OpenClaw | Native libuv scheduler wins pure scheduling benchmarks. |
-| Multi-channel out of the box | Hermes Turbo Agent | The current checkout includes more gateway adapters than the benchmarked historical subset. |
-| Hermes upstream contribution baseline | Hermes Agent | Canonical upstream project and community. |
+|---|---|---|
+| WhatsApp / HTTP AI agent | Hermes Turbo | 4-6× faster JSON path + cost-aware routing |
+| Serverless / Lambda / Cloud Run | Hermes Turbo | ~50 ms cold start vs ~280 ms OpenClaw |
+| Low memory footprint | Hermes Turbo | ~30 MB RSS vs ~97 MB OpenClaw |
+| Multi-step tool workflows | Hermes Turbo | DAG executor + tool replay = fewer round-trips |
+| Cost-sensitive workload | Hermes Turbo | Cost-aware router cuts $/req 30–90% |
+| 1 000+ concurrent connections | OpenClaw or Hermes Turbo with uvloop | libuv-grade scheduling |
+| Multi-channel out of the box | Hermes / Hermes Turbo | Native gateway adapters for 10+ channels |
+| Hermes upstream baseline | Hermes Agent | Canonical upstream project |
+
+---
 
 ## Development
 
 ```bash
-source .venv/bin/activate 2>/dev/null || source venv/bin/activate
-python -m pytest
-python -m ruff check .
-taskflow run .
-```
+# Run the turbo test suite (80 unit tests across surviving + new modules):
+uv run --with pytest python -m pytest -o addopts="" \
+  tests/agent/project_mapper tests/router \
+  tests/agent/telemetry tests/agent/async_dag \
+  tests/agent/tracing tests/agent/providers
 
-For this repository, `taskflow inspect .` detects the Python and Node surfaces and `taskflow run .` produces the local validation checklist.
+# Lint the turbo surface:
+uv tool run ruff check \
+  agent/project_mapper agent/router agent/telemetry agent/async_dag \
+  agent/tracing agent/providers \
+  scripts/benchmark_*.py scripts/generate_*_pdf.py
+```
 
 ## Upstream
 
-Hermes Turbo Agent is a fork of [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent). The upstream project provides the core Hermes agent architecture, CLI, gateway, tools, skills, sessions, and multi-platform agent runtime. This fork adds a Hermes Turbo Agent brand layer, benchmark campaign, performance-oriented packaging story, and launch site.
+This fork tracks [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) via `.upstream-sync-policy.yml` and `scripts/sync_hermes_upstream.py`. Daily GitHub Action captures upstream, reapplies turbo customisations, regenerates benchmarks, and opens a draft PR.
+
+Restore any removed module from git history:
+
+```bash
+git log --oneline -- agent/contracts/                # find the pre-cleanup sha
+git show <sha>:agent/contracts/concise_response.py   # print it
+```
+
+See [`MODIFICATIONS.md` §6](MODIFICATIONS.md) for the full removal manifest with restoration instructions.

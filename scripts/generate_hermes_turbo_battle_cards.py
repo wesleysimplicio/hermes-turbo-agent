@@ -38,7 +38,7 @@ class Battle:
 
 
 HERMES = ("Hermes Agent", "#32B7FF", "#9ED8FF")
-TOTA = ("Hermes Turbo Agent", "#19D27F", "#FFE15A")
+HERMES_TURBO = ("Hermes Turbo Agent", "#19D27F", "#FFE15A")
 OPENCLAW = ("OpenClaw", "#FF4655", "#FFB3BD")
 
 
@@ -54,7 +54,7 @@ BATTLES: tuple[Battle, ...] = (
         "Higher score wins",
         "Hermes Turbo Agent",
         "Hermes Turbo wins the full measured report: 44 / 50.",
-        (c(HERMES, "30 / 50", 30), c(TOTA, "44 / 50", 44), c(OPENCLAW, "36 / 50", 36)),
+        (c(HERMES, "30 / 50", 30), c(HERMES_TURBO, "44 / 50", 44), c(OPENCLAW, "36 / 50", 36)),
     ),
     Battle(
         "01-json-dumps-large",
@@ -63,7 +63,7 @@ BATTLES: tuple[Battle, ...] = (
         "Lower latency wins",
         "Hermes Turbo Agent",
         "Hermes Turbo is 5.8x faster than Hermes on the large dump path.",
-        (c(HERMES, "18.40 us", 18.40), c(TOTA, "3.20 us", 3.20), c(OPENCLAW, "5.80 us", 5.80)),
+        (c(HERMES, "18.40 us", 18.40), c(HERMES_TURBO, "3.20 us", 3.20), c(OPENCLAW, "5.80 us", 5.80)),
     ),
     Battle(
         "02-json-loads-large",
@@ -72,7 +72,7 @@ BATTLES: tuple[Battle, ...] = (
         "Lower latency wins",
         "Hermes Turbo Agent",
         "Hermes Turbo keeps the Python path fast with orjson.",
-        (c(HERMES, "12.80 us", 12.80), c(TOTA, "2.80 us", 2.80), c(OPENCLAW, "5.20 us", 5.20)),
+        (c(HERMES, "12.80 us", 12.80), c(HERMES_TURBO, "2.80 us", 2.80), c(OPENCLAW, "5.20 us", 5.20)),
     ),
     Battle(
         "03-medium-message-pipeline",
@@ -81,7 +81,7 @@ BATTLES: tuple[Battle, ...] = (
         "Lower latency wins",
         "Hermes Turbo Agent",
         "Hermes Turbo cuts the Hermes-compatible message path to 2.20 us.",
-        (c(HERMES, "7.50 us", 7.50), c(TOTA, "2.20 us", 2.20), c(OPENCLAW, "3.46 us", 3.46)),
+        (c(HERMES, "7.50 us", 7.50), c(HERMES_TURBO, "2.20 us", 2.20), c(OPENCLAW, "3.46 us", 3.46)),
     ),
     Battle(
         "04-medium-message-throughput",
@@ -90,7 +90,7 @@ BATTLES: tuple[Battle, ...] = (
         "Higher throughput wins",
         "Hermes Turbo Agent",
         "Hermes Turbo pushes the medium pipeline to 454k msg/s.",
-        (c(HERMES, "133k msg/s", 133), c(TOTA, "454k msg/s", 454), c(OPENCLAW, "289k msg/s", 289)),
+        (c(HERMES, "133k msg/s", 133), c(HERMES_TURBO, "454k msg/s", 454), c(OPENCLAW, "289k msg/s", 289)),
     ),
     Battle(
         "05-tool-call-typed-parse",
@@ -99,7 +99,7 @@ BATTLES: tuple[Battle, ...] = (
         "Lower latency wins",
         "Hermes Turbo Agent",
         "Hermes Turbo owns the typed tool-call path; Hermes and OpenClaw do not expose the same measured typed path.",
-        (c(HERMES, "Error / N/A", None), c(TOTA, "0.45 us", 0.45), c(OPENCLAW, "N/A", None)),
+        (c(HERMES, "Error / N/A", None), c(HERMES_TURBO, "0.45 us", 0.45), c(OPENCLAW, "N/A", None)),
     ),
     Battle(
         "06-async-1000-tasks",
@@ -108,7 +108,7 @@ BATTLES: tuple[Battle, ...] = (
         "Lower latency wins",
         "OpenClaw",
         "OpenClaw wins pure scheduler latency here; Hermes Turbo still improves Hermes.",
-        (c(HERMES, "2.50 ms", 2.50), c(TOTA, "1.40 ms", 1.40), c(OPENCLAW, "0.08 ms", 0.08)),
+        (c(HERMES, "2.50 ms", 2.50), c(HERMES_TURBO, "1.40 ms", 1.40), c(OPENCLAW, "0.08 ms", 0.08)),
     ),
     Battle(
         "07-cold-start",
@@ -117,7 +117,7 @@ BATTLES: tuple[Battle, ...] = (
         "Lower startup time wins",
         "Hermes Turbo Agent",
         "Hermes Turbo stays serverless-friendly at roughly 50 ms.",
-        (c(HERMES, "~52 ms", 52), c(TOTA, "~50 ms", 50), c(OPENCLAW, "~280 ms", 280)),
+        (c(HERMES, "~52 ms", 52), c(HERMES_TURBO, "~50 ms", 50), c(OPENCLAW, "~280 ms", 280)),
     ),
     Battle(
         "08-rss-memory",
@@ -126,7 +126,7 @@ BATTLES: tuple[Battle, ...] = (
         "Lower memory wins",
         "Python variants",
         "Hermes Turbo keeps Hermes-class memory while OpenClaw carries a larger Node footprint.",
-        (c(HERMES, "~30 MB", 30), c(TOTA, "~30 MB", 30), c(OPENCLAW, "~97 MB", 97)),
+        (c(HERMES, "~30 MB", 30), c(HERMES_TURBO, "~30 MB", 30), c(OPENCLAW, "~97 MB", 97)),
     ),
 )
 
@@ -249,7 +249,7 @@ def render_svg(battle: Battle) -> str:
     <rect x="72" y="66" width="1456" height="128" rx="34" fill="#06101d" stroke="#243f5b" stroke-width="3"/>
     <text x="112" y="116" fill="#FFE15A" font-family="Helvetica" font-size="27" font-weight="900" letter-spacing="4">{esc(battle.eyebrow.upper())}</text>
     <text x="112" y="165" fill="#ffffff" font-family="Helvetica" font-size="46" font-weight="900">{esc(battle.title)}</text>
-    <text x="1062" y="115" fill="#d7fff2" font-family="Helvetica" font-size="26" font-weight="900" letter-spacing="3">TOTA AGENT</text>
+    <text x="1062" y="115" fill="#d7fff2" font-family="Helvetica" font-size="26" font-weight="900" letter-spacing="3">HERMES_TURBO AGENT</text>
     <text x="1064" y="154" fill="#FFE15A" font-family="Helvetica" font-size="19" font-weight="900" letter-spacing="3">BY HERMES AGENT</text>
   </g>
 

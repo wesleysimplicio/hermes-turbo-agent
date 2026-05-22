@@ -3,7 +3,7 @@
 > **Status:** Living document. Owner: performance branch maintainer.
 > **Target repo:** `wesleysimplicio/hermes-turbo-agent`
 > **Upstream:** `NousResearch/hermes-agent`
-> **Working branch:** `codex/tota-sync-hermes-20260519`
+> **Working branch:** `codex/hermes-turbo-sync-hermes-20260519`
 > **Last analysis:** 2026-05-19
 
 ---

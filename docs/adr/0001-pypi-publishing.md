@@ -99,7 +99,7 @@ lock-step.
 ## Consequences
 
 - **`pip install hermes-turbo-agent`** → installs `hermes-agent==X.Y.Z` →
-  `hermes` and `tota` console scripts both available (the `tota` alias
+  `hermes` and `hermes-turbo` console scripts both available (the `hermes-turbo` alias
   lands in this PR per Sprint 3 issue #46).
 - **`pip list`** shows both packages, which may surprise newcomers.
   Documented in the README install section.
@@ -122,7 +122,7 @@ lock-step.
 
 - **Renaming the import path** `hermes_cli` → `hermes_turbo_cli`: would break
   every existing plugin that imports `from hermes_cli import ...`. Issue
-  #46 captures the lower-cost alternative (additional `tota`
+  #46 captures the lower-cost alternative (additional `hermes-turbo`
   `console_scripts` alias).
 - **Publishing under only `hermes-turbo-agent`**: rejected for back-compat reasons
   above.

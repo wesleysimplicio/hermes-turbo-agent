@@ -36,17 +36,6 @@ class TestGetHermesHome:
 
         assert get_hermes_home() == hermes_turbo_home
 
-    def test_turbo_home_override_wins_over_tota_and_legacy(self, tmp_path, monkeypatch):
-        """HERMES_TURBO_HOME is the new preferred override."""
-        turbo_home = tmp_path / "turbo-data"
-        tota_home = tmp_path / "tota-data"
-        hermes_home = tmp_path / "hermes-data"
-        monkeypatch.setenv("HERMES_TURBO_HOME", str(turbo_home))
-        monkeypatch.setenv("TOTA_HOME", str(tota_home))
-        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
-
-        assert get_hermes_home() == turbo_home
-
     def test_legacy_hermes_home_override_still_works(self, tmp_path, monkeypatch):
         """Existing hermes2 wrappers can keep using HERMES_HOME explicitly."""
         hermes_home = tmp_path / ".hermes2"
@@ -54,45 +43,6 @@ class TestGetHermesHome:
         monkeypatch.setenv("HERMES_HOME", str(hermes_home))
 
         assert get_hermes_home() == hermes_home
-
-    def test_legacy_tota_home_env_fallback_with_warning(self, tmp_path, monkeypatch, capsys):
-        """TOTA_HOME is still honored when HERMES_TURBO_HOME is unset (deprecation path)."""
-        tota_home = tmp_path / ".tota-legacy"
-        monkeypatch.delenv("HERMES_TURBO_HOME", raising=False)
-        monkeypatch.delenv("HERMES_HOME", raising=False)
-        monkeypatch.setenv("TOTA_HOME", str(tota_home))
-        # Reset one-shot warning flag so this test sees the deprecation message
-        monkeypatch.setattr(hermes_constants, "_tota_env_deprecation_warned", False)
-
-        assert get_hermes_home() == tota_home
-        err = capsys.readouterr().err
-        assert "TOTA_HOME" in err
-        assert "deprecation" in err.lower()
-
-    def test_hermes_turbo_home_takes_priority_over_tota_home(self, tmp_path, monkeypatch):
-        """HERMES_TURBO_HOME wins when both fork env vars are set."""
-        canonical = tmp_path / ".hermes-turbo-data"
-        legacy = tmp_path / ".tota-legacy"
-        monkeypatch.setenv("HERMES_TURBO_HOME", str(canonical))
-        monkeypatch.setenv("TOTA_HOME", str(legacy))
-
-        assert get_hermes_home() == canonical
-
-    def test_legacy_tota_dir_fallback_when_canonical_missing(self, tmp_path, monkeypatch, capsys):
-        """When no env vars are set and only ~/.tota exists, fall back to it."""
-        monkeypatch.delenv("HERMES_TURBO_HOME", raising=False)
-        monkeypatch.delenv("TOTA_HOME", raising=False)
-        monkeypatch.delenv("HERMES_HOME", raising=False)
-        monkeypatch.setattr(Path, "home", lambda: tmp_path)
-        # Create legacy ~/.tota, but not ~/.hermes-turbo
-        (tmp_path / ".tota").mkdir()
-        # Reset one-shot warning flag
-        monkeypatch.setattr(hermes_constants, "_tota_dir_deprecation_warned", False)
-
-        assert get_hermes_home() == tmp_path / ".tota"
-        err = capsys.readouterr().err
-        assert ".tota" in err
-        assert "deprecation" in err.lower()
 
 
 class TestGetDefaultHermesRoot:

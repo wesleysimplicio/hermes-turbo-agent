@@ -3,77 +3,38 @@
 **Release type:** Identity rename + sync-system hardening (minor bump for public-surface change).
 **Previous version:** `0.14.2`.
 
-This release closes two work streams: a complete removal of the legacy
-"Tota Agent" identity in favor of **Hermes Turbo Agent**, and the
-follow-through on the audit gaps in the daily upstream sync system that
-was introduced in 0.14.x (issues #85, #86, #87).
+This release closes two work streams: a complete rebrand of the fork to
+**Hermes Turbo Agent**, and the follow-through on the audit gaps in the
+daily upstream sync system that was introduced in 0.14.x (issues #85,
+#86, #87).
 
-## Deprecations — migrate at your convenience
+## Identity rename
 
-The fork-native environment variable and home directory have been renamed,
-but the previous names continue to work for backward compatibility. They
-emit a one-shot deprecation warning to stderr per process and will be
-removed in a future release.
-
-| Legacy | Canonical | Behavior |
-|---|---|---|
-| `TOTA_HOME` env var | `HERMES_TURBO_HOME` | Honored with warning; `HERMES_TURBO_HOME` wins when both are set |
-| `~/.tota` directory | `~/.hermes-turbo` | Honored with warning when canonical dir is absent |
-| `.tota/` in repo | `.hermes-turbo/` | Bootstrap reads canonical first, falls back to legacy |
-| `TOTA_AUTO_MAP` env var | `HERMES_TURBO_AUTO_MAP` | Honored (auto_mapper checks all three keys) |
-
-Recommended migration (no rush):
-
-```bash
-# Environment (in your shell rc files)
-# Replace TOTA_HOME with HERMES_TURBO_HOME
-
-# Data directory (one-time)
-mv ~/.tota ~/.hermes-turbo
-
-# Project-local defaults (per checkout, if you keep one)
-mv .tota .hermes-turbo
-```
-
-Legacy `HERMES_HOME` is still honored as a tertiary fallback (unchanged
-from prior releases).
-
-Console script aliases changed too:
-
-| Old | New |
-|---|---|
-| `tota` | `hermes-turbo` |
-| `tota-agent` | `hermes-turbo-agent` |
-| `tota-acp` | `hermes-turbo-acp` |
-
-The `hermes` and `hermes-agent` aliases continue to work unchanged.
-
-## Identity removal
-
-Every fork-native surface that previously said *Tota Agent* now says
-*Hermes Turbo Agent*. This covers:
+Every fork-native surface now consistently reads **Hermes Turbo Agent**:
 
 - `pyproject.toml` description, console_scripts, version
-- Python identifiers: `_tota_home` → `_hermes_turbo_home`,
-  `_resolve_tota_home_fallback`, `_assert_tota_personality`,
-  `bootstrap_tota_home`, `fresh_tota_home`, `tota_map_project`
-- Env vars: `TOTA_HOME`, `TOTA_AUTO_MAP`, `TOTA_FAST_STATE`,
-  `TOTA_GATEWAY_SIDECAR`, `TOTA_AGENT_*` → `HERMES_TURBO_*`
-- Paths: `.tota/`, `~/.tota`, `docs/assets/tota-{brand,benchmark,social}/`,
-  `tota_agent_benchmark_report.pdf`, `tota-agent.html`,
-  `docs/tota-{benchmark,identity-customization,social-storyboard}.md`,
-  `scripts/{tota_,install_tota_,generate_tota_,benchmark_tota_}*`
-- Asset filenames: all `tota-agent-*.{png,svg,jpg}` renamed (no image
-  regeneration in this release — visual text inside artwork still reads
-  "Tota Agent" until the next art pass; see TODO in
-  `docs/hermes-turbo-identity-customization.md`)
+- Python identifiers (`hermes_turbo_*` namespaces)
+- Env vars (`HERMES_TURBO_HOME`, `HERMES_TURBO_AUTO_MAP`,
+  `HERMES_TURBO_FAST_STATE`, `HERMES_TURBO_GATEWAY_SIDECAR`,
+  `HERMES_TURBO_AGENT_*`)
+- Paths (`.hermes-turbo/`, `~/.hermes-turbo`,
+  `docs/assets/hermes-turbo-{brand,benchmark,social}/`,
+  `hermes_turbo_agent_benchmark_report.pdf`, `hermes-turbo-agent.html`,
+  `docs/hermes-turbo-{benchmark,identity-customization,social-storyboard}.md`,
+  `scripts/{hermes_turbo_,install_hermes_turbo_,generate_hermes_turbo_,benchmark_hermes_turbo_}*`)
 - Brand SVG aria-labels and inline benchmark caption text
-- Release notes 0.13.x and 0.14.x rewritten retroactively to use the new
-  name (historical archive flows from the canonical brand, not the legacy
-  one)
+- Release notes 0.13.x and 0.14.x were rewritten retroactively to use
+  the canonical brand. Commit history is unchanged.
 
-The 0.13.x and 0.14.x release notes still describe what was shipped at
-those points in time; only the brand string changed. Commit history is
+Console scripts:
+
+| Script | Maps to |
+|---|---|
+| `hermes-turbo` | `hermes_cli.main:main` |
+| `hermes-turbo-agent` | `run_agent:main` |
+| `hermes-turbo-acp` | `acp_adapter.entry:main` |
+
+The upstream `hermes` and `hermes-agent` aliases continue to work
 unchanged.
 
 ## Upstream sync hardening (issue follow-ups to #85/#86/#87)
@@ -141,7 +102,7 @@ benchmarks; CI can call it standalone.
 python3 -c "from hermes_constants import HERMES_TURBO_HOME_ENV, display_hermes_home; print(HERMES_TURBO_HOME_ENV, display_hermes_home())"
 # -> HERMES_TURBO_HOME ~/.hermes-turbo
 
-# Tests (sync system + rebrand-sensitive)
+# Tests
 python3 -m pytest tests/test_hermes_turbo_daily_update.py \
                   tests/test_refresh_sync_benchmarks.py \
                   tests/test_hermes_constants.py \
@@ -151,13 +112,8 @@ python3 -m pytest tests/test_hermes_turbo_daily_update.py \
                   tests/test_auto_mapper.py \
                   tests/test_map_project_skill.py \
                   tests/hermes_cli/test_config.py -o addopts=
-# -> 195 passed, 1 skipped
 
 # Policy
-python3 scripts/validate_sync_policy.py        # ok
-python3 scripts/check_sync_policy_mirror.py    # ok
-
-# No surviving Tota references in active code
-git ls-files | xargs grep -lE "(\bTota\b|TOTA_|\btota_|\btota-|~/\.tota|/tota/|/tota_)"
-# -> hermes_turbo_agent_benchmark_report.pdf (binary, expected)
+python3 scripts/validate_sync_policy.py
+python3 scripts/check_sync_policy_mirror.py
 ```
