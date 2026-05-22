@@ -30,7 +30,7 @@ def test_default_skin_says_hermes_turbo_agent():
     assert skin.get_branding("response_label", "").strip() == "⚕ Hermes Turbo"
 
 
-def test_default_identity_introduces_tota():
+def test_default_identity_introduces_hermes_turbo():
     import sys
 
     sys.path.insert(0, str(REPO_ROOT))
@@ -42,7 +42,7 @@ def test_default_identity_introduces_tota():
 
 def test_pyproject_ships_hermes_turbo_console_script_aliases():
     pyproject = (REPO_ROOT / "pyproject.toml").read_text()
-    assert 'tota = "hermes_cli.main:main"' in pyproject
+    assert 'hermes-turbo = "hermes_cli.main:main"' in pyproject
     assert 'hermes-turbo-agent = "run_agent:main"' in pyproject
     assert 'hermes-turbo-acp = "acp_adapter.entry:main"' in pyproject
     # Back-compat: hermes alias must still exist.
