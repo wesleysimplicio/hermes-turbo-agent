@@ -2,93 +2,149 @@
 
 ## Summary
 
-Closed all 23 open issues (#81-#103) on `wesleysimplicio/hermes-turbo-agent`
-covering the token-economy + runtime-telemetry surface. The bulk of the
-implementation landed in the prior merged PRs #106-#128 (modules under
-`agent/token_saver/`, `agent/telemetry/`, `agent/governor/`,
-`agent/router/`, `agent/context/`, `agent/distributed/`, `agent/adapters/`,
-`agent/registry/`, `agent/contracts/`, plus `eval/clawbench/`,
-`scripts/upstream-sync/`, `docs/adr/`, `docs/perf/`, `docs/runtime/`,
-`docs/distributed/`, `.skills/rtk-cli/`). This branch fills the remaining
-concrete AC gaps and adds a `CHANGELOG.md`.
+Closed all four open feature issues on `wesleysimplicio/hermes-turbo-agent`:
 
-## Changed Files (this branch)
+- **#136** — Automated Daily Benchmark Battle Cards + **Turbo Score**
+- **#137** — Interactive **Web Performance Dashboard** view
+- **#138** — Weekly automated **Token Savings Report**
+- **#139** — `hermes migrate-from-openclaw --benchmark` command
 
-- `agent/token_saver/backend.py` — native/rtk/auto backend selector (#94)
-- `agent/token_saver/__init__.py` — export selector
-- `agent/telemetry/stage_timing.py` — stage timer + dashboard (#82)
-- `agent/telemetry/cache_usage.py` — Anthropic/OpenAI cache parsing (#96)
-- `agent/context/token_cache.py` — incremental token cache (#83)
-- `scripts/build_hamt_catalog.py` — HAMT catalog builder per spec v0.2 (#102)
-- `.catalog/README.md`, `.catalog/.gitkeep`, `.catalog/receipts/.gitkeep`
-- `.gitignore` — exclude `.catalog/hamt.json` + receipts
-- `tests/token_saver/test_backend.py`
-- `tests/token_saver/test_proxy.py` — fix tmp_path collision
-- `tests/agent/telemetry/test_stage_timing.py`
-- `tests/agent/telemetry/test_cache_usage.py`
-- `tests/agent/test_token_cache.py`
-- `tests/scripts/__init__.py`, `tests/scripts/test_build_hamt_catalog.py`
-- `CHANGELOG.md`
-- `PRD.md`, `PROGRESS.md`, `GOAL_RESULT.md`
+Issue #140 is a strategic roadmap epic (parent issue), explicitly out of scope.
+The earlier #81–#103 work documented in the previous GOAL_RESULT is unchanged.
+
+## Changed Files (this cycle)
+
+### New modules
+- `scripts/turbo_score.py` — Turbo Score computation (latency, throughput,
+  memory, cold-start, token-savings combined into a 0-100 figure of merit).
+- `docs/turbo-score-baselines.json` — memory/cold-start baselines for
+  Turbo Score families that the upstream benchmark JSON doesn't cover.
+- `.github/workflows/daily-turbo-score.yml` — daily CI workflow that
+  refreshes the score and uploads Markdown/JSON artifacts.
+- `agent/telemetry/savings_report.py` — weekly token-savings report module
+  with USD cost estimation (overridable price table per adapter).
+- `hermes_cli/migrate_openclaw.py` — `hermes migrate-from-openclaw`
+  command implementation (delegates to `hermes claw migrate`, adds
+  `--benchmark` flag that prints a side-by-side Markdown comparison).
+- `hermes_cli/web_perf.py` — `/perf` HTML view + `/api/perf/*` JSON
+  endpoints for the existing FastAPI dashboard.
+
+### Tests
+- `tests/scripts/test_turbo_score.py` — 10 cases
+- `tests/agent/telemetry/test_savings_report.py` — 13 cases
+- `tests/hermes_cli/test_migrate_from_openclaw.py` — 10 cases
+- `tests/hermes_cli/test_web_perf.py` — 11 cases (incl. live TestClient probes)
+
+### Wiring (small edits)
+- `hermes_cli/main.py` — registered `report` and `migrate-from-openclaw`
+  subparsers; added the new commands to `_BUILTIN_SUBCOMMANDS`.
+- `hermes_cli/commands.py` — added `CommandDef` entries for the two new
+  top-level commands so they appear in autocomplete and `--help`.
+- `hermes_cli/web_server.py` — added the three new `/api/perf/*` paths
+  to `_PUBLIC_API_PATHS` and wired `web_perf.register()` after the
+  existing routes (before the SPA catch-all).
+- `CHANGELOG.md`, `PROGRESS.md`, `PRD.md`, `GOAL_RESULT.md` — updated.
 
 ## Validation Commands
 
 ```bash
 python -m pytest \
+  tests/scripts/test_turbo_score.py \
+  tests/agent/telemetry/test_savings_report.py \
+  tests/hermes_cli/test_migrate_from_openclaw.py \
+  tests/hermes_cli/test_web_perf.py -o addopts=""
+
+python -m pytest \
   tests/token_saver tests/router tests/agent/telemetry tests/registry \
-  tests/contracts tests/agent/test_token_cache.py tests/agent/test_governor.py \
-  tests/test_ci_compact.py tests/test_github_compact.py \
-  tests/test_evidence_store.py tests/test_prompt_cache_stability.py \
-  tests/scripts -o addopts=""
-python tests/eval/compression_safety/runner.py
-python eval/clawbench/runner.py
-python scripts/build_hamt_catalog.py --print-list
+  tests/contracts tests/agent/test_token_cache.py \
+  tests/agent/test_governor.py tests/test_ci_compact.py \
+  tests/test_github_compact.py tests/test_evidence_store.py \
+  tests/test_prompt_cache_stability.py tests/scripts -o addopts=""
+
+python scripts/turbo_score.py
+python scripts/turbo_score.py --markdown
+python -m hermes_cli.main report savings --since 30d --json
+python -m hermes_cli.main migrate-from-openclaw --dry-run --benchmark \
+  --source /tmp/nonexistent-openclaw
 ```
 
 ## Validation Results
 
-- targeted unit tests: **159 passed**
-- compression-safety fixtures: **5/5 preserved**
-- clawbench tasks: **5/5 scored 1.00**
-- HAMT catalog: parses `AGENTS.md`, emits `agent.dev.python`
+- **New tests:** 44 passed (turbo_score 10, savings_report 13,
+  migrate-from-openclaw 10, web_perf 11)
+- **Wider regression set:** 182 passed across token_saver, router, telemetry,
+  registry, contracts, governor, ci/github compact, evidence_store,
+  prompt_cache_stability, scripts.
+- **Existing CLI suites:** 49 passed across `test_claw.py`,
+  `test_subparser_routing_fallback.py`, `test_skills_subparser.py`.
+- **Live FastAPI probes:** `/api/perf/turbo_score` and `/perf` both return
+  200 against the in-process app via `TestClient`.
+- **Live Turbo Score** against shipped data: **62.78 / 100**
+  (`latency` family pulls the score down due to two micro-benchmark
+  regressions vs upstream; `throughput`, `memory`, `cold_start` all max out).
+
+## Issue-by-Issue Acceptance
+
+### #136 Daily Benchmark Battle Cards + Turbo Score
+- [x] Daily-running benchmark workflow (`.github/workflows/daily-turbo-score.yml`)
+- [x] Turbo Score calculated and exhibited (`scripts/turbo_score.py`)
+- [x] Markdown output ready to embed in README "Why Turbo"
+
+### #137 Performance Dashboard Web Interface
+- [x] Accessible via the existing `hermes dashboard` (port 9119)
+- [x] Backed by existing telemetry data (`stage_timer`, `token_savings`)
+- [x] Comparison-friendly: groups by stage/provider/model/tool;
+      provider-filterable in the future via the same API
+- [x] No new heavy dependency — uses the existing FastAPI app and a static
+      HTML page (no Streamlit/Gradio added)
+
+### #138 Token Savings Report
+- [x] Aggregates the JSONL ledger into a weekly report (`--since 7d` default)
+- [x] Reports USD (price table per adapter, overridable via `--prices`)
+- [x] Integrated with the token economy ledger
+- [x] CLI: `hermes report savings`; library: `agent.telemetry.savings_report.build_report`
+- [x] Markdown output suitable for email/Slack
+
+### #139 Migration command with benchmark
+- [x] `hermes migrate-from-openclaw [--benchmark]` working
+- [x] Side-by-side report comparing OpenClaw baselines with live Hermes probes
+- [x] Falls back to published baselines when OpenClaw is not present locally
+- [x] Migration itself uses the existing safe-path in `hermes_cli/claw.py`
 
 ## Remaining Risks
 
-- The HAMT builder parses AGENTS.md yool blocks; as more agents are
-  declared with the yool template, run the builder and commit
-  `.catalog/hamt.json` snapshots when needed for offline lookup.
-- RTK backend is wired but the actual `rtk` binary is optional. The
-  selector falls back to native if `rtk compress` returns non-zero or
-  exits before the timeout — verified by the fallback test.
-- Stage timing and cache usage trackers are in-memory; if a long
-  daemon session is desired the caller must flush snapshots to
-  `agent.telemetry.token_savings.record_token_saving` or similar.
-- Pre-existing test collection error in `tests/agent/test_markdown_tables.py`
-  is unrelated to the closed issues; not fixed here.
+- The OpenClaw baselines in `hermes_cli/migrate_openclaw.OPENCLAW_BASELINE`
+  are static (sourced from the existing battle cards). Live probes for a
+  user-installed OpenClaw could replace them on a follow-up.
+- The Turbo Score family weights (`scripts/turbo_score.WEIGHTS`) are
+  opinionated. A short README section calling them out would help users
+  who recompute against different benchmark JSON.
+- The `/perf` HTML page is dependency-free vanilla JS; if the project
+  adopts a React shell for the dashboard later, the same `/api/perf/*`
+  endpoints will keep working.
 
 ## Suggested PR Title
 
-`feat: close remaining token-economy issues (#81-#103) with backend selector, stage telemetry, token cache, cache-usage tracker, and HAMT catalog`
+`feat: close issues #136-#139 — Turbo Score, web perf dashboard, savings report, migrate-from-openclaw`
 
 ## Suggested PR Body
 
 ```md
 ## Summary
-- Fills the remaining acceptance-criteria gaps across issues #81–#103.
-- Adds the RTK backend selector (#94), stage timing dashboard (#82),
-  Anthropic/OpenAI cache-usage tracker (#96), incremental token cache (#83),
-  and the HAMT catalog builder per yool-tuple-hamt v0.2 (#102).
-- Lands a new `CHANGELOG.md` covering the token-economy surface delivered
-  under issues #81–#103.
+- Adds the **Turbo Score** (`scripts/turbo_score.py`) + daily workflow (#136).
+- Adds the **`/perf`** web view + `/api/perf/*` endpoints to the existing
+  `hermes dashboard` (#137).
+- Adds **`hermes report savings`** (#138) and the
+  **`agent.telemetry.savings_report`** library backing it.
+- Adds **`hermes migrate-from-openclaw --benchmark`** (#139).
 
 ## Validation
-- [x] targeted unit tests (159 passed)
-- [x] compression-safety fixtures (5/5)
-- [x] clawbench harness (5/5)
-- [x] HAMT catalog builds against AGENTS.md
+- [x] 44 new unit tests pass
+- [x] 182 targeted regression tests still pass
+- [x] 49 existing CLI tests still pass
+- [x] Live FastAPI probes (`/api/perf/turbo_score`, `/perf`) return 200
 
 ## Risks
-- HAMT catalog needs to be rebuilt when AGENTS.md adds new yool blocks.
-- Pre-existing `tests/agent/test_markdown_tables.py` collection error is
-  out of scope for this branch.
+- Static OpenClaw baselines (vs probing a live install).
+- Opinionated Turbo Score weights — documented in CHANGELOG + PRD.
 ```

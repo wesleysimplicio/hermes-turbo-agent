@@ -6,6 +6,25 @@ All notable changes to Hermes Turbo Agent are recorded here. Format follows
 
 ## [Unreleased]
 
+### Added (visibility & migration UX — issues #136-#139)
+
+- **Turbo Score** (`scripts/turbo_score.py`, `docs/turbo-score-baselines.json`,
+  #136): combines latency, throughput, memory, cold-start, and token-savings
+  into a single 0-100 figure of merit. Emits text/JSON/Markdown.
+- **Daily Turbo Score workflow** (`.github/workflows/daily-turbo-score.yml`,
+  #136): refreshes the score on a 07:00 UTC schedule and publishes
+  Markdown + JSON artifacts.
+- **Web performance dashboard** (`hermes_cli/web_perf.py`, #137): adds
+  `/perf` HTML view plus `/api/perf/{stage_summary,token_savings,turbo_score}`
+  endpoints to the existing `hermes dashboard`. Lightweight, polls every 15s,
+  reads from `~/.hermes/telemetry/*.jsonl`.
+- **Token Savings Report** (`agent/telemetry/savings_report.py`, #138):
+  weekly-style aggregation with cost estimates and per-adapter breakdowns.
+  Exposed as `hermes report savings [--since 7d] [--markdown|--json]`.
+- **`hermes migrate-from-openclaw`** (`hermes_cli/migrate_openclaw.py`,
+  #139): thin alias around `hermes claw migrate` with a `--benchmark`
+  flag that prints a side-by-side OpenClaw vs Turbo report.
+
 ### Added (token economy & runtime telemetry — issues #81-#103)
 
 - **Token-saver proxy** (`agent/token_saver/proxy.py`, #88): head/tail truncation

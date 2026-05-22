@@ -9723,7 +9723,9 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "config", "cron", "curator", "dashboard", "debug", "doctor",
         "dump", "fallback", "gateway", "hooks", "import", "insights",
         "kanban", "login", "logout", "logs", "lsp", "mcp", "memory",
-        "model", "pairing", "plugins", "postinstall", "profile", "proxy", "sessions", "setup",
+        "migrate-from-openclaw",
+        "model", "pairing", "plugins", "postinstall", "profile", "proxy",
+        "report", "sessions", "setup",
         "skills", "slack", "status", "tools", "uninstall", "update",
         "version", "webhook", "whatsapp", "chat",
         # Help-ish invocations — plugin commands not being listed in
@@ -11934,6 +11936,134 @@ Examples:
         claw_command(args)
 
     claw_parser.set_defaults(func=cmd_claw)
+
+    # =========================================================================
+    # migrate-from-openclaw alias (issue #139)
+    # =========================================================================
+    # Thin alias around ``hermes claw migrate`` so the marketed command
+    # ``hermes migrate-from-openclaw --benchmark`` works directly. The
+    # ``--benchmark`` flag adds a side-by-side performance report after
+    # migration (or in --dry-run mode, without touching anything).
+    migrate_oc_parser = subparsers.add_parser(
+        "migrate-from-openclaw",
+        help="Migrate from OpenClaw to Hermes Turbo, optionally with benchmark",
+        description=(
+            "Alias of `hermes claw migrate` that adds a `--benchmark` flag "
+            "running a side-by-side performance comparison after migration."
+        ),
+    )
+    migrate_oc_parser.add_argument(
+        "--source", help="Path to OpenClaw directory (default: ~/.openclaw)"
+    )
+    migrate_oc_parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Preview only — stop after showing what would be migrated",
+    )
+    migrate_oc_parser.add_argument(
+        "--preset", choices=["user-data", "full"], default="full",
+        help="Migration preset (default: full).",
+    )
+    migrate_oc_parser.add_argument(
+        "--overwrite", action="store_true",
+        help="Overwrite existing files (default: refuse when conflicts exist)",
+    )
+    migrate_oc_parser.add_argument(
+        "--migrate-secrets", action="store_true",
+        help="Include allowlisted secrets (API keys, tokens, etc.)",
+    )
+    migrate_oc_parser.add_argument(
+        "--no-backup", action="store_true",
+        help="Skip the pre-migration backup snapshot of ~/.hermes/",
+    )
+    migrate_oc_parser.add_argument(
+        "--workspace-target",
+        help="Absolute path to copy workspace instructions into",
+    )
+    migrate_oc_parser.add_argument(
+        "--skill-conflict", choices=["skip", "overwrite", "rename"],
+        default="skip", help="How to handle skill name conflicts (default: skip)",
+    )
+    migrate_oc_parser.add_argument(
+        "--yes", "-y", action="store_true",
+        help="Skip confirmation prompts",
+    )
+    migrate_oc_parser.add_argument(
+        "--benchmark", action="store_true",
+        help="Run a side-by-side OpenClaw vs Hermes Turbo benchmark "
+             "and print/save a comparison report.",
+    )
+    migrate_oc_parser.add_argument(
+        "--benchmark-out", type=Path, default=None,
+        help="Where to save the benchmark Markdown report (default: stdout)",
+    )
+
+    def cmd_migrate_from_openclaw(args):
+        from hermes_cli.migrate_openclaw import migrate_from_openclaw_command
+        return migrate_from_openclaw_command(args)
+
+    migrate_oc_parser.set_defaults(func=cmd_migrate_from_openclaw)
+
+    # =========================================================================
+    # report command (issue #138)
+    # =========================================================================
+    report_parser = subparsers.add_parser(
+        "report",
+        help="Generate Hermes Turbo reports (savings, perf, etc.)",
+        description="Produce reports from Hermes telemetry logs.",
+    )
+    report_subparsers = report_parser.add_subparsers(dest="report_kind")
+
+    report_savings = report_subparsers.add_parser(
+        "savings",
+        help="Token Savings Report (weekly by default)",
+        description="Aggregate the token-savings telemetry log and print "
+                    "a weekly report. Use --since to change the window, "
+                    "--markdown for Slack/email-ready output.",
+    )
+    report_savings.add_argument(
+        "--log", type=Path, default=None,
+        help="Path to the JSONL savings log",
+    )
+    report_savings.add_argument(
+        "--since", default="7d",
+        help="Time window (e.g. 7d, 24h, 4w). Default: 7d",
+    )
+    report_savings.add_argument(
+        "--prices", type=Path, default=None,
+        help="JSON file overriding USD/1M-token prices per adapter",
+    )
+    report_savings.add_argument("--json", action="store_true",
+                                help="Emit JSON")
+    report_savings.add_argument("--markdown", action="store_true",
+                                help="Emit Markdown (Slack/email-ready)")
+    report_savings.add_argument("--out", type=Path, default=None,
+                                help="Write report to file instead of stdout")
+
+    def cmd_report(args):
+        kind = getattr(args, "report_kind", None)
+        if kind == "savings":
+            from agent.telemetry.savings_report import main as _savings_main
+            argv: list[str] = []
+            if args.log:
+                argv += ["--log", str(args.log)]
+            if args.since:
+                argv += ["--since", args.since]
+            if args.prices:
+                argv += ["--prices", str(args.prices)]
+            if args.json:
+                argv += ["--json"]
+            if args.markdown:
+                argv += ["--markdown"]
+            if args.out:
+                argv += ["--out", str(args.out)]
+            return _savings_main(argv)
+        print("Usage: hermes report <kind> [options]")
+        print()
+        print("Available kinds:")
+        print("  savings   Token Savings Report")
+        return 0
+
+    report_parser.set_defaults(func=cmd_report)
 
     # =========================================================================
     # version command
