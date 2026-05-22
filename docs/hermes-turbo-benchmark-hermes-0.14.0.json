@@ -1,0 +1,81 @@
+{
+  "browser_console": {
+    "binary": null,
+    "reason": "No local Chrome/Chromium binary is available on this host, so the browser_console p99 row cannot run.",
+    "status": "blocked"
+  },
+  "generated_at": "2026-05-19 17:21:45 -0300",
+  "json_path": "C:\\Users\\wesley.simplicio\\Documents\\Codex\\2026-05-18\\termine-todas-as-issues-https-github-2\\hermes-turbo-agent\\docs\\hermes-turbo-benchmark-hermes-0.14.0.json",
+  "local_python": "C:\\Users\\wesley.simplicio\\AppData\\Local\\Microsoft\\WindowsApps\\python.EXE",
+  "md_path": "C:\\Users\\wesley.simplicio\\Documents\\Codex\\2026-05-18\\termine-todas-as-issues-https-github-2\\hermes-turbo-agent\\docs\\hermes-turbo-benchmark-hermes-0.14.0.md",
+  "metrics": {
+    "async_1000_task_ms": {
+      "local": 166.51870001805946,
+      "local_meta": {
+        "uvloop_requested": true
+      },
+      "notes": "Hermes Turbo run requested uvloop; stock stayed on default asyncio.",
+      "speedup": 1.0045778641298517,
+      "stock": 167.28100000182167,
+      "stock_meta": {
+        "uvloop_requested": false
+      },
+      "winner": "Hermes Turbo Agent"
+    },
+    "browser_console_p99_ms": {
+      "local": null,
+      "notes": "Benchmark blocked on local Chrome startup.",
+      "speedup": null,
+      "stock": null,
+      "winner": "Blocked"
+    },
+    "cold_start_ms": {
+      "local": 2866.113400028553,
+      "notes": "Fresh subprocess import of model_tools as a cold-start proxy.",
+      "speedup": 1.707651727925677,
+      "stock": 4894.323499989696,
+      "winner": "Hermes Turbo Agent"
+    },
+    "integration_breadth": {
+      "local": 31.0,
+      "notes": "Counts Python gateway platform modules excluding __init__.py.",
+      "speedup": 1.0,
+      "stock": 31.0,
+      "winner": "Tie"
+    },
+    "json_dumps_short_us": {
+      "local": 9.773056665047383,
+      "local_meta": {},
+      "notes": "",
+      "speedup": 0.687485014167825,
+      "stock": 6.718829999833057,
+      "stock_meta": {},
+      "winner": "Hermes 0.14.0"
+    },
+    "token_estimate_batch_us": {
+      "local": 109.35316665563732,
+      "local_meta": {
+        "have_rust": false
+      },
+      "notes": "Hermes Turbo uses estimate_messages_tokens; stock uses estimate_messages_tokens_rough.",
+      "speedup": 4.145957059954664,
+      "stock": 453.3735333243385,
+      "stock_meta": {},
+      "winner": "Hermes Turbo Agent"
+    },
+    "tool_call_parse_us": {
+      "local": 6.651126667081068,
+      "local_meta": {
+        "have_rust": false
+      },
+      "notes": "",
+      "speedup": 0.4112461147943097,
+      "stock": 2.7352500008419156,
+      "stock_meta": {},
+      "winner": "Hermes 0.14.0"
+    }
+  },
+  "stock_python": "temporary stock venv\\Scripts\\python.exe",
+  "stock_ref": "v2026.5.16",
+  "stock_version": "0.14.0"
+}

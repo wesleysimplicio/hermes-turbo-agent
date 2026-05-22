@@ -23,7 +23,7 @@ node before promoting to a larger box.
 Run each workload against three builds, same hardware, same kernel:
 
 - `A` - current `main` with `uvloop` enabled.
-- `B` - prototype branch with `TOTA_FAST_GATEWAY=1` (PyO3 sidecar).
+- `B` - prototype branch with `HERMES_TURBO_FAST_GATEWAY=1` (PyO3 sidecar).
 - `C` - sibling experiment with the standalone Tokio sidecar over Unix
   socket gRPC. Optional; run only if B clears its gate.
 

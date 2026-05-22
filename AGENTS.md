@@ -1,20 +1,22 @@
-# Tota Agent — Development Guide
+# Hermes Turbo Agent — Development Guide
 
-Instructions for AI coding assistants and developers working on the Tota Agent codebase.
+Instructions for AI coding assistants and developers working on the Hermes Turbo Agent codebase.
 
-> **Tota Agent is a modified, faster Hermes.** The fork is synced against Hermes
+> **Hermes Turbo Agent is a modified, faster Hermes.** The fork is synced against Hermes
 > Agent **v0.14.0** (upstream: `NousResearch/hermes-agent`). The Python package
 > still ships as `hermes-agent` so installer scripts and the `hermes` CLI
-> command keep working unchanged. The fork name **Tota** carries the
-> performance + project-on-ramp customizations: TOTA_HOME, Rust `hermes_fast`
-> extension, hierarchical cache, streaming-on-by-default gateway, and core
+> command keep working unchanged. The fork name **Hermes Turbo Agent** carries
+> the performance + project-on-ramp customizations: `HERMES_TURBO_HOME`,
+> legacy `TOTA_HOME`, Rust `hermes_fast` extension, hierarchical cache,
+> streaming-on-by-default gateway, and core
 > integration of `llm-project-mapper` for project onboarding.
 
 **Core directive (project mapping):** any code project the agent touches must
 be mapped by `llm-project-mapper` first. The skill at
 `skills/software-development/llm-project-mapper/` is idempotent and tracks
-state in `$TOTA_HOME/mapped_projects.json`. Re-running on a fresh project is a
-no-op.
+state in the active Hermes home, usually `$HERMES_TURBO_HOME/mapped_projects.json`
+or the backward-compatible `~/.tota/mapped_projects.json`. Re-running on a
+fresh project is a no-op.
 
 ## Development Environment
 

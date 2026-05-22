@@ -1,16 +1,16 @@
 {
   "id": "hermes-agent",
-  "name": "Hermes Agent",
-  "version": "0.14.2",
-  "description": "Self-improving open-source AI agent by Nous Research with ACP editor integration, persistent memory, skills, and rich tool support.",
-  "repository": "https://github.com/NousResearch/hermes-agent",
+  "name": "Hermes Turbo Agent",
+  "version": "0.14.7",
+  "description": "Hermes Turbo Agent is the faster branded fork with desktop and car operator profiles, persistent memory, skills, and ACP integration.",
+  "repository": "https://github.com/wesleysimplicio/hermes-turbo-agent",
   "website": "https://hermes-agent.nousresearch.com/docs/user-guide/features/acp",
   "authors": ["Nous Research"],
   "license": "MIT",
   "distribution": {
     "uvx": {
-      "package": "hermes-agent[acp]==0.14.2",
-      "args": ["hermes-acp"]
+      "package": "hermes-agent[acp]==0.14.7",
+      "args": ["hermes-turbo-acp"]
     }
   }
 }

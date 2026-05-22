@@ -1,6 +1,0 @@
-hermes-agent
-0.14.0
-upstream: NousResearch/hermes-agent
-synced_against: v2026.5.16 (and pyproject 0.14.0 from upstream/main)
-fork_name: tota-agent
-fork_tagline: a modified, faster Hermes

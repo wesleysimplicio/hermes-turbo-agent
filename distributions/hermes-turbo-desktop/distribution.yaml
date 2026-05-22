@@ -1,0 +1,6 @@
+name: hermes-turbo-desktop
+version: 0.14.5
+description: "Desktop operator profile for Hermes Turbo Agent: coding, browser, desktop automation, and release execution."
+hermes_requires: ">=0.14.5"
+author: "Wesley Simplicio"
+license: "MIT"

@@ -30,7 +30,7 @@ VENV=""
 for candidate in \
     "$REPO_ROOT/.venv" \
     "$REPO_ROOT/venv" \
-    "$HOME/.tota/hermes-agent/venv" \
+    "$HOME/.hermes-turbo/hermes-agent/venv" \
     "$HOME/.hermes2/hermes-agent/venv" \
     "$HOME/.hermes/hermes-agent/venv"; do
   if [ -f "$candidate/bin/activate" ]; then

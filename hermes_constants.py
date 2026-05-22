@@ -5,44 +5,137 @@ without risk of circular imports.
 """
 
 import os
+from contextvars import ContextVar, Token
 from pathlib import Path
 
 
-DEFAULT_HOME_DIRNAME = ".tota"
-TOTA_HOME_ENV = "TOTA_HOME"
+DEFAULT_HOME_DIRNAME = ".hermes-turbo"
+LEGACY_HOME_DIRNAME = ".tota"
+HERMES_TURBO_HOME_ENV = "HERMES_TURBO_HOME"
+LEGACY_TOTA_HOME_ENV = "TOTA_HOME"  # Deprecated; honored with a warning until removal.
 LEGACY_HOME_ENV = "HERMES_HOME"
 
 _profile_fallback_warned: bool = False
+_tota_env_deprecation_warned: bool = False
+_tota_dir_deprecation_warned: bool = False
+
+_UNSET = object()
+_HERMES_HOME_OVERRIDE: ContextVar[str | object] = ContextVar(
+    "_HERMES_HOME_OVERRIDE", default=_UNSET
+)
+
+
+def set_hermes_home_override(path: str | Path | None) -> Token:
+    """Set a context-local Hermes home override and return its reset token.
+
+    This is for in-process, per-task scoping.  It deliberately does not mutate
+    ``os.environ`` because that is shared by every thread in the process.
+    """
+    value: str | object = _UNSET if path is None else str(path)
+    return _HERMES_HOME_OVERRIDE.set(value)
+
+
+def reset_hermes_home_override(token: Token) -> None:
+    """Restore the previous context-local Hermes home override."""
+    _HERMES_HOME_OVERRIDE.reset(token)
+
+
+def get_hermes_home_override() -> str | None:
+    """Return the active context-local Hermes home override, if any."""
+    override = _HERMES_HOME_OVERRIDE.get()
+    if override is _UNSET or not override:
+        return None
+    return str(override)
 
 
 def _default_home() -> Path:
-    return Path.home() / DEFAULT_HOME_DIRNAME
+    """Return the canonical home directory.
+
+    Resolution order when no env var is set:
+      1. ``~/.hermes-turbo`` (canonical)
+      2. ``~/.tota`` if it exists and ``~/.hermes-turbo`` does not (legacy fallback;
+         warns once per process to prompt migration).
+    """
+    canonical = Path.home() / DEFAULT_HOME_DIRNAME
+    if canonical.exists():
+        return canonical
+    legacy = Path.home() / LEGACY_HOME_DIRNAME
+    if legacy.exists():
+        global _tota_dir_deprecation_warned
+        if not _tota_dir_deprecation_warned:
+            _tota_dir_deprecation_warned = True
+            import sys
+
+            try:
+                sys.stderr.write(
+                    f"[hermes-turbo] deprecation: using legacy ~/{LEGACY_HOME_DIRNAME} "
+                    f"as home directory. Migrate to ~/{DEFAULT_HOME_DIRNAME} via "
+                    f"`mv ~/{LEGACY_HOME_DIRNAME} ~/{DEFAULT_HOME_DIRNAME}`.\n"
+                )
+                sys.stderr.flush()
+            except Exception:
+                pass
+        return legacy
+    return canonical
 
 
 def _configured_home_env() -> str:
-    """Return the configured home path, honoring Tota then legacy Hermes env."""
-    val = os.environ.get(TOTA_HOME_ENV, "").strip()
+    """Return the configured home path.
+
+    Order:
+      1. ``HERMES_TURBO_HOME`` (canonical fork-native env var)
+      2. ``TOTA_HOME`` (deprecated; honored with a one-shot warning)
+      3. ``HERMES_HOME`` (legacy upstream env var, unchanged behavior)
+    """
+    val = os.environ.get(HERMES_TURBO_HOME_ENV, "").strip()
     if val:
         return val
+    legacy_tota = os.environ.get(LEGACY_TOTA_HOME_ENV, "").strip()
+    if legacy_tota:
+        global _tota_env_deprecation_warned
+        if not _tota_env_deprecation_warned:
+            _tota_env_deprecation_warned = True
+            import sys
+
+            try:
+                sys.stderr.write(
+                    f"[hermes-turbo] deprecation: {LEGACY_TOTA_HOME_ENV} is honored "
+                    f"for backward compatibility but will be removed in a future "
+                    f"release. Rename to {HERMES_TURBO_HOME_ENV}.\n"
+                )
+                sys.stderr.flush()
+            except Exception:
+                pass
+        return legacy_tota
     return os.environ.get(LEGACY_HOME_ENV, "").strip()
 
 
 def get_hermes_home() -> Path:
-    """Return the Tota/Hermes home directory (default: ~/.tota).
+    """Return the Hermes Turbo home directory (default: ~/.hermes-turbo).
 
-    Reads TOTA_HOME first, then legacy HERMES_HOME, then falls back to ~/.tota.
+    Resolution order:
+      1. Context-local override (``set_hermes_home_override``)
+      2. ``HERMES_TURBO_HOME`` env var
+      3. ``TOTA_HOME`` env var (deprecated; warns once)
+      4. ``HERMES_HOME`` env var (legacy upstream)
+      5. ``~/.hermes-turbo`` (canonical) or ``~/.tota`` (legacy fallback with warning)
+
     This is the single source of truth — all other copies should import this.
 
     When home env vars are unset but an ``active_profile`` file indicates
     a non-default profile is active, logs a loud one-shot warning to
     ``errors.log`` so cross-profile data corruption is diagnosable instead
     of silent.  Behavior is unchanged otherwise — we still return
-    ``~/.tota`` — because raising here would brick 30+ module-level
+    ``~/.hermes-turbo`` — because raising here would brick 30+ module-level
     callers that import this at load time.  Subprocess spawners are
     expected to propagate ``HERMES_HOME`` explicitly (see the systemd
     template in ``hermes_cli/gateway.py`` and the kanban dispatcher in
     ``hermes_cli/kanban_db.py``).  See https://github.com/NousResearch/hermes-agent/issues/18594.
     """
+    override = get_hermes_home_override()
+    if override:
+        return Path(override)
+
     val = _configured_home_env()
     if val:
         return Path(val)
@@ -68,7 +161,7 @@ def get_hermes_home() -> Path:
             # on consoles where a StreamHandler is already attached.
             import sys
             msg = (
-                f"[HERMES_HOME fallback] TOTA_HOME/HERMES_HOME are unset but active "
+                f"[HERMES_HOME fallback] HERMES_TURBO_HOME/TOTA_HOME/HERMES_HOME are unset but active "
                 f"profile is {active!r}. Falling back to ~/{DEFAULT_HOME_DIRNAME}, which "
                 f"is the DEFAULT profile — not {active!r}. Any data this "
                 f"process writes will land in the wrong profile. The "
@@ -87,15 +180,15 @@ def get_hermes_home() -> Path:
 def get_default_hermes_root() -> Path:
     """Return the root Hermes directory for profile-level operations.
 
-    In standard Tota deployments this is ``~/.tota``.
+    In standard Hermes Turbo deployments this is ``~/.hermes-turbo``.
 
     In Docker or custom deployments where ``HERMES_HOME`` points outside
-    ``~/.tota`` (e.g. ``/opt/data``), returns ``HERMES_HOME`` directly
+    ``~/.hermes-turbo`` (e.g. ``/opt/data``), returns ``HERMES_HOME`` directly
     — that IS the root.
 
     In profile mode where ``HERMES_HOME`` is ``<root>/profiles/<name>``,
     returns ``<root>`` so that ``profile list`` can see all profiles.
-    Works both for standard (``~/.tota/profiles/coder``) and Docker
+    Works both for standard (``~/.hermes-turbo/profiles/coder``) and Docker
     (``/opt/data/profiles/coder``) layouts.
 
     Import-safe — no dependencies beyond stdlib.
@@ -107,7 +200,7 @@ def get_default_hermes_root() -> Path:
     env_path = Path(env_home)
     try:
         env_path.resolve().relative_to(native_home.resolve())
-        # HERMES_HOME is under ~/.tota (normal or profile mode)
+        # HERMES_HOME is under ~/.hermes-turbo (normal or profile mode)
         return native_home
     except ValueError:
         pass
@@ -163,12 +256,12 @@ def display_hermes_home() -> str:
 
     Uses ``~/`` shorthand for readability::
 
-        default:  ``~/.tota``
-        profile:  ``~/.tota/profiles/coder``
+        default:  ``~/.hermes-turbo``
+        profile:  ``~/.hermes-turbo/profiles/coder``
         custom:   ``/opt/hermes-custom``
 
     Use this in **user-facing** print/log messages instead of hardcoding
-    ``~/.tota``.  For code that needs a real ``Path``, use
+    ``~/.hermes-turbo``.  For code that needs a real ``Path``, use
     :func:`get_hermes_home` instead.
     """
     home = get_hermes_home()
@@ -195,7 +288,7 @@ def get_subprocess_home() -> str | None:
     Activation is directory-based: if the ``home/`` subdirectory doesn't
     exist, returns ``None`` and behavior is unchanged.
     """
-    hermes_home = _configured_home_env()
+    hermes_home = get_hermes_home_override() or _configured_home_env()
     if not hermes_home:
         return None
     profile_home = os.path.join(hermes_home, "home")

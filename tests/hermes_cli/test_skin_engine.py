@@ -37,7 +37,7 @@ class TestSkinConfig:
     def test_get_branding_with_fallback(self):
         from hermes_cli.skin_engine import load_skin
         skin = load_skin("default")
-        assert skin.get_branding("agent_name") == "Tota Agent"
+        assert skin.get_branding("agent_name") == "Hermes Turbo Agent"
         assert skin.get_branding("nonexistent", "fallback") == "fallback"
 
     def test_get_spinner_wings_empty_for_default(self):
@@ -99,6 +99,18 @@ class TestBuiltinSkins:
         assert skin.name == "warm-lightmode"
         assert skin.get_color("banner_text") == "#2C1810"
         assert skin.get_color("completion_menu_bg") == "#F5EFE0"
+
+    def test_charizard_skin_has_dark_ember_completion_menu(self):
+        from hermes_cli.skin_engine import load_skin
+
+        skin = load_skin("charizard")
+        assert skin.name == "charizard"
+        assert skin.get_color("banner_dim") == "#C58A45"
+        assert skin.get_color("completion_menu_bg") == "#0B0503"
+        assert skin.get_color("completion_menu_current_bg") == "#4A1B07"
+        assert skin.get_color("completion_menu_meta_bg") == "#120806"
+        assert skin.get_color("completion_menu_meta_current_bg") == "#5A260D"
+        assert skin.get_color("selection_bg") == "#5A260D"
 
     def test_unknown_skin_falls_back_to_default(self):
         from hermes_cli.skin_engine import load_skin
@@ -225,7 +237,7 @@ class TestUserSkins:
 
         assert skin.name == "broken"
         assert skin.get_color("banner_title") == "#FFD700"
-        assert skin.get_branding("agent_name") == "Tota Agent"
+        assert skin.get_branding("agent_name") == "Hermes Turbo Agent"
         assert skin.spinner.get("waiting_faces", []) == []
         assert skin.tool_emojis == {}
         assert skin.tool_prefix == "!"
