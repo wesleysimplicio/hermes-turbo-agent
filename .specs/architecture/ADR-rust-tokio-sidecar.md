@@ -57,7 +57,7 @@ PyO3 + `pyo3-async-runtimes`.
   `catch_unwind`; manylinux/musllinux wheel matrix expands; debugging
   segfaults requires `gdb`/`lldb`, not every contributor has the toolchain.
 
-### Option C - Standalone Tokio service with gRPC bridge (`tota-gateway-rs`)
+### Option C - Standalone Tokio service with gRPC bridge (`hermes-turbo-gateway-rs`)
 
 Ship a separate Rust binary speaking gRPC (or Unix-socket length-prefixed
 protobuf). Python gateway becomes a thin proxy when the env var

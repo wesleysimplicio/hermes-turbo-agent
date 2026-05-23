@@ -15,7 +15,7 @@ Issue #140 is a strategic roadmap epic and is out of scope for this PRD.
 
 The repository already has:
 
-- `scripts/generate_tota_battle_cards.py` — static SVG battle cards
+- `scripts/generate_hermes_turbo_battle_cards.py` — static SVG battle cards
 - `agent/telemetry/{token_savings, stage_timer, gain_analytics, dashboard}.py`
 - `agent/telemetry/cache_usage.py` — Anthropic/OpenAI cache parsing
 - `hermes_cli/claw.py` — existing OpenClaw migration

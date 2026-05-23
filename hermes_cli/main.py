@@ -307,9 +307,9 @@ def _should_run_agent_side_effects() -> bool:
 
 if _should_run_agent_side_effects():
     try:
-        from agent.tota_home_bootstrap import bootstrap_tota_home as _bootstrap_tota_home
+        from agent.hermes_turbo_home_bootstrap import bootstrap_hermes_turbo_home as _bootstrap_hermes_turbo_home
 
-        _bootstrap_tota_home()
+        _bootstrap_hermes_turbo_home()
     except Exception:
         pass  # best-effort — agent works fine without seed files
 

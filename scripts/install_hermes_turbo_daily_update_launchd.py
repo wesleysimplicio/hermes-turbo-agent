@@ -13,7 +13,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LABEL = "com.wesleysimplicio.hermes_turbo-agent.hermes-daily-update"
 PLIST_PATH = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"
-STATE_DIR = Path.home() / ".local" / "state" / "tota-agent" / "hermes-sync"
+STATE_DIR = Path.home() / ".local" / "state" / "hermes-turbo-agent" / "hermes-sync"
 
 
 def _launchctl(*args: str) -> None:
@@ -34,7 +34,7 @@ def install(hour: int, minute: int, python_version: str) -> None:
         python_bin = "/usr/bin/python3"
     program = (
         f"cd {REPO_ROOT} && "
-        f"{python_bin} scripts/tota_hermes_daily_update.py "
+        f"{python_bin} scripts/hermes_turbo_daily_update.py "
         f"--repo {REPO_ROOT} --python-version {python_version}"
     )
     payload = {

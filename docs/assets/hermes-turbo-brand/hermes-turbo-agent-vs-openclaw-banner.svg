@@ -7,7 +7,7 @@
       <stop offset="0.42" stop-color="#07111f"/>
       <stop offset="1" stop-color="#110517"/>
     </linearGradient>
-    <linearGradient id="tota" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="hermesTurbo" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#19d27f"/>
       <stop offset="0.36" stop-color="#ffe15a"/>
       <stop offset="0.68" stop-color="#32b7ff"/>
@@ -42,8 +42,8 @@
   <rect width="1800" height="1000" fill="url(#bg)"/>
   <rect width="1800" height="1000" fill="url(#grid)" opacity="0.8"/>
   <path d="M-80 770 C210 580 410 930 660 712 C868 530 1040 376 1280 460 C1510 540 1592 360 1880 188 L1880 1000 L-80 1000 Z" fill="#0b1b33" opacity="0.76"/>
-  <path d="M0 748 C280 612 420 850 640 694 C884 522 1018 442 1258 514 C1510 590 1628 408 1800 290" fill="none" stroke="url(#tota)" stroke-width="6" opacity="0.75"/>
-  <path d="M180 122 H1620" stroke="url(#tota)" stroke-width="3" opacity="0.5"/>
+  <path d="M0 748 C280 612 420 850 640 694 C884 522 1018 442 1258 514 C1510 590 1628 408 1800 290" fill="none" stroke="url(#hermesTurbo)" stroke-width="6" opacity="0.75"/>
+  <path d="M180 122 H1620" stroke="url(#hermesTurbo)" stroke-width="3" opacity="0.5"/>
 
   <g transform="translate(1276 82)">
     <rect x="0" y="0" width="404" height="86" rx="43" fill="#071522" stroke="#224460" stroke-width="2"/>
@@ -58,9 +58,9 @@
   </g>
 
   <g transform="translate(1092 136)" filter="url(#softGlow)">
-    <circle cx="250" cy="250" r="202" fill="#07111f" stroke="url(#tota)" stroke-width="16"/>
+    <circle cx="250" cy="250" r="202" fill="#07111f" stroke="url(#hermesTurbo)" stroke-width="16"/>
     <circle cx="250" cy="250" r="154" fill="#0c1829" stroke="#233c5c" stroke-width="4"/>
-    <path d="M158 315 C205 182 314 134 410 164 C362 194 348 243 384 294 C320 280 260 298 220 358 C196 394 174 388 158 315 Z" fill="url(#tota)" opacity="0.96"/>
+    <path d="M158 315 C205 182 314 134 410 164 C362 194 348 243 384 294 C320 280 260 298 220 358 C196 394 174 388 158 315 Z" fill="url(#hermesTurbo)" opacity="0.96"/>
     <path d="M133 374 C213 354 294 358 376 390" fill="none" stroke="#f9fbff" stroke-width="18" stroke-linecap="round"/>
     <path d="M152 148 H350 M194 148 V382" fill="none" stroke="#f9fbff" stroke-width="34" stroke-linecap="round"/>
     <path d="M250 168 L398 318" fill="none" stroke="#32b7ff" stroke-width="14" stroke-linecap="round"/>
@@ -110,7 +110,7 @@
     <text x="42" y="206" fill="#b9c8dc" font-family="Helvetica" font-size="24" font-weight="700">OpenClaw is the rival.</text>
     <text x="42" y="240" fill="#b9c8dc" font-family="Helvetica" font-size="24" font-weight="700">Speed is the proof.</text>
     <rect x="42" y="268" width="306" height="18" rx="9" fill="#17314e"/>
-    <rect x="42" y="268" width="272" height="18" rx="9" fill="url(#tota)"/>
+    <rect x="42" y="268" width="272" height="18" rx="9" fill="url(#hermesTurbo)"/>
     <rect x="376" y="250" width="138" height="52" rx="18" fill="#071522" stroke="#19d27f" stroke-width="2"/>
     <text x="396" y="282" fill="#ffffff" font-family="Helvetica" font-size="30" font-weight="900">44/50</text>
     <text x="472" y="282" fill="#19d27f" font-family="Helvetica" font-size="16" font-weight="900">WIN</text>

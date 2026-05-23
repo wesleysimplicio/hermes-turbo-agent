@@ -42,13 +42,13 @@ jobs:
       - name: Render battle cards (best-effort)
         continue-on-error: true
         run: |
-          python scripts/generate_tota_battle_cards.py || true
+          python scripts/generate_hermes_turbo_battle_cards.py || true
 
       - name: Upload battle cards
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: battle-cards
-          path: docs/assets/tota-benchmark/battles/
+          path: docs/assets/hermes-turbo-benchmark/battles/
           if-no-files-found: warn
           retention-days: 30

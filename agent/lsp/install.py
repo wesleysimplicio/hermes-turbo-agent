@@ -120,9 +120,9 @@ def hermes_lsp_bin_dir() -> Path:
     whitespace setting doesn't yield an invalid path (closes Copilot
     review on PR #61).
     """
-    tota = (os.environ.get("TOTA_HOME") or "").strip()
+    primary = (os.environ.get("HERMES_TURBO_HOME") or os.environ.get("TOTA_HOME") or "").strip()
     legacy = (os.environ.get("HERMES_HOME") or "").strip()
-    home = tota or legacy or os.path.join(os.path.expanduser("~"), ".hermes_turbo")
+    home = primary or legacy or os.path.join(os.path.expanduser("~"), ".hermes_turbo")
     p = Path(os.path.expanduser(home)) / "lsp" / "bin"
     p.mkdir(parents=True, exist_ok=True)
     return p

@@ -256,7 +256,7 @@ def build(st):
         "9. Live side-by-side vs upstream Hermes 0.14.0 (2026-05-19)", st["H1"]))
     s.append(Paragraph(
         "OpenClaw not run in this side-by-side harness. Source: "
-        "<font face='Courier'>docs/tota-benchmark-hermes-0.14.0.json</font>.",
+        "<font face='Courier'>docs/hermes-turbo-benchmark-hermes-0.14.0.json</font>.",
         st["Body"]))
     rows = [["Row", "Hermes 0.14.0", "Hermes Turbo", "Winner", "Delta"]]
     for r in [

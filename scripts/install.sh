@@ -112,7 +112,7 @@ while [[ $# -gt 0 ]]; do
             HERMES_HOME="$2"
             shift 2
             ;;
-        --tota-home)
+        --hermes-turbo-home)
             TOTA_HOME="$2"
             HERMES_HOME="$2"
             export TOTA_HOME HERMES_HOME
@@ -139,7 +139,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --dir PATH     Installation directory"
             echo "                   default (non-root):  ~/.hermes_turbo/hermes-agent"
             echo "                   default (root, Linux): /usr/local/lib/hermes-agent"
-            echo "  --tota-home PATH    Data directory (default: ~/.hermes_turbo, or \$TOTA_HOME)"
+            echo "  --hermes-turbo-home PATH    Data directory (default: ~/.hermes_turbo, or \$TOTA_HOME)"
             echo "  --hermes-home PATH  Legacy data directory override (still supported)"
             echo "  -h, --help     Show this help"
             echo ""

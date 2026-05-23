@@ -58,12 +58,12 @@ Result: `402 passed`.
 Repo validation:
 
 ```bash
-~/.local/bin/taskflow run /Users/wesleysimplicio/Projetos/contribuicoes/hermes/tota-agent-main
+~/.local/bin/taskflow run /Users/wesleysimplicio/Projetos/contribuicoes/hermes/hermes-turbo-agent-main
 ```
 
 Result: `passed`.
 
-Human checklist: `/Users/wesleysimplicio/.config/taskflow/reports/tota-agent-main-bde2378f/human-review.md`
+Human checklist: `/Users/wesleysimplicio/.config/taskflow/reports/hermes-turbo-agent-main-bde2378f/human-review.md`
 
 ## Advisory summary
 

@@ -10,7 +10,7 @@ measurements into one comparable figure of merit:
     Cold start   — fresh subprocess startup                       (lower is better)
     Token savings — telemetry log aggregate                       (higher is better)
 
-The reference dataset is ``docs/tota-benchmark-hermes-0.14.0.json`` plus an
+The reference dataset is ``docs/hermes-turbo-benchmark-hermes-0.14.0.json`` plus an
 optional ``docs/turbo-score-baselines.json`` for memory/cold-start values that
 the upstream benchmark does not include. If the baseline file is missing the
 matching family is dropped from the score (with a note in the JSON output)
@@ -36,7 +36,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_REPORT = ROOT / "docs" / "tota-benchmark-hermes-0.14.0.json"
+DEFAULT_REPORT = ROOT / "docs" / "hermes-turbo-benchmark-hermes-0.14.0.json"
 DEFAULT_BASELINES = ROOT / "docs" / "turbo-score-baselines.json"
 
 
@@ -253,7 +253,7 @@ def compute(
 ) -> TurboScore:
     """Compute the Turbo Score from a parsed report dict.
 
-    ``report`` is the parsed contents of ``tota-benchmark-hermes-X.json``.
+    ``report`` is the parsed contents of ``hermes-turbo-benchmark-hermes-X.json``.
     ``baselines`` supplies memory/cold-start values not in ``report``.
     ``savings_pct`` is the overall token-savings percentage from telemetry.
     """

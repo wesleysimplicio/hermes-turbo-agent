@@ -36,7 +36,7 @@ _RALPH_MIN_ARTIFACTS = ("AGENTS.md", "INIT.md", "_BOOTSTRAP.md")
 _MAPPER_VERSION_RE = re.compile(r"v(\d+\.\d+\.\d+(?:[-+][\w.]+)?)")
 
 
-def _tota_home() -> Path:
+def _hermes_turbo_home() -> Path:
     """Return ``$TOTA_HOME`` falling back to ``$HERMES_HOME`` then ``~/.hermes_turbo``.
 
     Imports ``hermes_constants.get_hermes_home`` when available so the
@@ -61,7 +61,7 @@ def _tota_home() -> Path:
 
 
 def _memory_path() -> Path:
-    home = _tota_home()
+    home = _hermes_turbo_home()
     home.mkdir(parents=True, exist_ok=True)
     return home / MEMORY_FILENAME
 

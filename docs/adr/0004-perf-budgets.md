@@ -95,7 +95,7 @@ maintainer can compare apples to apples.
 ## Non-goals
 
 * This is **not** a benchmark suite for marketing claims — see the
-  existing `generate_tota_benchmark_report.py` for that.
+  existing `generate_hermes_turbo_benchmark_report.py` for that.
 * This is **not** a performance gate.  Blocking gates need stable,
   reproducible numbers (dedicated runners, controlled noise).  We are
   not paying for that.

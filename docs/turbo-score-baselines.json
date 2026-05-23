@@ -3,6 +3,6 @@
   "memory_rss_mb": {
     "stock": 60,
     "local": 30,
-    "source": "scripts/generate_tota_battle_cards.py Battle 08 'RSS Memory'"
+    "source": "scripts/generate_hermes_turbo_battle_cards.py Battle 08 'RSS Memory'"
   }
 }

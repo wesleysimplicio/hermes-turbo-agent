@@ -37,14 +37,14 @@ result before marking the feature usable.
 Targeted regression suite:
 
 ```bash
-TMPDIR=/private/tmp/tota-agent-tmp \
+TMPDIR=/private/tmp/hermes-turbo-agent-tmp \
 HERMES_TEST_WORKERS=4 \
 scripts/run_tests.sh \
   tests/tools/test_lazy_deps.py \
   tests/hermes_cli/test_security_advisories.py \
   tests/test_project_metadata.py \
   --tb=short \
-  --basetemp=/private/tmp/tota-agent-pytest-0142
+  --basetemp=/private/tmp/hermes-turbo-agent-pytest-0142
 ```
 
 Lint / shell / diff checks:
@@ -61,7 +61,7 @@ git diff --check
 Repo validation:
 
 ```bash
-~/.local/bin/taskflow run /Users/wesleysimplicio/Projetos/contribuicoes/hermes/tota-agent-main
+~/.local/bin/taskflow run /Users/wesleysimplicio/Projetos/contribuicoes/hermes/hermes-turbo-agent-main
 ```
 
 ## Operator summary

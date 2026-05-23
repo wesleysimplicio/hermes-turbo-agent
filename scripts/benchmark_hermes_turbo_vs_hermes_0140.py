@@ -34,8 +34,8 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_LOCAL_PYTHON = ROOT / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
-DEFAULT_OUTPUT_JSON = ROOT / "docs" / "tota-benchmark-hermes-0.14.0.json"
-DEFAULT_OUTPUT_MD = ROOT / "docs" / "tota-benchmark-hermes-0.14.0.md"
+DEFAULT_OUTPUT_JSON = ROOT / "docs" / "hermes-turbo-benchmark-hermes-0.14.0.json"
+DEFAULT_OUTPUT_MD = ROOT / "docs" / "hermes-turbo-benchmark-hermes-0.14.0.md"
 UPSTREAM_REMOTE = "https://github.com/NousResearch/hermes-agent.git"
 UPSTREAM_REF = "v2026.5.16"
 EXPECTED_STOCK_VERSION = "0.14.0"
@@ -110,7 +110,7 @@ def _percentile(values: list[float], q: float) -> float:
 
 
 def _start_headless_chrome(browser_binary: str, port: int) -> tuple[subprocess.Popen[str], Path, str]:
-    profile = Path(tempfile.mkdtemp(prefix="tota-browser-bench-"))
+    profile = Path(tempfile.mkdtemp(prefix="hermes-turbo-browser-bench-"))
     stdout_log = (profile / "chrome.stdout.log").open("w", encoding="utf-8")
     stderr_log = (profile / "chrome.stderr.log").open("w", encoding="utf-8")
     proc = subprocess.Popen(
@@ -464,7 +464,7 @@ def _build_markdown(report: dict[str, Any]) -> str:
                 "",
                 report["browser_console"]["reason"],
                 "",
-                "Because the browser row is still blocked and the measurable rows on this host land below the acceptance target, this pass does not regenerate `tota_agent_benchmark_report.pdf`.",
+                "Because the browser row is still blocked and the measurable rows on this host land below the acceptance target, this pass does not regenerate `hermes_turbo_agent_benchmark_report.pdf`.",
                 "",
             ]
         )
@@ -482,7 +482,7 @@ def _build_markdown(report: dict[str, Any]) -> str:
             "## Commands",
             "",
             "```bash",
-            f"{report['local_python']} scripts/benchmark_tota_vs_hermes_0140.py --output-json {report['json_path']} --output-md {report['md_path']}",
+            f"{report['local_python']} scripts/benchmark_hermes_turbo_vs_hermes_0140.py --output-json {report['json_path']} --output-md {report['md_path']}",
             "```",
         ]
     )
@@ -503,7 +503,7 @@ def main() -> int:
     if not local_python.exists():
         raise SystemExit(f"local python not found: {local_python}")
 
-    temp_root = Path(tempfile.mkdtemp(prefix="tota-vs-hermes-0140-"))
+    temp_root = Path(tempfile.mkdtemp(prefix="hermes-turbo-vs-hermes-0140-"))
     try:
         stock_repo, stock_python = _bootstrap_stock_checkout(temp_root, local_python)
 

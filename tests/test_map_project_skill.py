@@ -4,7 +4,7 @@ Covers:
 - ``_extract_mapper_version`` regex parsing.
 - ``_ralph_ready`` artifact-set heuristic.
 - ``_is_fresh`` TTL boundaries.
-- ``_tota_home`` resolution order with and without ``hermes_constants``.
+- ``_hermes_turbo_home`` resolution order with and without ``hermes_constants``.
 - ``map_project`` end-to-end with subprocess mocked.
 - ``_run_mapper`` failure modes (missing npx, timeout, non-zero exit).
 """
@@ -35,17 +35,17 @@ SKILL_SCRIPT = (
 @pytest.fixture
 def mapper_module():
     """Load the skill's map_project.py as a module under the alias ``mp``."""
-    spec = importlib.util.spec_from_file_location("tota_map_project", SKILL_SCRIPT)
+    spec = importlib.util.spec_from_file_location("hermes_turbo_map_project", SKILL_SCRIPT)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
-    sys.modules["tota_map_project"] = module
+    sys.modules["hermes_turbo_map_project"] = module
     spec.loader.exec_module(module)
     return module
 
 
 @pytest.fixture
 def isolated_home(tmp_path, monkeypatch):
-    home = tmp_path / "tota-home"
+    home = tmp_path / "hermes-turbo-home"
     monkeypatch.setenv("TOTA_HOME", str(home))
     monkeypatch.delenv("HERMES_HOME", raising=False)
     return home
@@ -128,30 +128,30 @@ def test_is_fresh_handles_malformed_timestamp(mapper_module):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# _tota_home
+# _hermes_turbo_home
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def test_tota_home_prefers_TOTA_HOME(tmp_path, monkeypatch, mapper_module):
+def test_hermes_turbo_home_prefers_TOTA_HOME(tmp_path, monkeypatch, mapper_module):
     monkeypatch.setenv("TOTA_HOME", str(tmp_path / "tota"))
     monkeypatch.setenv("HERMES_HOME", str(tmp_path / "legacy"))
     # Force fallback by simulating import failure if needed
-    result = mapper_module._tota_home()
+    result = mapper_module._hermes_turbo_home()
     assert result == tmp_path / "tota"
 
 
-def test_tota_home_falls_back_to_HERMES_HOME(tmp_path, monkeypatch, mapper_module):
+def test_hermes_turbo_home_falls_back_to_HERMES_HOME(tmp_path, monkeypatch, mapper_module):
     monkeypatch.delenv("TOTA_HOME", raising=False)
     monkeypatch.setenv("HERMES_HOME", str(tmp_path / "legacy"))
-    result = mapper_module._tota_home()
+    result = mapper_module._hermes_turbo_home()
     assert result == tmp_path / "legacy"
 
 
-def test_tota_home_default_when_neither_set(tmp_path, monkeypatch, mapper_module):
+def test_hermes_turbo_home_default_when_neither_set(tmp_path, monkeypatch, mapper_module):
     monkeypatch.delenv("TOTA_HOME", raising=False)
     monkeypatch.delenv("HERMES_HOME", raising=False)
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-    result = mapper_module._tota_home()
+    result = mapper_module._hermes_turbo_home()
     # Either ~/.hermes_turbo (from hermes_constants) or the fallback ~/.hermes_turbo — both valid.
     assert result.name == ".hermes_turbo"
 

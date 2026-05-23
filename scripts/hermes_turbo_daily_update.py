@@ -21,10 +21,10 @@ from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-ORIGIN_URL = "https://github.com/wesleysimplicio/tota-agent.git"
+ORIGIN_URL = "https://github.com/wesleysimplicio/hermes-turbo-agent.git"
 UPSTREAM_URL = "https://github.com/NousResearch/hermes-agent.git"
 DEFAULT_PYTHON = "3.14.5"
-STATE_DIR = Path.home() / ".local" / "state" / "tota-agent" / "hermes-sync"
+STATE_DIR = Path.home() / ".local" / "state" / "hermes-turbo-agent" / "hermes-sync"
 
 
 class StepError(RuntimeError):
@@ -186,8 +186,8 @@ def _run_validation(worktree: Path, skip_tests: bool) -> None:
             str(python_bin),
             "-m",
             "py_compile",
-            "scripts/tota_hermes_daily_update.py",
-            "scripts/benchmark_tota_vs_hermes_0140.py",
+            "scripts/hermes_turbo_daily_update.py",
+            "scripts/benchmark_hermes_turbo_vs_hermes_0140.py",
             "run_agent.py",
             "agent/transports/types.py",
         ],
@@ -241,7 +241,7 @@ def _run_benchmark_refresh(worktree: Path, state_dir: Path) -> Path:
     return pr_body
 
 
-def _assert_tota_personality(worktree: Path) -> None:
+def _assert_hermes_turbo_personality(worktree: Path) -> None:
     checks = {
         "README.md": "Hermes Turbo Agent",
         "pyproject.toml": "msgspec",
@@ -281,7 +281,7 @@ def main() -> int:
 
     repo = Path(args.repo).expanduser().resolve()
     state_dir = Path(args.state_dir).expanduser().resolve()
-    branch = f"codex/tota-hermes-daily-{time.strftime('%Y%m%d-%H%M%S')}"
+    branch = f"codex/hermes-turbo-hermes-daily-{time.strftime('%Y%m%d-%H%M%S')}"
     worktree = state_dir / "checkout"
     report: dict[str, Any] = {
         "status": "running",
@@ -303,7 +303,7 @@ def main() -> int:
         report["steps"].append("created dated sync branch after hermes update")
         _merge_upstream(worktree)
         report["steps"].append("merged upstream/main from NousResearch/hermes-agent")
-        _assert_tota_personality(worktree)
+        _assert_hermes_turbo_personality(worktree)
         report["steps"].append("verified Hermes Turbo identity and speed customizations are still present")
         _run_validation(worktree, skip_tests=args.skip_tests)
         report["steps"].append("ran focused validation and taskflow")

@@ -6,7 +6,7 @@ on:
     branches:
       - "sync/**"
       - "upstream-sync/**"
-      - "codex/tota-hermes-daily-*"
+      - "codex/hermes-turbo-hermes-daily-*"
 
 permissions:
   contents: read

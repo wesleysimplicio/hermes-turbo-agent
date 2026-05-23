@@ -1,10 +1,10 @@
 {
-  "benchmark_json": "docs\\tota-benchmark-hermes-0.14.0.json",
-  "benchmark_markdown": "docs\\tota-benchmark-hermes-0.14.0.md",
+  "benchmark_json": "docs\\hermes-turbo-benchmark-hermes-0.14.0.json",
+  "benchmark_markdown": "docs\\hermes-turbo-benchmark-hermes-0.14.0.md",
   "delta_lines": [
     "- Benchmark refresh failed before measured deltas could be trusted."
   ],
-  "error": "Command '['python', 'scripts/generate_tota_benchmark_report.py']' returned non-zero exit status 1.",
+  "error": "Command '['python', 'scripts/generate_hermes_turbo_benchmark_report.py']' returned non-zero exit status 1.",
   "generated_at": "2026-05-19T17:22:11-0300",
   "stale": true,
   "status": "failed"

@@ -4,13 +4,13 @@ Date: 2026-05-18
 
 ## Added
 
-- Added `scripts/tota_hermes_daily_update.py`, a daily automation routine that
+- Added `scripts/hermes_turbo_daily_update.py`, a daily automation routine that
   creates an isolated checkout, runs `hermes update`, merges
   `NousResearch/hermes-agent` upstream, rebuilds on Python `3.14.5`, validates
   Hermes Turbo performance customizations, and pushes a dated sync branch when clean.
-- Added `scripts/install_tota_hermes_daily_update_launchd.py` to install the
+- Added `scripts/install_hermes_turbo_daily_update_launchd.py` to install the
   macOS LaunchAgent for the daily sync.
-- Added `docs/tota-hermes-daily-update.md` with operation, install, dry-run,
+- Added `docs/hermes-turbo-daily-update.md` with operation, install, dry-run,
   uninstall, and failure-handling instructions.
 
 ## Environment

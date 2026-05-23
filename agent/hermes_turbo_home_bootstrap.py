@@ -53,7 +53,7 @@ def _source_dir() -> Path:
     return _repo_root() / ".hermes_turbo"
 
 
-def bootstrap_tota_home(force_reseed: bool = False) -> dict[str, str]:
+def bootstrap_hermes_turbo_home(force_reseed: bool = False) -> dict[str, str]:
     """Idempotently copy ``.hermes_turbo/`` defaults into the runtime ``$TOTA_HOME``.
 
     Args:

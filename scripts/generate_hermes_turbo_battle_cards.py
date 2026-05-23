@@ -13,8 +13,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT_DIR = ROOT / "docs/assets/tota-benchmark/battles"
-LOGO_PATH = ROOT / "docs/assets/tota-brand/tota-agent-founder-logo.jpg"
+OUT_DIR = ROOT / "docs/assets/hermes-turbo-benchmark/battles"
+LOGO_PATH = ROOT / "docs/assets/hermes-turbo-brand/hermes-turbo-agent-founder-logo.jpg"
 
 
 @dataclass(frozen=True)

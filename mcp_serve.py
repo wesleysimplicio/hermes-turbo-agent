@@ -59,16 +59,16 @@ except ImportError:
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _resolve_tota_home_fallback() -> Path:
+def _resolve_hermes_turbo_home_fallback() -> Path:
     """Mirror hermes_constants.get_hermes_home() with stripped env values.
 
     Used when ``hermes_constants`` can't be imported.  Strips whitespace so
     a blank/whitespace setting doesn't yield an unintended path (closes
     Copilot review on PR #61).
     """
-    tota = (os.environ.get("TOTA_HOME") or "").strip()
+    primary = (os.environ.get("HERMES_TURBO_HOME") or os.environ.get("TOTA_HOME") or "").strip()
     legacy = (os.environ.get("HERMES_HOME") or "").strip()
-    raw = tota or legacy
+    raw = primary or legacy
     if raw:
         return Path(os.path.expanduser(raw))
     return Path.home() / ".hermes_turbo"
@@ -80,7 +80,7 @@ def _get_sessions_dir() -> Path:
         from hermes_constants import get_hermes_home
         return get_hermes_home() / "sessions"
     except ImportError:
-        return _resolve_tota_home_fallback() / "sessions"
+        return _resolve_hermes_turbo_home_fallback() / "sessions"
 
 
 def _get_session_db():
@@ -116,7 +116,7 @@ def _load_channel_directory() -> dict:
         from hermes_constants import get_hermes_home
         directory_file = get_hermes_home() / "channel_directory.json"
     except ImportError:
-        directory_file = _resolve_tota_home_fallback() / "channel_directory.json"
+        directory_file = _resolve_hermes_turbo_home_fallback() / "channel_directory.json"
 
     if not directory_file.exists():
         return {}
@@ -378,7 +378,7 @@ class EventBridge:
             from hermes_constants import get_hermes_home
             db_file = get_hermes_home() / "state.db"
         except ImportError:
-            db_file = _resolve_tota_home_fallback() / "state.db"
+            db_file = _resolve_hermes_turbo_home_fallback() / "state.db"
 
         try:
             db_mtime = db_file.stat().st_mtime if db_file.exists() else 0.0

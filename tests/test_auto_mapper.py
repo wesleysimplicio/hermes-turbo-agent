@@ -107,7 +107,7 @@ def test_skips_own_repo(monkeypatch, tmp_path, captured_subprocess):
     monkeypatch.delenv("HERMES_AUTO_MAP", raising=False)
     monkeypatch.setenv("TOTA_HOME", str(tmp_path / "tota"))
 
-    own_repo = tmp_path / "tota-agent"
+    own_repo = tmp_path / "hermes-turbo-agent"
     (own_repo / ".hermes_turbo").mkdir(parents=True)
     (own_repo / ".hermes_turbo" / "HERMES_BASE").write_text("hermes-agent\n0.14.0\n")
 

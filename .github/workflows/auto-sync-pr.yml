@@ -121,7 +121,7 @@ jobs:
               '```bash',
               'python scripts/sync_upstream_pr.py --repo .   # reproduce locally',
               '# or the full macOS routine:',
-              'python scripts/tota_hermes_daily_update.py',
+              'python scripts/hermes_turbo_daily_update.py',
               '```',
               '',
               '_Opened by .github/workflows/auto-sync-pr.yml_',

@@ -44,8 +44,8 @@ All Hermes Turbo-specific customizations from `0.13.0 → 0.13.2` are intact:
   `pyproject.toml`.
 - Hierarchical cache + metrics — see prior PR #17 / #18.
 - Streaming-on-by-default + `parallel_tool_calls` — PR #11.
-- Context retention + tota benchmark surfaces (`tota-agent.html`,
-  `tota_agent_benchmark_report.pdf`).
+- Context retention + Hermes Turbo benchmark surfaces (`hermes-turbo-agent.html`,
+  `hermes_turbo_agent_benchmark_report.pdf`).
 - Hermes Turbo launch battlecards and brand site (`website/`).
 - Fork-specific gateway service names — `hermes_cli/gateway.py`.
 

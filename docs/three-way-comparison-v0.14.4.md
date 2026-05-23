@@ -2,8 +2,8 @@
 
 **Report version:** v0.14.4 (2026-05-22)
 **Sources:**
-- Measured side-by-side: [docs/tota-benchmark-hermes-0.14.0.json](tota-benchmark-hermes-0.14.0.json) (2026-05-19)
-- Battle card values: [scripts/generate_tota_battle_cards.py](../scripts/generate_tota_battle_cards.py)
+- Measured side-by-side: [docs/hermes-turbo-benchmark-hermes-0.14.0.json](hermes-turbo-benchmark-hermes-0.14.0.json) (2026-05-19)
+- Battle card values: [scripts/generate_hermes_turbo_battle_cards.py](../scripts/generate_hermes_turbo_battle_cards.py)
 - Fresh startup benchmark: `python scripts/benchmark_startup_perf.py -n 3` on the v0.14.4 branch
 - Turbo Score: `python scripts/turbo_score.py --json`
 
@@ -132,7 +132,7 @@ Each category scored 0-5; higher is better.
 ## 10. Live side-by-side vs upstream Hermes 0.14.0 (measured 2026-05-19)
 
 OpenClaw was not part of this run (separate harness). Numbers come from
-`scripts/benchmark_tota_vs_hermes_0140.py` against upstream tag `v2026.5.16`.
+`scripts/benchmark_hermes_turbo_vs_hermes_0140.py` against upstream tag `v2026.5.16`.
 
 | Row                                | Hermes 0.14.0 | Hermes Turbo | Winner       | Delta |
 | ---                                | ---:          | ---:         | ---          | ---:  |
@@ -204,10 +204,10 @@ python scripts/turbo_score.py --markdown
 python scripts/benchmark_startup_perf.py -n 5
 
 # Side-by-side vs upstream Hermes 0.14.0
-python scripts/benchmark_tota_vs_hermes_0140.py
+python scripts/benchmark_hermes_turbo_vs_hermes_0140.py
 
 # Battle cards (SVGs + PNGs)
-python scripts/generate_tota_battle_cards.py
+python scripts/generate_hermes_turbo_battle_cards.py
 
 # Interactive web dashboard
 hermes dashboard

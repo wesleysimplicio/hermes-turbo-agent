@@ -3,7 +3,7 @@ name: Auto Update Check
 # Scheduled detector for upstream Hermes updates. On drift it opens (or
 # refreshes) a single tracking issue so maintainers can run the sync. It
 # deliberately does NOT auto-merge upstream code — the proven path is to
-# review a sync branch (scripts/tota_hermes_daily_update.py), not to land
+# review a sync branch (scripts/hermes_turbo_daily_update.py), not to land
 # untested upstream commits straight onto main.
 
 on:
@@ -62,7 +62,7 @@ jobs:
               'validates before any merge):',
               '',
               '```bash',
-              'python scripts/tota_hermes_daily_update.py',
+              'python scripts/hermes_turbo_daily_update.py',
               '```',
               '',
               '_Opened automatically by .github/workflows/auto-update-check.yml._',

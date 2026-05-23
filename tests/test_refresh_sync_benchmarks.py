@@ -55,8 +55,8 @@ def test_build_pr_body_section_surfaces_stale_flag():
         {
             "status": "failed",
             "generated_at": "2026-05-19T20:00:00+0000",
-            "benchmark_json": "docs/tota-benchmark-hermes-0.14.0.json",
-            "benchmark_markdown": "docs/tota-benchmark-hermes-0.14.0.md",
+            "benchmark_json": "docs/hermes-turbo-benchmark-hermes-0.14.0.json",
+            "benchmark_markdown": "docs/hermes-turbo-benchmark-hermes-0.14.0.md",
             "stale": True,
             "delta_lines": ["- refresh failed"],
             "error": "boom"

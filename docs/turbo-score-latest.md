@@ -19,7 +19,7 @@ _Missing families (dropped from total weight): token_savings_
 
 ## Side-by-side vs upstream Hermes 0.14.0
 
-Source: [docs/tota-benchmark-hermes-0.14.0.json](tota-benchmark-hermes-0.14.0.json) (2026-05-19 run; browser row blocked).
+Source: [docs/hermes-turbo-benchmark-hermes-0.14.0.json](hermes-turbo-benchmark-hermes-0.14.0.json) (2026-05-19 run; browser row blocked).
 
 | Row | Hermes 0.14.0 | Hermes Turbo | Winner | Delta |
 | --- | ---: | ---: | --- | ---: |
@@ -56,7 +56,7 @@ python scripts/turbo_score.py --markdown       # README-ready
 python scripts/turbo_score.py --json           # machine-readable
 
 python scripts/benchmark_startup_perf.py -n 5  # startup hot paths
-python scripts/benchmark_tota_vs_hermes_0140.py  # side-by-side vs 0.14.0
+python scripts/benchmark_hermes_turbo_vs_hermes_0140.py  # side-by-side vs 0.14.0
 ```
 
 ## Live web dashboard (since v0.14.4)

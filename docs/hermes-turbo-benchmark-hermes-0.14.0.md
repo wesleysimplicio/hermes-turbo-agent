@@ -23,10 +23,10 @@
 
 No local Chrome/Chromium binary is available on this host, so the browser_console p99 row cannot run.
 
-Because the browser row is still blocked and the measurable rows on this host land below the acceptance target, this pass does not regenerate `tota_agent_benchmark_report.pdf`.
+Because the browser row is still blocked and the measurable rows on this host land below the acceptance target, this pass does not regenerate `hermes_turbo_agent_benchmark_report.pdf`.
 
 ## Commands
 
 ```bash
-C:\Users\wesley.simplicio\AppData\Local\Microsoft\WindowsApps\python.EXE scripts/benchmark_tota_vs_hermes_0140.py --output-json C:\Users\wesley.simplicio\Documents\Codex\2026-05-18\termine-todas-as-issues-https-github-2\hermes-turbo-agent\docs\tota-benchmark-hermes-0.14.0.json --output-md C:\Users\wesley.simplicio\Documents\Codex\2026-05-18\termine-todas-as-issues-https-github-2\hermes-turbo-agent\docs\tota-benchmark-hermes-0.14.0.md
+C:\Users\wesley.simplicio\AppData\Local\Microsoft\WindowsApps\python.EXE scripts/benchmark_hermes_turbo_vs_hermes_0140.py --output-json C:\Users\wesley.simplicio\Documents\Codex\2026-05-18\termine-todas-as-issues-https-github-2\hermes-turbo-agent\docs\hermes-turbo-benchmark-hermes-0.14.0.json --output-md C:\Users\wesley.simplicio\Documents\Codex\2026-05-18\termine-todas-as-issues-https-github-2\hermes-turbo-agent\docs\hermes-turbo-benchmark-hermes-0.14.0.md
 ```

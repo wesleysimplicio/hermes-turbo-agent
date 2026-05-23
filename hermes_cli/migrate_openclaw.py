@@ -36,7 +36,7 @@ OPENCLAW_BASELINE = {
     "cold_start_ms": 280.0,
     "rss_mb": 97.0,
     "tool_call_parse_us": None,  # OpenClaw does not expose this path.
-    "source": "scripts/generate_tota_battle_cards.py — Battle 07/08",
+    "source": "scripts/generate_hermes_turbo_battle_cards.py — Battle 07/08",
 }
 
 

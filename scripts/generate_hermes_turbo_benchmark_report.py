@@ -24,11 +24,11 @@ from reportlab.platypus import (
 
 
 ROOT = Path(__file__).resolve().parent.parent
-OUTPUT = ROOT / "tota_agent_benchmark_report.pdf"
-HERMES_0140_REPORT = ROOT / "docs" / "tota-benchmark-hermes-0.14.0.json"
-LOGO = ROOT / "docs/assets/tota-brand/tota-agent-logo.png"
-OG = ROOT / "docs/assets/tota-brand/tota-agent-og.png"
-CHART_DIR = ROOT / "docs/assets/tota-benchmark/generated"
+OUTPUT = ROOT / "hermes_turbo_agent_benchmark_report.pdf"
+HERMES_0140_REPORT = ROOT / "docs" / "hermes-turbo-benchmark-hermes-0.14.0.json"
+LOGO = ROOT / "docs/assets/hermes-turbo-brand/hermes-turbo-agent-logo.png"
+OG = ROOT / "docs/assets/hermes-turbo-brand/hermes-turbo-agent-og.png"
+CHART_DIR = ROOT / "docs/assets/hermes-turbo-benchmark/generated"
 
 PAGE_WIDTH, PAGE_HEIGHT = A4
 MARGIN_X = 1.45 * cm
@@ -304,7 +304,7 @@ def story() -> list:
         )
     s.append(
         p(
-            "Repository: github.com/wesleysimplicio/tota-agent | Upstream: NousResearch/hermes-agent | Site: tota-agent.html",
+            "Repository: github.com/wesleysimplicio/hermes-turbo-agent | Upstream: NousResearch/hermes-agent | Site: hermes-turbo-agent.html",
             STYLES["Small"],
         )
     )
@@ -359,12 +359,12 @@ def story() -> list:
         para_table(
             [
                 ["Area", "New artifact", "Impact"],
-                ["Brand", "docs/assets/tota-brand/tota-agent-logo.png and .svg", "Gives the fork a distinct Hermes Turbo Agent identity while preserving Hermes attribution."],
+                ["Brand", "docs/assets/hermes-turbo-brand/hermes-turbo-agent-logo.png and .svg", "Gives the fork a distinct Hermes Turbo Agent identity while preserving Hermes attribution."],
                 ["Visual identity", "GPT-image-2 emblem plus deterministic typography", "Brazil-to-US streaming energy without using a portrait or implying official endorsement."],
-                ["Website", "tota-agent.html", "Standalone site with install flow, benchmark story, report links, and full comparison tables."],
+                ["Website", "hermes-turbo-agent.html", "Standalone site with install flow, benchmark story, report links, and full comparison tables."],
                 ["README", "README.md", "Repositioned as Hermes Turbo Agent by Hermes Agent with install, performance extras, assets and usage guidance."],
                 ["Charts", "8 generated PNG benchmark visuals", "Readable image set for README and site: JSON, memory, throughput, tools, tokens, async, startup, scorecard."],
-                ["Report", "tota_agent_benchmark_report.pdf", "This updated PDF packages the benchmark and launch changes in one artifact."],
+                ["Report", "hermes_turbo_agent_benchmark_report.pdf", "This updated PDF packages the benchmark and launch changes in one artifact."],
             ],
             [3.2 * cm, 6.4 * cm, CONTENT_WIDTH - 9.6 * cm],
         )
@@ -491,20 +491,20 @@ def story() -> list:
 
     s.append(p("6. Benchmark Visuals", STYLES["H1"]))
     for file_name, caption in [
-        ("gpt-image-2-tota-benchmark-json-latency.png", "Figure 1 - JSON serialization latency. Lower is better."),
-        ("gpt-image-2-tota-benchmark-memory-footprint.png", "Figure 2 - Memory and footprint comparison."),
-        ("gpt-image-2-tota-benchmark-message-throughput.png", "Figure 3 - Message throughput and pipeline latency."),
-        ("gpt-image-2-tota-benchmark-tool-call-parsing.png", "Figure 4 - Tool-call parsing fast path."),
-        ("gpt-image-2-tota-benchmark-token-counting.png", "Figure 5 - Token counting benchmark."),
-        ("gpt-image-2-tota-benchmark-concurrency-async.png", "Figure 6 - Concurrency and async scheduling."),
-        ("gpt-image-2-tota-benchmark-startup-time.png", "Figure 7 - Startup time and cold-start behavior."),
-        ("gpt-image-2-tota-benchmark-ecosystem-scorecard.png", "Figure 8 - Consolidated category scorecard."),
+        ("gpt-image-2-hermes-turbo-benchmark-json-latency.png", "Figure 1 - JSON serialization latency. Lower is better."),
+        ("gpt-image-2-hermes-turbo-benchmark-memory-footprint.png", "Figure 2 - Memory and footprint comparison."),
+        ("gpt-image-2-hermes-turbo-benchmark-message-throughput.png", "Figure 3 - Message throughput and pipeline latency."),
+        ("gpt-image-2-hermes-turbo-benchmark-tool-call-parsing.png", "Figure 4 - Tool-call parsing fast path."),
+        ("gpt-image-2-hermes-turbo-benchmark-token-counting.png", "Figure 5 - Token counting benchmark."),
+        ("gpt-image-2-hermes-turbo-benchmark-concurrency-async.png", "Figure 6 - Concurrency and async scheduling."),
+        ("gpt-image-2-hermes-turbo-benchmark-startup-time.png", "Figure 7 - Startup time and cold-start behavior."),
+        ("gpt-image-2-hermes-turbo-benchmark-ecosystem-scorecard.png", "Figure 8 - Consolidated category scorecard."),
     ]:
         s.append(chart(file_name, caption))
         if file_name in {
-            "gpt-image-2-tota-benchmark-message-throughput.png",
-            "gpt-image-2-tota-benchmark-token-counting.png",
-            "gpt-image-2-tota-benchmark-startup-time.png",
+            "gpt-image-2-hermes-turbo-benchmark-message-throughput.png",
+            "gpt-image-2-hermes-turbo-benchmark-token-counting.png",
+            "gpt-image-2-hermes-turbo-benchmark-startup-time.png",
         }:
             s.append(PageBreak())
 
@@ -537,7 +537,7 @@ def story() -> list:
         para_table(
             [
                 ["Step", "Command"],
-                ["Clone", "git clone https://github.com/wesleysimplicio/tota-agent.git"],
+                ["Clone", "git clone https://github.com/wesleysimplicio/hermes-turbo-agent.git"],
                 ["Create env", "uv venv .venv --python 3.11 && source .venv/bin/activate"],
                 ["Install", "uv pip install -e \".[all,dev]\""],
                 ["Fast extra", "uv pip install -e \".[fast]\""],
@@ -597,7 +597,7 @@ def story() -> list:
     )
     s.append(
         p(
-            "Primary local artifacts: README.md, tota-agent.html, docs/assets/tota-brand/*, docs/assets/tota-benchmark/generated/*, docs/tota-benchmark-win-plan.md, benchmark-report.md and this PDF.",
+            "Primary local artifacts: README.md, hermes-turbo-agent.html, docs/assets/hermes-turbo-brand/*, docs/assets/hermes-turbo-benchmark/generated/*, docs/hermes-turbo-benchmark-win-plan.md, benchmark-report.md and this PDF.",
             STYLES["Small"],
         )
     )

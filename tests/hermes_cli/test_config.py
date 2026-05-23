@@ -36,7 +36,7 @@ class TestGetHermesHome:
             home = get_hermes_home()
             assert home == Path("/custom/path")
 
-    def test_tota_home_env_override(self):
+    def test_hermes_turbo_home_env_override(self):
         with patch.dict(
             os.environ,
             {"TOTA_HOME": "/tota/path", "HERMES_HOME": "/legacy/path"},

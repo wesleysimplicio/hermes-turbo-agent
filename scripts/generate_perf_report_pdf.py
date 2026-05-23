@@ -4,7 +4,7 @@
 A focused, brand-free PDF that combines:
 
   - Turbo Score breakdown (latency, throughput, memory, cold-start, token-savings)
-  - Side-by-side vs upstream Hermes 0.14.0 (from docs/tota-benchmark-hermes-0.14.0.json)
+  - Side-by-side vs upstream Hermes 0.14.0 (from docs/hermes-turbo-benchmark-hermes-0.14.0.json)
   - Fresh startup hot-path benchmark (parsed from scripts/benchmark_startup_perf.py)
   - v0.14.4 feature surface (issues #136-#139)
 
@@ -36,7 +36,7 @@ from reportlab.platypus import (
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 OUT = ROOT / "docs" / "hermes-turbo-v0.14.4-perf-report.pdf"
-BENCHMARK_JSON = ROOT / "docs" / "tota-benchmark-hermes-0.14.0.json"
+BENCHMARK_JSON = ROOT / "docs" / "hermes-turbo-benchmark-hermes-0.14.0.json"
 
 PAGE_W, PAGE_H = A4
 MARGIN_X = 1.6 * cm
@@ -249,14 +249,14 @@ def build_story(styles):
         ))
         story.append(Spacer(1, 0.1*cm))
         story.append(Paragraph(
-            f"<i>Source: docs/tota-benchmark-hermes-0.14.0.json (generated "
+            f"<i>Source: docs/hermes-turbo-benchmark-hermes-0.14.0.json (generated "
             f"{bench.get('generated_at', 'unknown')})</i>",
             styles["Body"],
         ))
     else:
         story.append(Paragraph(
             "Benchmark JSON not present; run "
-            "<font face='Courier'>scripts/benchmark_tota_vs_hermes_0140.py</font>.",
+            "<font face='Courier'>scripts/benchmark_hermes_turbo_vs_hermes_0140.py</font>.",
             styles["Body"],
         ))
 

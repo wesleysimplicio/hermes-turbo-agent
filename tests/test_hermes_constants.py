@@ -19,7 +19,7 @@ from hermes_constants import (
 class TestGetHermesHome:
     """Tests for the fork-specific home directory resolution."""
 
-    def test_default_home_uses_tota_dir(self, tmp_path, monkeypatch):
+    def test_default_home_uses_hermes_turbo_dir(self, tmp_path, monkeypatch):
         """When no home env var is set, new Hermes Turbo installs use ~/.hermes_turbo."""
         monkeypatch.delenv("TOTA_HOME", raising=False)
         monkeypatch.delenv("HERMES_HOME", raising=False)
@@ -27,14 +27,14 @@ class TestGetHermesHome:
 
         assert get_hermes_home() == tmp_path / ".hermes_turbo"
 
-    def test_tota_home_override_wins(self, tmp_path, monkeypatch):
+    def test_hermes_turbo_home_override_wins(self, tmp_path, monkeypatch):
         """TOTA_HOME is the fork-native override and wins over legacy HERMES_HOME."""
-        tota_home = tmp_path / "tota-data"
+        hermes_turbo_home = tmp_path / "hermes-turbo-data"
         hermes_home = tmp_path / "hermes-data"
-        monkeypatch.setenv("TOTA_HOME", str(tota_home))
+        monkeypatch.setenv("TOTA_HOME", str(hermes_turbo_home))
         monkeypatch.setenv("HERMES_HOME", str(hermes_home))
 
-        assert get_hermes_home() == tota_home
+        assert get_hermes_home() == hermes_turbo_home
 
     def test_legacy_hermes_home_override_still_works(self, tmp_path, monkeypatch):
         """Existing hermes2 wrappers can keep using HERMES_HOME explicitly."""

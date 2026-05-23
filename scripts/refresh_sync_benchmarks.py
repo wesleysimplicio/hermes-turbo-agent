@@ -95,8 +95,8 @@ def write_refresh_status(repo_root: Path, status: dict[str, Any]) -> None:
 
 
 def refresh(repo_root: Path, python_bin: str) -> dict[str, Any]:
-    benchmark_json = repo_root / "docs" / "tota-benchmark-hermes-0.14.0.json"
-    benchmark_md = repo_root / "docs" / "tota-benchmark-hermes-0.14.0.md"
+    benchmark_json = repo_root / "docs" / "hermes-turbo-benchmark-hermes-0.14.0.json"
+    benchmark_md = repo_root / "docs" / "hermes-turbo-benchmark-hermes-0.14.0.md"
     previous = _load_json(benchmark_json)
     local_python = python_bin
     if not Path(local_python).is_absolute():
@@ -105,7 +105,7 @@ def refresh(repo_root: Path, python_bin: str) -> dict[str, Any]:
         _run(
             [
                 python_bin,
-                "scripts/benchmark_tota_vs_hermes_0140.py",
+                "scripts/benchmark_hermes_turbo_vs_hermes_0140.py",
                 "--local-python",
                 local_python,
                 "--output-json",
@@ -115,8 +115,8 @@ def refresh(repo_root: Path, python_bin: str) -> dict[str, Any]:
             ],
             cwd=repo_root,
         )
-        _run([python_bin, "scripts/generate_tota_battle_cards.py"], cwd=repo_root)
-        _run([python_bin, "scripts/generate_tota_benchmark_report.py"], cwd=repo_root)
+        _run([python_bin, "scripts/generate_hermes_turbo_battle_cards.py"], cwd=repo_root)
+        _run([python_bin, "scripts/generate_hermes_turbo_benchmark_report.py"], cwd=repo_root)
         current = _load_json(benchmark_json)
         if not current:
             raise RuntimeError("benchmark refresh did not produce JSON output")

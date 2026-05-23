@@ -1,6 +1,6 @@
 # Hermes Turbo Agent — Sprint Backlog
 
-Mirror of the GitHub issues in `wesleysimplicio/tota-agent` (see #58 for
+Mirror of the GitHub issues in `wesleysimplicio/hermes-turbo-agent` (see #58 for
 the live roadmap). This file lives in the repo so anyone reading the
 codebase can find the plan without leaving their editor.
 
@@ -18,7 +18,7 @@ codebase can find the plan without leaving their editor.
 
 - ✅ #21 — Sync to Hermes 0.14.0 + promote llm-project-mapper to core.
 - ✅ #26 — Auto-invoke llm-project-mapper on first turn in any code project (`agent/auto_mapper.py`).
-- ✅ #27 — Bootstrap `.hermes_turbo/` defaults into runtime `$TOTA_HOME` on first run (`agent/tota_home_bootstrap.py`).
+- ✅ #27 — Bootstrap `.hermes_turbo/` defaults into runtime `$TOTA_HOME` on first run (`agent/hermes_turbo_home_bootstrap.py`).
 - ✅ #28 — Pytest coverage for the llm-project-mapper skill (23 cases).
 - ✅ #29 — Consolidate `HERMES_HOME` literal lookups behind `hermes_constants.get_hermes_home()`.
 - ✅ #30 — Cherry-pick upstream cross-session 1h Claude prompt cache (Hermes #23828) — landed via upstream merge `ab61ec254`; lives in `agent/prompt_caching.py`.
@@ -32,7 +32,7 @@ codebase can find the plan without leaving their editor.
 - ⏳ #35 — Phase 2 `msgspec.Struct` migration for `transports/types.py::ToolCall`. High-risk; needs dedicated PR.
 - ⏳ #36 — Phase 1.5 `run_agent.py` `orjson` migration. Needs per-site `strict=False` audit.
 - ⏳ #37 — Phase 1.5 `hermes_state.py` `orjson` migration + SQLite round-trip audit. Highest-risk; behind `TOTA_FAST_STATE=1` feature flag.
-- ⏳ #38 — Refresh `tota_agent_benchmark_report.pdf` post-merge. Needs runtime benchmarking environment.
+- ⏳ #38 — Refresh `hermes_turbo_agent_benchmark_report.pdf` post-merge. Needs runtime benchmarking environment.
 
 ## Sprint 3 — Distribution + identity polish
 
@@ -41,9 +41,9 @@ codebase can find the plan without leaving their editor.
 - ✅ #41 — Adopt supply-chain advisory checker for lazy installs (`hermes_cli/security_advisories.py` + `tools/lazy_deps.py` guard).
 - ✅ #42 — Adopt tiered install fallback (Hermes #24515) — landed via upstream merge.
 - ✅ #43 — Brand consistency pass (default + 4 neutral skins, CLI welcome banner, SOUL.md template).
-- ✅ #44 — `SOUL.md` override docs page (`docs/tota-identity-customization.md`).
+- ✅ #44 — `SOUL.md` override docs page (`docs/hermes-turbo-identity-customization.md`).
 - ⏳ #45 — Native Windows beta integration test pass (40+ Windows fixes). Needs a Windows runner.
-- ✅ #46 — `tota` / `tota-agent` / `tota-acp` `console_scripts` aliases added.
+- ✅ #46 — `tota` / `hermes-turbo-agent` / `hermes-turbo-acp` `console_scripts` aliases added.
 
 ## Sprint 4 — Features, skills, nice-to-have
 
