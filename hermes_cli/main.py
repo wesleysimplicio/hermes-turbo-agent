@@ -7813,6 +7813,11 @@ def cmd_update(args):
         managed_error("update Hermes Agent")
         return
 
+    if getattr(args, "check_main", False):
+        from hermes_cli.update_check import run_check_main
+        rc = run_check_main(PROJECT_ROOT, apply=getattr(args, "apply", False))
+        sys.exit(rc)
+
     if getattr(args, "check", False):
         _cmd_update_check()
         return
@@ -12090,6 +12095,20 @@ Examples:
         action="store_true",
         default=False,
         help="Check whether an update is available without installing anything",
+    )
+    update_parser.add_argument(
+        "--check-main",
+        action="store_true",
+        default=False,
+        help="Check whether this fork's own default branch (origin) has new "
+             "commits beyond the local checkout. Add --apply to fast-forward.",
+    )
+    update_parser.add_argument(
+        "--apply",
+        action="store_true",
+        default=False,
+        help="With --check-main: fast-forward the local checkout to the remote "
+             "tip when a clean fast-forward is possible.",
     )
     update_parser.add_argument(
         "--no-backup",

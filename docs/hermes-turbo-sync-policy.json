@@ -103,6 +103,49 @@
         "scripts/perf_budgets.json",
         ".github/workflows/perf-budgets.yml"
       ]
+    },
+    {
+      "name": "token-economy-and-telemetry-optimizations",
+      "strategy": "keep-turbo",
+      "reason": "The token-economy, runtime-telemetry, and Turbo-Score stack (issues #81-#103 and #136-#139) is fork-owned optimization work. Upstream Hermes does not ship these surfaces, so they must survive syncs unchanged and keep evolving on the fork side.",
+      "paths": [
+        "agent/token_saver/**",
+        "agent/telemetry/**",
+        "agent/governor/**",
+        "agent/router/**",
+        "agent/context/**",
+        "agent/registry/**",
+        "agent/contracts/**",
+        "agent/distributed/**",
+        "scripts/turbo_score.py",
+        "scripts/generate_perf_report_pdf.py",
+        "scripts/generate_three_way_pdf.py",
+        "docs/turbo-score-baselines.json",
+        "hermes_cli/web_perf.py",
+        "hermes_cli/migrate_openclaw.py",
+        ".github/workflows/daily-turbo-score.yml"
+      ],
+      "allow_empty_globs": [
+        "agent/governor/**",
+        "agent/router/**",
+        "agent/context/**",
+        "agent/registry/**",
+        "agent/contracts/**",
+        "agent/distributed/**"
+      ]
+    },
+    {
+      "name": "auto-update-and-sync-automation",
+      "strategy": "keep-turbo",
+      "reason": "Fork-owned update detection: `hermes update --check-main` and the scheduled upstream-drift checker that keeps the fork current with both upstream Hermes and the fork's own default branch. Must not be dropped by an upstream sync.",
+      "paths": [
+        "hermes_cli/update_check.py",
+        "scripts/check_upstream_updates.py",
+        "scripts/tota_hermes_daily_update.py",
+        "scripts/install_tota_hermes_daily_update_launchd.py",
+        "scripts/upstream-sync/**",
+        ".github/workflows/auto-update-check.yml"
+      ]
     }
   ]
 }
