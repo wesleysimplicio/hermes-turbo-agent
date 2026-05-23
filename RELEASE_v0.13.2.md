@@ -8,7 +8,7 @@
 ## Highlights
 
 - Added `TOTA_HOME` as the fork-native home-directory override.
-- Changed the unset-env default from `~/.hermes` to `~/.tota` for new Hermes Turbo
+- Changed the unset-env default from `~/.hermes` to `~/.hermes_turbo` for new Hermes Turbo
   installs, profile roots, setup scripts, and bundled Node bootstrap.
 - Kept `HERMES_HOME` as a backward-compatible override so existing
   `~/.hermes2` runtimes continue to work without data migration.

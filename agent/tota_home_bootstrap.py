@@ -1,8 +1,8 @@
-"""Bootstrap the runtime ``$TOTA_HOME`` directory from repo-local ``.tota/`` defaults.
+"""Bootstrap the runtime ``$TOTA_HOME`` directory from repo-local ``.hermes_turbo/`` defaults.
 
 When an operator first runs Hermes Turbo Agent against a fresh ``$TOTA_HOME``, this
 module idempotently seeds the directory with the fork's opinionated defaults
-shipped under the repo's ``.tota/`` tree:
+shipped under the repo's ``.hermes_turbo/`` tree:
 
 - ``HERMES_BASE`` — upstream Hermes baseline marker.
 - ``version`` — Hermes Turbo version pin.
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 _BOOTSTRAP_DONE: bool = False
 
-# Files copied from `.tota/` into the runtime home. Order doesn't matter
+# Files copied from `.hermes_turbo/` into the runtime home. Order doesn't matter
 # (each file is independent), but the list is sorted to make the bootstrap
 # log deterministic.
 _BOOTSTRAP_FILES: tuple[str, ...] = (
@@ -45,16 +45,16 @@ _BOOTSTRAP_FILES: tuple[str, ...] = (
 
 
 def _repo_root() -> Path:
-    """Resolve the repo root (``.tota/`` source) from this module's location."""
+    """Resolve the repo root (``.hermes_turbo/`` source) from this module's location."""
     return Path(__file__).resolve().parents[1]
 
 
 def _source_dir() -> Path:
-    return _repo_root() / ".tota"
+    return _repo_root() / ".hermes_turbo"
 
 
 def bootstrap_tota_home(force_reseed: bool = False) -> dict[str, str]:
-    """Idempotently copy ``.tota/`` defaults into the runtime ``$TOTA_HOME``.
+    """Idempotently copy ``.hermes_turbo/`` defaults into the runtime ``$TOTA_HOME``.
 
     Args:
         force_reseed: When True, also copy files that already exist in the
@@ -72,7 +72,7 @@ def bootstrap_tota_home(force_reseed: bool = False) -> dict[str, str]:
 
     source = _source_dir()
     if not source.is_dir():
-        logger.debug("Hermes Turbo bootstrap: no .tota/ source at %s, skipping.", source)
+        logger.debug("Hermes Turbo bootstrap: no .hermes_turbo/ source at %s, skipping.", source)
         _BOOTSTRAP_DONE = True
         return {}
 

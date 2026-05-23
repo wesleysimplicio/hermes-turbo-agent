@@ -2104,8 +2104,8 @@ def _hermes_home_for_target_user(target_home_dir: str) -> str:
 
     When installing a system service via sudo, get_hermes_home() resolves to
     root's home.  This translates it to the target user's equivalent path:
-      /root/.tota                      → /home/alice/.tota
-      /root/.tota/profiles/coder       → /home/alice/.tota/profiles/coder
+      /root/.hermes_turbo                      → /home/alice/.hermes_turbo
+      /root/.hermes_turbo/profiles/coder       → /home/alice/.hermes_turbo/profiles/coder
       /root/.hermes/profiles/coder     → /home/alice/.hermes/profiles/coder
       /opt/custom-hermes               → /opt/custom-hermes  (kept as-is)
     """

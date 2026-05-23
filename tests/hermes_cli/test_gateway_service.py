@@ -1244,8 +1244,8 @@ class TestSystemUnitHermesHome:
 
         unit = gateway_cli.generate_systemd_unit(system=True, run_as_user="alice")
 
-        assert 'HERMES_HOME=/home/alice/.tota' in unit
-        assert '/root/.tota' not in unit
+        assert 'HERMES_HOME=/home/alice/.hermes_turbo' in unit
+        assert '/root/.hermes_turbo' not in unit
 
     def test_system_unit_remaps_profile_to_target_user(self, monkeypatch):
         # Simulate sudo with a profile: HERMES_HOME was resolved under root
@@ -1298,7 +1298,7 @@ class TestHermesHomeForTargetUser:
         monkeypatch.delenv("HERMES_HOME", raising=False)
 
         result = gateway_cli._hermes_home_for_target_user("/home/alice")
-        assert result == "/home/alice/.tota"
+        assert result == "/home/alice/.hermes_turbo"
 
     def test_remaps_profile_path(self, monkeypatch):
         monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/root")))
@@ -1319,7 +1319,7 @@ class TestHermesHomeForTargetUser:
         monkeypatch.delenv("HERMES_HOME", raising=False)
 
         result = gateway_cli._hermes_home_for_target_user("/home/alice")
-        assert result == "/home/alice/.tota"
+        assert result == "/home/alice/.hermes_turbo"
 
 
 class TestGeneratedUnitUsesDetectedVenv:

@@ -17,7 +17,7 @@ without forking the codebase.
 
 At session start, `agent.prompt_builder._build_system_prompt_parts` calls
 `load_soul_md()`. If a `SOUL.md` file exists in the runtime home
-(`$TOTA_HOME/SOUL.md`, default `~/.tota/SOUL.md`), its contents become the
+(`$TOTA_HOME/SOUL.md`, default `~/.hermes_turbo/SOUL.md`), its contents become the
 agent's identity message and the hardcoded `DEFAULT_AGENT_IDENTITY` is
 **skipped entirely**. No merging — `SOUL.md` is a full override.
 

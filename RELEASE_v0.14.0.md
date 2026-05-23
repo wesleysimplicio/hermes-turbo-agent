@@ -22,7 +22,7 @@ to a **core onboarding step** for all code projects.
   `acp_adapter/bootstrap` package data).
 - **`TOTA_HOME` is first-class.** The fork already honored `TOTA_HOME`
   ahead of legacy `HERMES_HOME` in `hermes_constants.py`. This release
-  documents that contract and ships project-local defaults under `.tota/`.
+  documents that contract and ships project-local defaults under `.hermes_turbo/`.
 - **`llm-project-mapper` is Hermes Turbo core.** New skill at
   `skills/software-development/llm-project-mapper/` with an idempotent
   `map_project.py` script. The default agent identity now instructs Hermes Turbo
@@ -86,7 +86,7 @@ python skills/software-development/llm-project-mapper/scripts/map_project.py \
 
 The script:
 
-1. Resolves `TOTA_HOME` → `HERMES_HOME` → `~/.tota`.
+1. Resolves `TOTA_HOME` → `HERMES_HOME` → `~/.hermes_turbo`.
 2. Checks `mapped_projects.json` for a fresh fingerprint.
 3. Spawns `npx --yes @wesleysimplicio/llm-project-mapper` inside the
    project root when needed.
@@ -103,17 +103,17 @@ directive: "for any code project you touch, run the
 behaviour can override the identity via `SOUL.md` in their
 `$TOTA_HOME`.
 
-## Local `.tota/` defaults
+## Local `.hermes_turbo/` defaults
 
-New repo-local directory `.tota/` ships the canonical Hermes Turbo defaults:
+New repo-local directory `.hermes_turbo/` ships the canonical Hermes Turbo defaults:
 
 | Path | Contents |
 | --- | --- |
-| `.tota/version` | `0.14.0` |
-| `.tota/HERMES_BASE` | Upstream Hermes baseline + tagline |
-| `.tota/memories/MEMORY.md` | Seed memory (identity, mapping directive) |
-| `.tota/mapped_projects.json` | Empty registry, copied into `$TOTA_HOME` on first run |
-| `.tota/README.md` | How resolution and seeding work |
+| `.hermes_turbo/version` | `0.14.0` |
+| `.hermes_turbo/HERMES_BASE` | Upstream Hermes baseline + tagline |
+| `.hermes_turbo/memories/MEMORY.md` | Seed memory (identity, mapping directive) |
+| `.hermes_turbo/mapped_projects.json` | Empty registry, copied into `$TOTA_HOME` on first run |
+| `.hermes_turbo/README.md` | How resolution and seeding work |
 
 Setup scripts can copy these into the operator's `$TOTA_HOME` to keep
 defaults in sync with the fork.

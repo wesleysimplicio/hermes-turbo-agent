@@ -152,8 +152,8 @@ def test_tota_home_default_when_neither_set(tmp_path, monkeypatch, mapper_module
     monkeypatch.delenv("HERMES_HOME", raising=False)
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
     result = mapper_module._tota_home()
-    # Either ~/.tota (from hermes_constants) or the fallback ~/.tota — both valid.
-    assert result.name == ".tota"
+    # Either ~/.hermes_turbo (from hermes_constants) or the fallback ~/.hermes_turbo — both valid.
+    assert result.name == ".hermes_turbo"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

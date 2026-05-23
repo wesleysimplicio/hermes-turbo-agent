@@ -245,7 +245,7 @@ See [docs/tota-hermes-daily-update.md](docs/tota-hermes-daily-update.md).
 - **0.14.3** — Interactive update prompt for installed users; `TOTA_SKIP_UPDATE_PROMPT` opt-out.
 - **0.14.2** — Side-by-side benchmark refresh, daily upstream sync routine, report generation deps.
 - **0.13.3** — Canonical `scripts/run_tests.sh` runner reliability; ACP registry manifest aligned with `pyproject.toml`.
-- **0.13.2** — Default home moved from `~/.hermes` to `~/.tota` for fresh installs (`TOTA_HOME` / `HERMES_HOME` both honoured).
+- **0.13.2** — Default home moved from `~/.hermes` to `~/.hermes_turbo` for fresh installs (`TOTA_HOME` / `HERMES_HOME` both honoured).
 - **0.13.1** — Bytes-native JSON via `agent._fastjson.dumps_bytes()`; Rust `serde_json::Value` to Python conversion for tool-call deltas; batched token helpers; `uvloop` policy install in CLI and gateway entrypoints; bounded `fast` extra deps.
 
 Details: [docs/tota-benchmark-win-plan.md](docs/tota-benchmark-win-plan.md).

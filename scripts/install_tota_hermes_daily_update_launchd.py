@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-LABEL = "com.wesleysimplicio.tota-agent.hermes-daily-update"
+LABEL = "com.wesleysimplicio.hermes_turbo-agent.hermes-daily-update"
 PLIST_PATH = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"
 STATE_DIR = Path.home() / ".local" / "state" / "tota-agent" / "hermes-sync"
 
@@ -46,8 +46,8 @@ def install(hour: int, minute: int, python_version: str) -> None:
         "StandardErrorPath": str(STATE_DIR / "launchd.err.log"),
         "EnvironmentVariables": {
             "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
-            "TOTA_HOME": str(Path.home() / ".tota"),
-            "HERMES_HOME": str(Path.home() / ".tota"),
+            "TOTA_HOME": str(Path.home() / ".hermes_turbo"),
+            "HERMES_HOME": str(Path.home() / ".hermes_turbo"),
         },
         "RunAtLoad": False,
     }

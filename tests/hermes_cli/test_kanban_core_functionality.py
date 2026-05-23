@@ -1208,7 +1208,7 @@ def test_list_profiles_on_disk(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     monkeypatch.delenv("HERMES_HOME", raising=False)
     monkeypatch.delenv("TOTA_HOME", raising=False)
-    profiles = tmp_path / ".tota" / "profiles"
+    profiles = tmp_path / ".hermes_turbo" / "profiles"
     profiles.mkdir(parents=True)
     for name in ("researcher", "writer"):
         d = profiles / name

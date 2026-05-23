@@ -45,7 +45,7 @@ BOLD='\033[1m'
 # Configuration
 REPO_URL_SSH="git@github.com:NousResearch/hermes-agent.git"
 REPO_URL_HTTPS="https://github.com/NousResearch/hermes-agent.git"
-HERMES_HOME="${TOTA_HOME:-${HERMES_HOME:-$HOME/.tota}}"
+HERMES_HOME="${TOTA_HOME:-${HERMES_HOME:-$HOME/.hermes_turbo}}"
 export HERMES_HOME
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
@@ -137,9 +137,9 @@ while [[ $# -gt 0 ]]; do
             echo "  --skip-browser Skip Playwright/Chromium install (browser tools won't work)"
             echo "  --branch NAME  Git branch to install (default: main)"
             echo "  --dir PATH     Installation directory"
-            echo "                   default (non-root):  ~/.tota/hermes-agent"
+            echo "                   default (non-root):  ~/.hermes_turbo/hermes-agent"
             echo "                   default (root, Linux): /usr/local/lib/hermes-agent"
-            echo "  --tota-home PATH    Data directory (default: ~/.tota, or \$TOTA_HOME)"
+            echo "  --tota-home PATH    Data directory (default: ~/.hermes_turbo, or \$TOTA_HOME)"
             echo "  --hermes-home PATH  Legacy data directory override (still supported)"
             echo "  -h, --help     Show this help"
             echo ""
@@ -148,7 +148,7 @@ while [[ $# -gt 0 ]]; do
             echo "  /usr/local/lib/hermes-agent and links the command into"
             echo "  /usr/local/bin/hermes (FHS layout — matches Claude Code / Codex CLI)."
             echo "  Data, config, sessions, and logs still live in \$HERMES_HOME"
-            echo "  (default /root/.tota).  This keeps Docker bind-mounted volumes"
+            echo "  (default /root/.hermes_turbo).  This keeps Docker bind-mounted volumes"
             echo "  small and ensures the command is on PATH for all shells."
             echo "  Existing installs at \$HERMES_HOME/hermes-agent are preserved in-place."
             echo "  --ensure DEPS  Install only specified deps (comma-separated)"

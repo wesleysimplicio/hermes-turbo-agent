@@ -74,10 +74,10 @@ def _is_own_repo(project_root: Path) -> bool:
     """Return True when the cwd IS the Hermes Turbo Agent repo itself.
 
     Mapping our own source on every CLI invocation is annoying and not what
-    operators want.  We detect by checking for the ``.tota/HERMES_BASE``
+    operators want.  We detect by checking for the ``.hermes_turbo/HERMES_BASE``
     marker that this fork specifically ships.
     """
-    return (project_root / ".tota" / "HERMES_BASE").exists()
+    return (project_root / ".hermes_turbo" / "HERMES_BASE").exists()
 
 
 def _is_home_dir(project_root: Path) -> bool:

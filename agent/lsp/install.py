@@ -113,7 +113,7 @@ _install_lock_meta = threading.Lock()
 def hermes_lsp_bin_dir() -> Path:
     """Return the Hermes Turbo-owned bin staging dir for LSP servers.
 
-    Resolution order: TOTA_HOME → HERMES_HOME (legacy) → ``~/.tota``.
+    Resolution order: TOTA_HOME → HERMES_HOME (legacy) → ``~/.hermes_turbo``.
     Matches :func:`hermes_constants.get_hermes_home` but inlined here
     because this module is in the LSP-install hot path and must stay
     import-light.  Env values are ``.strip()``'d so a stray
@@ -122,7 +122,7 @@ def hermes_lsp_bin_dir() -> Path:
     """
     tota = (os.environ.get("TOTA_HOME") or "").strip()
     legacy = (os.environ.get("HERMES_HOME") or "").strip()
-    home = tota or legacy or os.path.join(os.path.expanduser("~"), ".tota")
+    home = tota or legacy or os.path.join(os.path.expanduser("~"), ".hermes_turbo")
     p = Path(os.path.expanduser(home)) / "lsp" / "bin"
     p.mkdir(parents=True, exist_ok=True)
     return p

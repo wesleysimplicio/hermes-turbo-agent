@@ -27,7 +27,7 @@ Code, Codex, Copilot, Cursor, Aider — can pick up immediately.
 ## When to Use
 
 Run the mapper the first time Hermes Turbo enters a repository, OR when the
-`.tota/mapped_projects.json` memory file does not contain a fingerprint for
+`.hermes_turbo/mapped_projects.json` memory file does not contain a fingerprint for
 the current project root. Skip if the fingerprint is fresh (< 30 days) and
 the project's `AGENTS.md` still exists.
 
@@ -56,7 +56,7 @@ python skills/software-development/llm-project-mapper/scripts/map_project.py \
 
 The script:
 
-1. Resolves `TOTA_HOME` (falling back to `HERMES_HOME` and then `~/.tota`).
+1. Resolves `TOTA_HOME` (falling back to `HERMES_HOME` and then `~/.hermes_turbo`).
 2. Reads `$TOTA_HOME/mapped_projects.json` and checks for a fingerprint of
    the project's absolute path + git remote.
 3. If absent or `--force`, invokes

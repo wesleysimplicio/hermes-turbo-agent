@@ -56,7 +56,7 @@ def test_pyproject_describes_tota_in_description():
 
 
 def test_local_tota_home_version_matches_pyproject():
-    version_file = REPO_ROOT / ".tota" / "version"
+    version_file = REPO_ROOT / ".hermes_turbo" / "version"
     pyproject = (REPO_ROOT / "pyproject.toml").read_text()
     expected = version_file.read_text().strip()
     assert f'version = "{expected}"' in pyproject

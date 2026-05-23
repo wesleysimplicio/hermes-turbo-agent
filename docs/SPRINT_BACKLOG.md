@@ -18,7 +18,7 @@ codebase can find the plan without leaving their editor.
 
 - ✅ #21 — Sync to Hermes 0.14.0 + promote llm-project-mapper to core.
 - ✅ #26 — Auto-invoke llm-project-mapper on first turn in any code project (`agent/auto_mapper.py`).
-- ✅ #27 — Bootstrap `.tota/` defaults into runtime `$TOTA_HOME` on first run (`agent/tota_home_bootstrap.py`).
+- ✅ #27 — Bootstrap `.hermes_turbo/` defaults into runtime `$TOTA_HOME` on first run (`agent/tota_home_bootstrap.py`).
 - ✅ #28 — Pytest coverage for the llm-project-mapper skill (23 cases).
 - ✅ #29 — Consolidate `HERMES_HOME` literal lookups behind `hermes_constants.get_hermes_home()`.
 - ✅ #30 — Cherry-pick upstream cross-session 1h Claude prompt cache (Hermes #23828) — landed via upstream merge `ab61ec254`; lives in `agent/prompt_caching.py`.
@@ -74,5 +74,5 @@ codebase can find the plan without leaving their editor.
 - One PR per child issue wherever possible.
 - Cherry-picks are scoped tight: identify the upstream commit, apply, resolve conflicts preferring Hermes Turbo's perf customizations + upstream's behavior, test.
 - Sprints are sequential. Each sprint's DoD must hold before the next sprint starts.
-- The `.tota/` repo directory is the source of truth for runtime defaults; `$TOTA_HOME` is the operator-mutable runtime home.
+- The `.hermes_turbo/` repo directory is the source of truth for runtime defaults; `$TOTA_HOME` is the operator-mutable runtime home.
 - The upstream Hermes v0.14.0 merge (commit `ab61ec254`, 2026-05-18) closed 13 cherry-pick issues at once. Remaining open issues are local-only work (`msgspec` migration, `run_agent.py`/`hermes_state.py` `orjson` migration, benchmark refresh, Native Windows beta).

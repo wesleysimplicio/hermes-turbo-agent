@@ -71,7 +71,7 @@ def _resolve_tota_home_fallback() -> Path:
     raw = tota or legacy
     if raw:
         return Path(os.path.expanduser(raw))
-    return Path.home() / ".tota"
+    return Path.home() / ".hermes_turbo"
 
 
 def _get_sessions_dir() -> Path:

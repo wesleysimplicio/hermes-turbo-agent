@@ -6,7 +6,7 @@ idempotent: re-running on an already-mapped project is a no-op unless
 ``--force`` is passed.
 
 Memory lives in ``$TOTA_HOME/mapped_projects.json`` (falling back to
-``$HERMES_HOME``, then ``~/.tota``) so mapping survives across sessions and
+``$HERMES_HOME``, then ``~/.hermes_turbo``) so mapping survives across sessions and
 profiles.
 """
 
@@ -37,7 +37,7 @@ _MAPPER_VERSION_RE = re.compile(r"v(\d+\.\d+\.\d+(?:[-+][\w.]+)?)")
 
 
 def _tota_home() -> Path:
-    """Return ``$TOTA_HOME`` falling back to ``$HERMES_HOME`` then ``~/.tota``.
+    """Return ``$TOTA_HOME`` falling back to ``$HERMES_HOME`` then ``~/.hermes_turbo``.
 
     Imports ``hermes_constants.get_hermes_home`` when available so the
     profile-aware resolution stays in one place.  Falls back to a stdlib-
@@ -57,7 +57,7 @@ def _tota_home() -> Path:
             val = os.environ.get(env_var, "").strip()
             if val:
                 return Path(val).expanduser()
-        return Path.home() / ".tota"
+        return Path.home() / ".hermes_turbo"
 
 
 def _memory_path() -> Path:

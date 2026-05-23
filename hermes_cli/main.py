@@ -154,9 +154,9 @@ def _apply_profile_override() -> None:
     # 1.5 If TOTA_HOME/HERMES_HOME is already set and no explicit flag was given, trust it
     # only when it already points to a specific profile directory.  The
     # distinguishing heuristic: a profile path has "profiles" as its immediate
-    # parent directory name (e.g. ~/.tota/profiles/coder or
+    # parent directory name (e.g. ~/.hermes_turbo/profiles/coder or
     # /opt/data/profiles/coder).  If HERMES_HOME points to the hermes root
-    # instead (e.g. systemd hardcodes HERMES_HOME=/root/.tota), we must
+    # instead (e.g. systemd hardcodes HERMES_HOME=/root/.hermes_turbo), we must
     # still read active_profile — the user may have switched profiles via
     # `hermes profile use` and the gateway should honour that choice.
     # See issue #22502.
@@ -250,7 +250,7 @@ except Exception:
     pass  # best-effort — don't crash the CLI if logging setup fails
 
 # Seed the runtime $TOTA_HOME with the fork's opinionated defaults shipped
-# under the repo's .tota/ tree (HERMES_BASE, version, memories/MEMORY.md,
+# under the repo's .hermes_turbo/ tree (HERMES_BASE, version, memories/MEMORY.md,
 # mapped_projects.json). Idempotent and non-destructive — existing operator
 # files are never overwritten.
 #
@@ -9828,6 +9828,14 @@ def main():
     try:
         from hermes_cli.stdio import configure_windows_stdio
         configure_windows_stdio()
+    except Exception:
+        pass
+
+    # One-time migration of a pre-rebrand ``~/.tota`` home to ``~/.hermes_turbo``.
+    # Best-effort and silent; runs before anything reads/writes the home dir.
+    try:
+        from hermes_constants import migrate_legacy_home
+        migrate_legacy_home()
     except Exception:
         pass
 

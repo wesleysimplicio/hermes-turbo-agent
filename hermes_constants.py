@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 
-DEFAULT_HOME_DIRNAME = ".tota"
+DEFAULT_HOME_DIRNAME = ".hermes_turbo"
 # Primary brand env var. ``TOTA_HOME`` is kept as a deprecated alias so
 # existing installs / .envrc / launchd configs keep working.
 PRIMARY_HOME_ENV = "HERMES_TURBO_HOME"
@@ -30,6 +30,11 @@ _ALIASED_ENV_SUFFIXES = (
     "SKIP_STARTUP_HOOKS",
     "SKIP_UPDATE_PROMPT",
 )
+
+# Legacy home dir name from before the Hermes Turbo rebrand. Existing installs
+# keep their data here; we honor it as a read fallback so a rename never
+# strands a user's sessions/config/credentials.
+LEGACY_HOME_DIRNAME = ".tota"
 
 _profile_fallback_warned: bool = False
 
@@ -53,7 +58,32 @@ def install_env_aliases(environ=os.environ) -> None:
 
 
 def _default_home() -> Path:
+    """Default home dir: ``~/.hermes_turbo`` (deterministic).
+
+    Existing ``~/.tota`` installs are migrated by :func:`migrate_legacy_home`,
+    invoked once at CLI/gateway startup — not here, so this stays pure and
+    filesystem-independent for predictable imports and tests.
+    """
     return Path.home() / DEFAULT_HOME_DIRNAME
+
+
+def migrate_legacy_home() -> Path | None:
+    """One-time, best-effort rename of ``~/.tota`` → ``~/.hermes_turbo``.
+
+    Runs only when the new dir does not exist yet and the legacy dir does, so
+    existing sessions/config/credentials are carried over and the legacy name
+    disappears. Returns the new path if a migration happened, else ``None``.
+    Never raises — a failed migration leaves both dirs untouched.
+    """
+    new_home = Path.home() / DEFAULT_HOME_DIRNAME
+    legacy = Path.home() / LEGACY_HOME_DIRNAME
+    if new_home.exists() or not legacy.is_dir():
+        return None
+    try:
+        legacy.rename(new_home)
+        return new_home
+    except OSError:
+        return None
 
 
 def _configured_home_env() -> str:
@@ -74,16 +104,16 @@ install_env_aliases()
 
 
 def get_hermes_home() -> Path:
-    """Return the Hermes Turbo/Hermes home directory (default: ~/.tota).
+    """Return the Hermes Turbo/Hermes home directory (default: ~/.hermes_turbo).
 
-    Reads TOTA_HOME first, then legacy HERMES_HOME, then falls back to ~/.tota.
+    Reads TOTA_HOME first, then legacy HERMES_HOME, then falls back to ~/.hermes_turbo.
     This is the single source of truth — all other copies should import this.
 
     When home env vars are unset but an ``active_profile`` file indicates
     a non-default profile is active, logs a loud one-shot warning to
     ``errors.log`` so cross-profile data corruption is diagnosable instead
     of silent.  Behavior is unchanged otherwise — we still return
-    ``~/.tota`` — because raising here would brick 30+ module-level
+    ``~/.hermes_turbo`` — because raising here would brick 30+ module-level
     callers that import this at load time.  Subprocess spawners are
     expected to propagate ``HERMES_HOME`` explicitly (see the systemd
     template in ``hermes_cli/gateway.py`` and the kanban dispatcher in
@@ -133,15 +163,15 @@ def get_hermes_home() -> Path:
 def get_default_hermes_root() -> Path:
     """Return the root Hermes directory for profile-level operations.
 
-    In standard Hermes Turbo deployments this is ``~/.tota``.
+    In standard Hermes Turbo deployments this is ``~/.hermes_turbo``.
 
     In Docker or custom deployments where ``HERMES_HOME`` points outside
-    ``~/.tota`` (e.g. ``/opt/data``), returns ``HERMES_HOME`` directly
+    ``~/.hermes_turbo`` (e.g. ``/opt/data``), returns ``HERMES_HOME`` directly
     — that IS the root.
 
     In profile mode where ``HERMES_HOME`` is ``<root>/profiles/<name>``,
     returns ``<root>`` so that ``profile list`` can see all profiles.
-    Works both for standard (``~/.tota/profiles/coder``) and Docker
+    Works both for standard (``~/.hermes_turbo/profiles/coder``) and Docker
     (``/opt/data/profiles/coder``) layouts.
 
     Import-safe — no dependencies beyond stdlib.
@@ -153,7 +183,7 @@ def get_default_hermes_root() -> Path:
     env_path = Path(env_home)
     try:
         env_path.resolve().relative_to(native_home.resolve())
-        # HERMES_HOME is under ~/.tota (normal or profile mode)
+        # HERMES_HOME is under ~/.hermes_turbo (normal or profile mode)
         return native_home
     except ValueError:
         pass
@@ -209,12 +239,12 @@ def display_hermes_home() -> str:
 
     Uses ``~/`` shorthand for readability::
 
-        default:  ``~/.tota``
-        profile:  ``~/.tota/profiles/coder``
+        default:  ``~/.hermes_turbo``
+        profile:  ``~/.hermes_turbo/profiles/coder``
         custom:   ``/opt/hermes-custom``
 
     Use this in **user-facing** print/log messages instead of hardcoding
-    ``~/.tota``.  For code that needs a real ``Path``, use
+    ``~/.hermes_turbo``.  For code that needs a real ``Path``, use
     :func:`get_hermes_home` instead.
     """
     home = get_hermes_home()
