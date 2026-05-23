@@ -19,7 +19,7 @@ def _report(metrics: dict) -> dict:
 
 
 def _metric(speedup: float | None) -> dict:
-    return {"local": 1.0, "stock": speedup or 0, "speedup": speedup, "winner": "Tota"}
+    return {"local": 1.0, "stock": speedup or 0, "speedup": speedup, "winner": "Hermes Turbo"}
 
 
 def test_compute_with_full_dataset_returns_a_score_between_0_and_100():

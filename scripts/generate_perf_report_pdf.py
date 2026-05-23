@@ -230,7 +230,7 @@ def build_story(styles):
     if metrics:
         rows = [["Metric", "Hermes 0.14.0", "Hermes Turbo", "Winner", "Speedup"]]
         # Map legacy winner labels from the benchmark JSON to the current brand.
-        winner_remap = {"Tota Agent": "Hermes Turbo"}
+        winner_remap = {"Hermes Turbo Agent": "Hermes Turbo"}
         for key, m in metrics.items():
             local = m.get("local")
             stock = m.get("stock")

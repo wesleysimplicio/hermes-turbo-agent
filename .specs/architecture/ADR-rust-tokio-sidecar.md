@@ -7,7 +7,7 @@
 
 ## Context
 
-The Tota Agent gateway aggregates traffic from 20+ messaging platforms
+The Hermes Turbo Agent gateway aggregates traffic from 20+ messaging platforms
 (Telegram, WhatsApp, Discord, Slack, Matrix, Signal, webhook, api_server, ...).
 Most production workloads are I/O-bound and well served by Python `asyncio`
 plus `uvloop`. However, a synthetic 1,000-task scheduler benchmark still shows
@@ -50,7 +50,7 @@ keeps platform adapters and business logic; Rust exposes async functions via
 PyO3 + `pyo3-async-runtimes`.
 
 - Pros: no second process to supervise; shares logger/config; can be a/b
-  toggled by feature flag; reuses Tota's existing Rust build pipeline; FFI
+  toggled by feature flag; reuses Hermes Turbo's existing Rust build pipeline; FFI
   overhead is sub-microsecond.
 - Cons: PyO3 + Tokio bridging is non-trivial (GIL handoff, cancellation
   semantics); a Rust panic still kills the Python process unless wrapped in
@@ -97,7 +97,7 @@ before any prototype merges.
 benchmark plan in `docs/perf/sidecar-benchmark-plan.md` producing a >=30%
 p99 reduction on the gateway hot loops listed there.**
 
-Rationale: B keeps the single-binary CLI promise that ships Tota today,
+Rationale: B keeps the single-binary CLI promise that ships Hermes Turbo today,
 reuses the Rust toolchain Hermes already maintains for `hermes_fast`, and
 closes most of the gap without a second daemon. C remains an explicit
 follow-up if and only if B fails the panic-isolation gate or if a customer

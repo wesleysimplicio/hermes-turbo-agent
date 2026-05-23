@@ -2,7 +2,7 @@
 
 **Release Date:** May 17, 2026
 
-> Tota Agent validation hardening for the canonical test runner, shutdown
+> Hermes Turbo Agent validation hardening for the canonical test runner, shutdown
 > paths, auxiliary Codex timeouts, and ACP registry package metadata.
 
 ## Fixes
@@ -19,7 +19,7 @@
   is unavailable.
 - Updated the ACP registry manifest version and `uvx` package pin to match the
   Python package version.
-- Hardened environment-sensitive tests around Tota home paths, `/goal` state,
+- Hardened environment-sensitive tests around Hermes Turbo home paths, `/goal` state,
   gateway update restarts, WSL systemd detection, and optional platform tools.
 
 ## Validation

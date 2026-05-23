@@ -1,6 +1,6 @@
-# `.tota/` — Project-local Tota Agent home
+# `.tota/` — Project-local Hermes Turbo Agent home
 
-This directory is the **project-local** Tota Agent home. It mirrors the
+This directory is the **project-local** Hermes Turbo Agent home. It mirrors the
 runtime layout of the user-level `$TOTA_HOME` (default `~/.tota`) so the
 repository ships its own opinionated defaults.
 
@@ -13,7 +13,7 @@ repository ships its own opinionated defaults.
 
 ## Resolution order
 
-Tota resolves its runtime home from the first match below:
+Hermes Turbo resolves its runtime home from the first match below:
 
 1. `TOTA_HOME` environment variable
 2. `HERMES_HOME` environment variable (legacy, still respected)

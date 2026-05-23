@@ -23,7 +23,7 @@
     {
       "name": "fork-home-aliases-and-entrypoints",
       "strategy": "merge",
-      "reason": "CLI aliases, fork-home environment variables, and startup wrappers must absorb upstream behavior while retaining Tota/Hermes-Turbo entrypoints.",
+      "reason": "CLI aliases, fork-home environment variables, and startup wrappers must absorb upstream behavior while retaining Hermes Turbo/Hermes-Turbo entrypoints.",
       "paths": [
         "hermes",
         "hermes_constants.py",

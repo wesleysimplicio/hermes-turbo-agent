@@ -9,10 +9,47 @@ from pathlib import Path
 
 
 DEFAULT_HOME_DIRNAME = ".tota"
+# Primary brand env var. ``TOTA_HOME`` is kept as a deprecated alias so
+# existing installs / .envrc / launchd configs keep working.
+PRIMARY_HOME_ENV = "HERMES_TURBO_HOME"
 TOTA_HOME_ENV = "TOTA_HOME"
 LEGACY_HOME_ENV = "HERMES_HOME"
 
+# Suffixes of the fork's behavior-flag env vars. Each is read as
+# ``HERMES_TURBO_<SUFFIX>`` (primary) with ``TOTA_<SUFFIX>`` as a deprecated
+# alias. ``install_env_aliases`` mirrors them both ways at import so existing
+# ``os.environ.get("TOTA_...")`` call sites keep working while
+# ``HERMES_TURBO_...`` becomes the documented name.
+_ALIASED_ENV_SUFFIXES = (
+    "HOME",
+    "AUTO_MAP",
+    "DEBUG_DUMP_SYSTEM_PROMPT",
+    "FAST_GATEWAY",
+    "FAST_STATE",
+    "GATEWAY_SIDECAR",
+    "SKIP_STARTUP_HOOKS",
+    "SKIP_UPDATE_PROMPT",
+)
+
 _profile_fallback_warned: bool = False
+
+
+def install_env_aliases(environ=os.environ) -> None:
+    """Mirror ``HERMES_TURBO_*`` <-> ``TOTA_*`` so both names resolve.
+
+    Primary wins: if both are set, ``HERMES_TURBO_*`` is authoritative and is
+    copied onto the legacy ``TOTA_*`` name. Idempotent and import-safe
+    (no logging, no I/O).
+    """
+    for suffix in _ALIASED_ENV_SUFFIXES:
+        primary = f"HERMES_TURBO_{suffix}"
+        legacy = f"TOTA_{suffix}"
+        pv = environ.get(primary)
+        lv = environ.get(legacy)
+        if pv is not None and pv != lv:
+            environ[legacy] = pv
+        elif pv is None and lv is not None:
+            environ[primary] = lv
 
 
 def _default_home() -> Path:
@@ -20,15 +57,24 @@ def _default_home() -> Path:
 
 
 def _configured_home_env() -> str:
-    """Return the configured home path, honoring Tota then legacy Hermes env."""
-    val = os.environ.get(TOTA_HOME_ENV, "").strip()
-    if val:
-        return val
-    return os.environ.get(LEGACY_HOME_ENV, "").strip()
+    """Return the configured home path.
+
+    Priority: ``HERMES_TURBO_HOME`` (primary) → ``TOTA_HOME`` (deprecated
+    alias) → legacy ``HERMES_HOME``.
+    """
+    for env_name in (PRIMARY_HOME_ENV, TOTA_HOME_ENV, LEGACY_HOME_ENV):
+        val = os.environ.get(env_name, "").strip()
+        if val:
+            return val
+    return ""
+
+
+# Make HERMES_TURBO_* the working primary everywhere TOTA_* is read today.
+install_env_aliases()
 
 
 def get_hermes_home() -> Path:
-    """Return the Tota/Hermes home directory (default: ~/.tota).
+    """Return the Hermes Turbo/Hermes home directory (default: ~/.tota).
 
     Reads TOTA_HOME first, then legacy HERMES_HOME, then falls back to ~/.tota.
     This is the single source of truth — all other copies should import this.
@@ -87,7 +133,7 @@ def get_hermes_home() -> Path:
 def get_default_hermes_root() -> Path:
     """Return the root Hermes directory for profile-level operations.
 
-    In standard Tota deployments this is ``~/.tota``.
+    In standard Hermes Turbo deployments this is ``~/.tota``.
 
     In Docker or custom deployments where ``HERMES_HOME`` points outside
     ``~/.tota`` (e.g. ``/opt/data``), returns ``HERMES_HOME`` directly

@@ -111,7 +111,7 @@ _install_lock_meta = threading.Lock()
 
 
 def hermes_lsp_bin_dir() -> Path:
-    """Return the Tota-owned bin staging dir for LSP servers.
+    """Return the Hermes Turbo-owned bin staging dir for LSP servers.
 
     Resolution order: TOTA_HOME → HERMES_HOME (legacy) → ``~/.tota``.
     Matches :func:`hermes_constants.get_hermes_home` but inlined here

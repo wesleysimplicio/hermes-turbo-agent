@@ -1,4 +1,4 @@
-# Tota Agent — Sprint Backlog
+# Hermes Turbo Agent — Sprint Backlog
 
 Mirror of the GitHub issues in `wesleysimplicio/tota-agent` (see #58 for
 the live roadmap). This file lives in the repo so anyone reading the
@@ -72,7 +72,7 @@ codebase can find the plan without leaving their editor.
 ## Process notes
 
 - One PR per child issue wherever possible.
-- Cherry-picks are scoped tight: identify the upstream commit, apply, resolve conflicts preferring Tota's perf customizations + upstream's behavior, test.
+- Cherry-picks are scoped tight: identify the upstream commit, apply, resolve conflicts preferring Hermes Turbo's perf customizations + upstream's behavior, test.
 - Sprints are sequential. Each sprint's DoD must hold before the next sprint starts.
 - The `.tota/` repo directory is the source of truth for runtime defaults; `$TOTA_HOME` is the operator-mutable runtime home.
 - The upstream Hermes v0.14.0 merge (commit `ab61ec254`, 2026-05-18) closed 13 cherry-pick issues at once. Remaining open issues are local-only work (`msgspec` migration, `run_agent.py`/`hermes_state.py` `orjson` migration, benchmark refresh, Native Windows beta).

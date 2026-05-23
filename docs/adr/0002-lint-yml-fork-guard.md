@@ -90,7 +90,7 @@ already opened equivalent PRs upstream (NousResearch/hermes-agent#217902072,
 
 ## Consequences
 
-- Fork PRs (rare at Tota's current scale) don't get the inline lint
+- Fork PRs (rare at Hermes Turbo's current scale) don't get the inline lint
   summary comment. They still see ruff + ty results in the artifact
   uploaded by the workflow.
 - Future request to surface the lint comment on fork PRs would

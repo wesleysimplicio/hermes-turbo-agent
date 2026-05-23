@@ -2,7 +2,7 @@
 
 **Release Date:** May 17, 2026
 
-> Tota Agent benchmark follow-up: bytes-native JSON, stronger Rust hot paths,
+> Hermes Turbo Agent benchmark follow-up: bytes-native JSON, stronger Rust hot paths,
 > batched token estimation, automatic uvloop policy setup, and documented
 > benchmark remediation.
 

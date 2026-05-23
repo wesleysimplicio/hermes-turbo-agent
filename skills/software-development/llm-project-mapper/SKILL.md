@@ -1,8 +1,8 @@
 ---
 name: llm-project-mapper
-description: Map any code project with @wesleysimplicio/llm-project-mapper before doing work, so the Tota Agent has the AGENTS.md / INIT.md / specs / skills scaffolding it needs to ship effectively.
+description: Map any code project with @wesleysimplicio/llm-project-mapper before doing work, so the Hermes Turbo Agent has the AGENTS.md / INIT.md / specs / skills scaffolding it needs to ship effectively.
 version: 1.0.0
-author: Tota Agent (wraps wesleysimplicio/llm-project-mapper).
+author: Hermes Turbo Agent (wraps wesleysimplicio/llm-project-mapper).
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
@@ -16,17 +16,17 @@ metadata:
       - software-development/writing-plans
 ---
 
-# LLM Project Mapper (Tota Core)
+# LLM Project Mapper (Hermes Turbo Core)
 
-The Tota Agent treats `llm-project-mapper` as a **core onboarding step** for
+The Hermes Turbo Agent treats `llm-project-mapper` as a **core onboarding step** for
 any code project. Before reading source, planning, or editing, run the mapper
 so the project ships an AGENTS.md ecosystem (AGENTS.md, CLAUDE.md, INIT.md,
-specs, skills, CI guardrails) that every downstream tool — Tota itself, Claude
+specs, skills, CI guardrails) that every downstream tool — Hermes Turbo itself, Claude
 Code, Codex, Copilot, Cursor, Aider — can pick up immediately.
 
 ## When to Use
 
-Run the mapper the first time Tota enters a repository, OR when the
+Run the mapper the first time Hermes Turbo enters a repository, OR when the
 `.tota/mapped_projects.json` memory file does not contain a fingerprint for
 the current project root. Skip if the fingerprint is fresh (< 30 days) and
 the project's `AGENTS.md` still exists.
@@ -95,9 +95,9 @@ also writes `CLAUDE.md`, `README` mirrors, and the `.agents/`, `.claude/`,
 `.codex/`, `.skills/` directories; those vary across mapper versions, so
 the readiness check stays on the three docs above.
 
-## Why This Lives in Tota Core
+## Why This Lives in Hermes Turbo Core
 
-Tota Agent is a *modified, faster Hermes*. Speed comes from never paying the
+Hermes Turbo Agent is a *modified, faster Hermes*. Speed comes from never paying the
 onboarding tax twice: the mapper canonicalizes the project once, the memory
 file remembers it forever, and every subsequent invocation skips straight to
 work. This is the same idea as the upstream `/goal` Ralph loop, applied at

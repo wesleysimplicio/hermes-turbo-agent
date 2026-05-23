@@ -1,4 +1,4 @@
-# ADR-0001: PyPI publishing strategy for Tota Agent
+# ADR-0001: PyPI publishing strategy for Hermes Turbo Agent
 
 **Status:** Draft (Sprint 3 / issue #39).
 **Date:** 2026-05-18.
@@ -6,7 +6,7 @@
 
 ## Context
 
-Hermes Agent 0.14.0 ships as `pip install hermes-agent`. The Tota fork
+Hermes Agent 0.14.0 ships as `pip install hermes-agent`. The Hermes Turbo fork
 currently piggy-backs on that distribution name in `pyproject.toml`:
 
 ```toml
@@ -15,7 +15,7 @@ name = "hermes-agent"
 version = "0.14.0"
 ```
 
-To ship Tota independently on PyPI we need to decide how to name and
+To ship Hermes Turbo independently on PyPI we need to decide how to name and
 version the wheel.
 
 ## Options
@@ -90,8 +90,8 @@ lock-step.
 - Zero back-compat break — the upstream Hermes 0.14.0 PyPI rollout is
   recent, and any user who already wired `hermes-agent` into their
   requirements doesn't get disrupted.
-- The Tota brand still surfaces on PyPI via the metapackage page.
-- The metapackage description can carry the Tota tagline and link to the
+- The Hermes Turbo brand still surfaces on PyPI via the metapackage page.
+- The metapackage description can carry the Hermes Turbo tagline and link to the
   fork README; the underlying `hermes-agent` page stays neutral.
 - Low ongoing maintenance — a single shared version number, one publish
   workflow that touches both.
@@ -129,7 +129,7 @@ lock-step.
 
 ## References
 
-- Issue #39 — PyPI publishing plan for Tota Agent.
+- Issue #39 — PyPI publishing plan for Hermes Turbo Agent.
 - Issue #46 — Decide `hermes_cli` → `tota_cli` rename + `console_scripts`
   plan.
 - Upstream Hermes 0.14.0 PyPI rollout — `NousResearch/hermes-agent` PR

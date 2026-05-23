@@ -40,7 +40,7 @@ rules:
     strategy: merge
     reason: >-
       CLI aliases, HERMES_TURBO_HOME environment variables, and startup
-      wrappers must absorb upstream behavior while retaining Tota/Hermes-Turbo
+      wrappers must absorb upstream behavior while retaining Hermes Turbo/Hermes-Turbo
       entrypoints.
     paths:
       - hermes

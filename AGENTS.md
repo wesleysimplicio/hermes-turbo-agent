@@ -1,11 +1,11 @@
-# Tota Agent — Development Guide
+# Hermes Turbo Agent — Development Guide
 
-Instructions for AI coding assistants and developers working on the Tota Agent codebase.
+Instructions for AI coding assistants and developers working on the Hermes Turbo Agent codebase.
 
-> **Tota Agent is a modified, faster Hermes.** The fork is synced against Hermes
+> **Hermes Turbo Agent is a modified, faster Hermes.** The fork is synced against Hermes
 > Agent **v0.14.0** (upstream: `NousResearch/hermes-agent`). The Python package
 > still ships as `hermes-agent` so installer scripts and the `hermes` CLI
-> command keep working unchanged. The fork name **Tota** carries the
+> command keep working unchanged. The fork name **Hermes Turbo** carries the
 > performance + project-on-ramp customizations: TOTA_HOME, Rust `hermes_fast`
 > extension, hierarchical cache, streaming-on-by-default gateway, and core
 > integration of `llm-project-mapper` for project onboarding.

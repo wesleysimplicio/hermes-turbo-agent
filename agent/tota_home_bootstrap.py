@@ -1,12 +1,12 @@
 """Bootstrap the runtime ``$TOTA_HOME`` directory from repo-local ``.tota/`` defaults.
 
-When an operator first runs Tota Agent against a fresh ``$TOTA_HOME``, this
+When an operator first runs Hermes Turbo Agent against a fresh ``$TOTA_HOME``, this
 module idempotently seeds the directory with the fork's opinionated defaults
 shipped under the repo's ``.tota/`` tree:
 
 - ``HERMES_BASE`` — upstream Hermes baseline marker.
-- ``version`` — Tota version pin.
-- ``memories/MEMORY.md`` — seed memory entries (Tota identity, project-mapping
+- ``version`` — Hermes Turbo version pin.
+- ``memories/MEMORY.md`` — seed memory entries (Hermes Turbo identity, project-mapping
   directive, home resolution).
 - ``mapped_projects.json`` — empty registry for the ``llm-project-mapper``
   skill.
@@ -72,7 +72,7 @@ def bootstrap_tota_home(force_reseed: bool = False) -> dict[str, str]:
 
     source = _source_dir()
     if not source.is_dir():
-        logger.debug("Tota bootstrap: no .tota/ source at %s, skipping.", source)
+        logger.debug("Hermes Turbo bootstrap: no .tota/ source at %s, skipping.", source)
         _BOOTSTRAP_DONE = True
         return {}
 
@@ -80,7 +80,7 @@ def bootstrap_tota_home(force_reseed: bool = False) -> dict[str, str]:
     try:
         home.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
-        logger.warning("Tota bootstrap: cannot create %s: %s", home, exc)
+        logger.warning("Hermes Turbo bootstrap: cannot create %s: %s", home, exc)
         return {"_home": f"error:{exc}"}
 
     results: dict[str, str] = {}
@@ -97,10 +97,10 @@ def bootstrap_tota_home(force_reseed: bool = False) -> dict[str, str]:
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
             results[relpath] = "copied"
-            logger.info("Tota bootstrap: copied %s -> %s", relpath, dst)
+            logger.info("Hermes Turbo bootstrap: copied %s -> %s", relpath, dst)
         except OSError as exc:
             results[relpath] = f"error:{exc}"
-            logger.warning("Tota bootstrap: failed to copy %s: %s", relpath, exc)
+            logger.warning("Hermes Turbo bootstrap: failed to copy %s: %s", relpath, exc)
 
     _BOOTSTRAP_DONE = True
     return results

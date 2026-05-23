@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install the macOS LaunchAgent for Tota's daily Hermes sync."""
+"""Install the macOS LaunchAgent for Hermes Turbo's daily Hermes sync."""
 
 from __future__ import annotations
 

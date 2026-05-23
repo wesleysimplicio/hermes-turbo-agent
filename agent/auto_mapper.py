@@ -1,7 +1,7 @@
 """Auto-invoke ``llm-project-mapper`` on first turn in a code project.
 
-This is the runtime side of the Tota-core directive in
-``DEFAULT_AGENT_IDENTITY``. When Tota Agent enters a project that looks like
+This is the runtime side of the Hermes Turbo-core directive in
+``DEFAULT_AGENT_IDENTITY``. When Hermes Turbo Agent enters a project that looks like
 code (has a ``.git`` directory, ``pyproject.toml``, ``package.json``, etc.),
 this module spawns ``skills/software-development/llm-project-mapper/scripts/map_project.py``
 once per session, idempotently, so the project ships with the AGENTS.md
@@ -19,7 +19,7 @@ Skip conditions (any one disables the auto-trigger):
 - ``TOTA_AUTO_MAP=0`` (or ``HERMES_AUTO_MAP=0``) in env.
 - ``$TOTA_HOME/.disable_auto_mapper`` sentinel file exists.
 - cwd is the user's home directory itself.
-- cwd is the Tota Agent repo (avoid Tota mapping its own source).
+- cwd is the Hermes Turbo Agent repo (avoid Hermes Turbo mapping its own source).
 """
 
 from __future__ import annotations
@@ -71,7 +71,7 @@ def _is_code_project(project_root: Path) -> bool:
 
 
 def _is_own_repo(project_root: Path) -> bool:
-    """Return True when the cwd IS the Tota Agent repo itself.
+    """Return True when the cwd IS the Hermes Turbo Agent repo itself.
 
     Mapping our own source on every CLI invocation is annoying and not what
     operators want.  We detect by checking for the ``.tota/HERMES_BASE``

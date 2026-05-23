@@ -72,7 +72,7 @@ def test_bootstrap_force_reseed_overwrites_existing(fresh_tota_home):
 
     assert target.read_text() != "operator override\n"
     # The repo's .tota/version is the source of truth — track whatever
-    # the current Tota version pin says, not a hardcoded value.
+    # the current Hermes Turbo version pin says, not a hardcoded value.
     repo_version = (
         (tota_home_bootstrap._repo_root() / ".tota" / "version").read_text().strip()
     )

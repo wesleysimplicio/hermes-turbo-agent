@@ -1,6 +1,6 @@
 """Regression tests for the Sprint 3 brand-consistency pass (issue #43).
 
-Ensures user-facing surfaces lead with "Tota Agent" instead of the
+Ensures user-facing surfaces lead with "Hermes Turbo Agent" instead of the
 inherited "Hermes Agent" branding. The fork still describes itself as
 *a modified, faster Hermes* — that exact phrasing is intentional and
 should NOT be flagged.
@@ -23,11 +23,11 @@ def test_default_skin_says_tota_agent():
     from hermes_cli.skin_engine import load_skin
 
     skin = load_skin("default")
-    assert skin.get_branding("agent_name", "") == "Tota Agent"
+    assert skin.get_branding("agent_name", "") == "Hermes Turbo Agent"
     welcome = skin.get_branding("welcome", "")
-    assert "Tota Agent" in welcome
+    assert "Hermes Turbo Agent" in welcome
     assert "Hermes" in welcome  # tagline keeps the lineage explicit
-    assert skin.get_branding("response_label", "").strip() == "⚕ Tota"
+    assert skin.get_branding("response_label", "").strip() == "⚕ Hermes Turbo"
 
 
 def test_default_identity_introduces_tota():
@@ -36,7 +36,7 @@ def test_default_identity_introduces_tota():
     sys.path.insert(0, str(REPO_ROOT))
     from agent.prompt_builder import DEFAULT_AGENT_IDENTITY
 
-    assert "Tota Agent" in DEFAULT_AGENT_IDENTITY
+    assert "Hermes Turbo Agent" in DEFAULT_AGENT_IDENTITY
     assert "modified and faster Hermes" in DEFAULT_AGENT_IDENTITY
 
 
@@ -51,8 +51,8 @@ def test_pyproject_ships_tota_console_script_aliases():
 
 def test_pyproject_describes_tota_in_description():
     pyproject = (REPO_ROOT / "pyproject.toml").read_text()
-    assert "Tota Agent" in pyproject
-    assert 'description = "Tota Agent' in pyproject
+    assert "Hermes Turbo Agent" in pyproject
+    assert 'description = "Hermes Turbo Agent' in pyproject
 
 
 def test_local_tota_home_version_matches_pyproject():

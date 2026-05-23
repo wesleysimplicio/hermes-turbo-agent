@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hermes-agent"
 version = "0.14.4"
-description = "Tota Agent — a modified, faster Hermes that keeps the upstream core current"
+description = "Hermes Turbo Agent — a modified, faster Hermes that keeps the upstream core current"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Nous Research" }]

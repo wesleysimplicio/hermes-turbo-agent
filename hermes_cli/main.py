@@ -279,7 +279,7 @@ def _should_run_agent_side_effects() -> bool:
     Bootstrap + auto-mapper are gated behind this so `hermes --help` and
     other cheap-utility paths don't trigger filesystem writes or npx spawns.
     Default: True (run them) unless we can clearly identify a cheap path.
-    Tota-set ``TOTA_SKIP_STARTUP_HOOKS=1`` forces a skip.
+    Hermes Turbo-set ``TOTA_SKIP_STARTUP_HOOKS=1`` forces a skip.
     """
     if (os.environ.get("TOTA_SKIP_STARTUP_HOOKS") or "").strip() in {"1", "true", "yes", "on"}:
         return False
@@ -313,7 +313,7 @@ if _should_run_agent_side_effects():
     except Exception:
         pass  # best-effort — agent works fine without seed files
 
-    # Tota-core directive: auto-invoke llm-project-mapper on first turn in
+    # Hermes Turbo-core directive: auto-invoke llm-project-mapper on first turn in
     # any code project. Idempotent across sessions (the mapper itself
     # dedups via $TOTA_HOME/mapped_projects.json) and within a session
     # (auto_mapper dedups per process). Disabled by TOTA_AUTO_MAP=0 or by

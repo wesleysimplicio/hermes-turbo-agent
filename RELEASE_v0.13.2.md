@@ -2,13 +2,13 @@
 
 **Release Date:** May 17, 2026
 
-> Tota Agent home-directory alignment plus runtime hardening for corrupted
+> Hermes Turbo Agent home-directory alignment plus runtime hardening for corrupted
 > tool-call argument recovery.
 
 ## Highlights
 
 - Added `TOTA_HOME` as the fork-native home-directory override.
-- Changed the unset-env default from `~/.hermes` to `~/.tota` for new Tota
+- Changed the unset-env default from `~/.hermes` to `~/.tota` for new Hermes Turbo
   installs, profile roots, setup scripts, and bundled Node bootstrap.
 - Kept `HERMES_HOME` as a backward-compatible override so existing
   `~/.hermes2` runtimes continue to work without data migration.

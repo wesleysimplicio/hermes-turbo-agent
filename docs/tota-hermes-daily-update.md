@@ -1,7 +1,7 @@
-# Tota Agent Daily Hermes Update
+# Hermes Turbo Agent Daily Hermes Update
 
-Tota Agent is a performance-focused fork of Hermes Agent. The daily update
-routine keeps the Hermes core fresh while preserving Tota's speed and branding
+Hermes Turbo Agent is a performance-focused fork of Hermes Agent. The daily update
+routine keeps the Hermes core fresh while preserving Hermes Turbo's speed and branding
 customizations.
 
 ## What Runs Daily
@@ -21,8 +21,8 @@ The routine:
 3. Installs or refreshes Python `3.14.5` with `uv`.
 4. Runs `hermes update --yes --no-backup` inside the isolated worktree.
 5. Merges `upstream/main` from `NousResearch/hermes-agent`.
-6. Verifies Tota-specific markers such as `TOTA_HOME`, `orjson`, `msgspec`,
-   and the Tota README identity.
+6. Verifies Hermes Turbo-specific markers such as `TOTA_HOME`, `orjson`, `msgspec`,
+   and the Hermes Turbo README identity.
 7. Runs focused validation plus `taskflow run`.
 8. Validates `docs/hermes-turbo-sync-policy.json` with `scripts/validate_sync_policy.py`.
 9. Refreshes benchmark JSON first, then regenerates Markdown/PDF/cards with `scripts/refresh_sync_benchmarks.py`.
@@ -72,7 +72,7 @@ python3 scripts/install_tota_hermes_daily_update_launchd.py --uninstall
 
 The current target is Python `3.14.5`, verified from python.org as the latest
 stable Python 3 release on May 18, 2026. The machine also keeps Homebrew
-`python@3.14` and `uv` updated so Tota can rebuild `.venv` environments from a
+`python@3.14` and `uv` updated so Hermes Turbo can rebuild `.venv` environments from a
 fresh interpreter.
 
 If a dependency is not ready for the newest Python yet, the routine fails in the

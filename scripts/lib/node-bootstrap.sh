@@ -7,7 +7,7 @@
 #
 # Strategy (first hit wins — respects the user's existing tooling):
 #   1. modern `node` already on PATH
-#   2. ~/.tota/node/ from a prior Tota-managed install
+#   2. ~/.tota/node/ from a prior Hermes Turbo-managed install
 #   3. fnm, proto, nvm (in that order) if the user already uses a version manager
 #   4. Termux `pkg`, macOS Homebrew
 #   5. pinned nodejs.org tarball into ~/.tota/node/ (always works, zero shell rc edits)

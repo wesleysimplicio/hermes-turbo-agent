@@ -20,7 +20,7 @@ class TestGetHermesHome:
     """Tests for the fork-specific home directory resolution."""
 
     def test_default_home_uses_tota_dir(self, tmp_path, monkeypatch):
-        """When no home env var is set, new Tota installs use ~/.tota."""
+        """When no home env var is set, new Hermes Turbo installs use ~/.tota."""
         monkeypatch.delenv("TOTA_HOME", raising=False)
         monkeypatch.delenv("HERMES_HOME", raising=False)
         monkeypatch.setattr(Path, "home", lambda: tmp_path)

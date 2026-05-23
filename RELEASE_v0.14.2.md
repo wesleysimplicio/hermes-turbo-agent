@@ -1,12 +1,12 @@
-# Tota Agent v0.14.2 — Lazy-install advisory guard
+# Hermes Turbo Agent v0.14.2 — Lazy-install advisory guard
 
 **Release type:** Security / packaging patch release.
-**Previous Tota version:** `0.14.1`.
+**Previous Hermes Turbo version:** `0.14.1`.
 **Issue:** `#41` — Adopt supply-chain advisory checker for installs.
 
 This patch release closes the gap between the existing advisory surface
 (`hermes doctor`, startup banner, gateway log warning) and the lazy-install
-path introduced in the Hermes 0.14.0 sync. Tota now refuses to lazy-install
+path introduced in the Hermes 0.14.0 sync. Hermes Turbo now refuses to lazy-install
 backend packages that are already known-bad and re-checks the installed
 result before marking the feature usable.
 
@@ -23,7 +23,7 @@ result before marking the feature usable.
 
 ### 2. Post-install advisory re-check
 
-- after a successful lazy-install, Tota re-scans the installed packages that
+- after a successful lazy-install, Hermes Turbo re-scans the installed packages that
   belong to the requested feature
 - if the environment still resolves to an advisory-hit package version, the
   feature stays unavailable and the operator gets a clear remediation hint

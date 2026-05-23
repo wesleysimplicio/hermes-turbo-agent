@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Map a code project with @wesleysimplicio/llm-project-mapper.
 
-Tota Agent treats project mapping as a core onboarding step. This script is
+Hermes Turbo Agent treats project mapping as a core onboarding step. This script is
 idempotent: re-running on an already-mapped project is a no-op unless
 ``--force`` is passed.
 
@@ -41,7 +41,7 @@ def _tota_home() -> Path:
 
     Imports ``hermes_constants.get_hermes_home`` when available so the
     profile-aware resolution stays in one place.  Falls back to a stdlib-
-    only lookup when the script runs outside the Tota process tree (e.g.
+    only lookup when the script runs outside the Hermes Turbo process tree (e.g.
     a fresh checkout, CI, system Python).
     """
     try:
