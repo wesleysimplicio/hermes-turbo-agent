@@ -1,0 +1,152 @@
+name: Auto Sync PR
+
+# Opens a DRAFT pull request that merges upstream Hermes into a dated sync
+# branch — but only after a validation gate (sync-policy validator + focused
+# tests) passes on a clean merge. On conflicts or a failing gate it opens a
+# tracking issue instead of a broken PR. Never auto-merges.
+#
+# The sync logic lives in scripts/sync_upstream_pr.py (unit-tested); this
+# workflow just wires it to git push + PR/issue creation where GitHub auth
+# is available.
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: "Run only the sync-policy validator in the gate"
+        type: boolean
+        default: false
+  schedule:
+    # Weekly, Mondays 07:00 UTC. The daily auto-update-check.yml is the
+    # lightweight detector; this heavier job runs less often.
+    - cron: "0 7 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: auto-sync-pr
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pyyaml python-dotenv
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Run upstream sync + validation gate
+        id: sync
+        run: |
+          set +e
+          python scripts/sync_upstream_pr.py --repo . \
+            ${{ inputs.skip_tests && '--skip-tests' || '' }} > sync.json
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          echo "----- sync.json -----"
+          cat sync.json
+
+      - name: Push branch + open draft PR (clean merge, gate green)
+        if: steps.sync.outputs.exit_code == '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const r = JSON.parse(fs.readFileSync('sync.json', 'utf8'));
+            const branch = r.branch;
+            await exec.exec('git', ['push', '-u', 'origin', branch]);
+            const title = `chore: sync upstream Hermes (${branch})`;
+            const body = [
+              'Automated upstream sync. Merged `' + r.upstream + '` into a dated',
+              'branch off `' + r.base_branch + '`.',
+              '',
+              '- Clean merge: yes',
+              '- Validation gate (sync-policy + focused tests): **passed**',
+              '',
+              'Fork-owned surfaces are protected by `.upstream-sync-policy.yml`.',
+              'Review the diff before merging — this PR is a **draft** and is',
+              'never auto-merged.',
+              '',
+              '_Opened by .github/workflows/auto-sync-pr.yml_',
+            ].join('\n');
+            const pr = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              head: branch,
+              base: r.base_branch,
+              body,
+              draft: true,
+            });
+            core.notice(`Opened draft PR #${pr.data.number} for ${branch}`);
+
+      - name: Open/refresh tracking issue (conflicts or gate failure)
+        if: steps.sync.outputs.exit_code == '10' || steps.sync.outputs.exit_code == '20'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const r = JSON.parse(fs.readFileSync('sync.json', 'utf8'));
+            const kind = '${{ steps.sync.outputs.exit_code }}' === '10'
+              ? 'merge conflicts' : 'validation gate failure';
+            const title = 'chore: upstream sync needs manual attention';
+            const body = [
+              `Automated upstream sync stopped due to **${kind}**.`,
+              '',
+              '```json',
+              JSON.stringify(r, null, 2),
+              '```',
+              '',
+              'Resolve manually, e.g.:',
+              '',
+              '```bash',
+              'python scripts/sync_upstream_pr.py --repo .   # reproduce locally',
+              '# or the full macOS routine:',
+              'python scripts/tota_hermes_daily_update.py',
+              '```',
+              '',
+              '_Opened by .github/workflows/auto-sync-pr.yml_',
+            ].join('\n');
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'upstream-sync', per_page: 50,
+            });
+            const match = existing.data.find(i => i.title === title);
+            if (match) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: match.number, body,
+              });
+              core.notice(`Refreshed issue #${match.number}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['upstream-sync'],
+              });
+              core.notice(`Opened issue #${created.data.number}`);
+            }
+
+      - name: Fail job on unexpected error
+        if: steps.sync.outputs.exit_code == '1'
+        run: |
+          echo "::error::sync_upstream_pr.py reported an unexpected error"
+          exit 1
