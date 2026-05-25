@@ -11,10 +11,10 @@ video generation provider. Mirrors the ``image_generate`` design:
   plugins at import time).
 - Each provider lives under ``plugins/video_gen/<name>/``.
 
-The tool itself is intentionally backend-agnostic and ships **no in-tree
-provider** — turn on a backend by enabling a plugin (``hermes plugins
-enable video_gen/<name>``) and selecting it in ``hermes tools`` → Video
-Generation.
+The tool itself is backend-agnostic at the call surface. Bundled
+providers supply the actual backends; turn one on by enabling a plugin
+(``hermes plugins enable video_gen/<name>``) and selecting it in
+``hermes tools`` → Video Generation.
 
 Unified surface
 ---------------
@@ -154,6 +154,22 @@ VIDEO_GENERATE_SCHEMA: Dict[str, Any] = {
                     "provider does not know are rejected."
                 ),
             },
+            "video_type": {
+                "type": "string",
+                "description": (
+                    "Optional routing hint. Use `institutional` for HTML "
+                    "composition renders; those calls are routed to the "
+                    "Hyperframes provider automatically."
+                ),
+            },
+            "composition_path": {
+                "type": "string",
+                "description": (
+                    "Local path to a Hyperframes HTML composition file. "
+                    "Used for institutional renders; the provider also "
+                    "accepts `storyboard_path` and `html_path` aliases."
+                ),
+            },
         },
         "required": ["prompt"],
     },
@@ -223,24 +239,47 @@ def check_video_generation_requirements() -> bool:
 # ---------------------------------------------------------------------------
 
 
-def _resolve_active_provider():
-    """Return the active provider object or None.
+def _normalize_video_type(value: Any) -> Optional[str]:
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        return normalized or None
+    return None
 
-    Forces plugin discovery before checking the registry — handles cases
-    where a long-lived session was started before a plugin was installed.
+
+def _resolve_default_video_provider():
+    """Return the default provider object or None.
+
+    WaveSpeedAI is the preferred backend when no explicit institutional
+    routing hint is present.
     """
     try:
-        from agent.video_gen_registry import get_active_provider
+        from agent.video_gen_registry import get_active_provider, get_provider
         from hermes_cli.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
-        provider = get_active_provider()
+        provider = get_provider("wavespeed") or get_active_provider()
         if provider is None:
             _ensure_plugins_discovered(force=True)
-            provider = get_active_provider()
+            provider = get_provider("wavespeed") or get_active_provider()
         return provider
     except Exception as exc:
         logger.debug("video_gen provider resolution failed: %s", exc)
+        return None
+
+
+def _resolve_institutional_provider():
+    try:
+        from agent.video_gen_registry import get_provider
+        from hermes_cli.plugins import _ensure_plugins_discovered
+
+        _ensure_plugins_discovered()
+        provider = get_provider("hyperframes")
+        if provider is None:
+            _ensure_plugins_discovered(force=True)
+            provider = get_provider("hyperframes")
+        return provider
+    except Exception as exc:
+        logger.debug("institutional video_gen provider resolution failed: %s", exc)
         return None
 
 
@@ -258,10 +297,25 @@ def _missing_provider_error(configured: Optional[str]) -> str:
         ))
     msg = (
         "No video generation backend is configured. Run `hermes tools` → "
-        "Video Generation to enable one (xAI, FAL, or Google Veo)."
+        "Video Generation to enable a bundled provider or select a custom "
+        "plugin-backed backend."
     )
     return json.dumps(error_response(
         error=msg, error_type="no_provider_configured",
+    ))
+
+
+def _missing_hyperframes_error() -> str:
+    msg = (
+        "video_type='institutional' requires the Hyperframes provider, "
+        "but it is not registered. Enable the bundled hyperframes video "
+        "plugin or install a provider that registers under the name "
+        "'hyperframes'."
+    )
+    return json.dumps(error_response(
+        error=msg,
+        error_type="provider_not_available",
+        provider="hyperframes",
     ))
 
 
@@ -318,6 +372,8 @@ def _handle_video_generate(args: Dict[str, Any], **_kw: Any) -> str:
     audio = _coerce_bool(args.get("audio"))
     seed = _coerce_int(args.get("seed"))
     model_override = (args.get("model") or "").strip() or None
+    video_type = _normalize_video_type(args.get("video_type"))
+    composition_path = (args.get("composition_path") or "").strip() or None
 
     # Soft validation — providers do their own. Prompt is required by the
     # schema; the backend may still accept image-only on its image-to-video
@@ -325,9 +381,14 @@ def _handle_video_generate(args: Dict[str, Any], **_kw: Any) -> str:
     if not prompt:
         return tool_error("prompt is required for video generation")
 
-    # Resolve the active provider.
     configured = _read_configured_video_provider()
-    provider = _resolve_active_provider()
+
+    if video_type == "institutional":
+        provider = _resolve_institutional_provider()
+        if provider is None:
+            return _missing_hyperframes_error()
+    else:
+        provider = _resolve_default_video_provider()
     if provider is None:
         return _missing_provider_error(configured)
 
@@ -344,6 +405,8 @@ def _handle_video_generate(args: Dict[str, Any], **_kw: Any) -> str:
         "negative_prompt": negative_prompt,
         "audio": audio,
         "seed": seed,
+        "video_type": video_type,
+        "composition_path": composition_path,
     }
     # Drop None entries so providers see clean defaults.
     kwargs = {k: v for k, v in kwargs.items() if v is not None}

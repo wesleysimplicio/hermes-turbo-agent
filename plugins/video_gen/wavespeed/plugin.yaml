@@ -1,0 +1,7 @@
+name: wavespeed
+version: 0.1.0
+description: "WaveSpeedAI video generation backend via wavespeed-cli (text-to-video and image-to-video)."
+author: Hermes Agent
+kind: backend
+requires_env:
+  - WAVESPEED_API_KEY
