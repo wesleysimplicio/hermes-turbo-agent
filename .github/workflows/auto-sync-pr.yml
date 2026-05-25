@@ -67,7 +67,7 @@ jobs:
 
       - name: Push branch + open draft PR (clean merge, gate green)
         if: steps.sync.outputs.exit_code == '0'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
@@ -101,7 +101,7 @@ jobs:
 
       - name: Open/refresh tracking issue (conflicts or gate failure)
         if: steps.sync.outputs.exit_code == '10' || steps.sync.outputs.exit_code == '20'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
