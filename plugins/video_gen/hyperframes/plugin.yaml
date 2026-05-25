@@ -1,0 +1,6 @@
+name: hyperframes
+version: 0.1.0
+description: "Hyperframes HTML-to-video backend for institutional renders."
+author: Hermes Agent
+kind: backend
+requires_env: []
