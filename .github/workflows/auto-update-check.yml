@@ -45,7 +45,7 @@ jobs:
 
       - name: Open or refresh tracking issue on drift
         if: steps.drift.outputs.exit_code == '10'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
