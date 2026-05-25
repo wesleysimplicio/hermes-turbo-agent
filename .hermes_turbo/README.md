@@ -15,7 +15,7 @@ repository ships its own opinionated defaults.
 
 Hermes Turbo resolves its runtime home from the first match below:
 
-1. `TOTA_HOME` environment variable
+1. `HERMES_TURBO_HOME` environment variable
 2. `HERMES_HOME` environment variable (legacy, still respected)
 3. `~/.hermes_turbo` (default)
 
@@ -31,7 +31,7 @@ Two reasons:
 - **Reviewability.** Defaults that affect every operator land in version
   control, with the same review discipline as code.
 - **Profile isolation.** Operators can still keep multiple personal
-  `$TOTA_HOME` profiles without forking the repository.
+  `$HERMES_TURBO_HOME` profiles without forking the repository.
 
 See `hermes_constants.py` for the runtime resolution code and
 `skills/software-development/llm-project-mapper/SKILL.md` for the

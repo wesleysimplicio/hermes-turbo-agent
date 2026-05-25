@@ -26,7 +26,7 @@ from hermes_cli.config import (
 class TestGetHermesHome:
     def test_default_path(self):
         with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("TOTA_HOME", None)
+            os.environ.pop("HERMES_TURBO_HOME", None)
             os.environ.pop("HERMES_HOME", None)
             home = get_hermes_home()
             assert home == Path.home() / ".hermes_turbo"
@@ -39,10 +39,10 @@ class TestGetHermesHome:
     def test_hermes_turbo_home_env_override(self):
         with patch.dict(
             os.environ,
-            {"TOTA_HOME": "/tota/path", "HERMES_HOME": "/legacy/path"},
+            {"HERMES_TURBO_HOME": "/hermes-turbo/path", "HERMES_HOME": "/legacy/path"},
         ):
             home = get_hermes_home()
-            assert home == Path("/tota/path")
+            assert home == Path("/hermes-turbo/path")
 
 
 class TestEnsureHermesHome:

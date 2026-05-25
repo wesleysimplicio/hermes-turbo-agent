@@ -318,7 +318,7 @@ class TestMessageStorage:
 
     def test_fast_state_flag_default_off_keeps_stdlib_path(self, db, monkeypatch):
         """Fast JSON stays opt-in; default behavior must not touch the fast path."""
-        monkeypatch.delenv("TOTA_FAST_STATE", raising=False)
+        monkeypatch.delenv("HERMES_TURBO_FAST_STATE", raising=False)
 
         def _unexpected_fast_path(*args, **kwargs):
             raise AssertionError("fast state JSON should stay disabled by default")
@@ -334,8 +334,8 @@ class TestMessageStorage:
         assert msgs[0]["content"] == content
 
     def test_fast_state_flag_round_trips_structured_payloads(self, db, monkeypatch):
-        """`TOTA_FAST_STATE=1` switches state JSON fields to the fast codec."""
-        monkeypatch.setenv("TOTA_FAST_STATE", "1")
+        """`HERMES_TURBO_FAST_STATE=1` switches state JSON fields to the fast codec."""
+        monkeypatch.setenv("HERMES_TURBO_FAST_STATE", "1")
         calls = {"dumps": 0, "loads": 0}
 
         def _tracking_dumps(value):

@@ -1,4 +1,4 @@
-"""Regression tests for the Sprint 3 brand-consistency pass (issue #43).
+"""Regression tests for the Hermes Turbo brand-consistency pass.
 
 Ensures user-facing surfaces lead with "Hermes Turbo Agent" instead of the
 inherited "Hermes Agent" branding. The fork still describes itself as
@@ -30,7 +30,7 @@ def test_default_skin_says_hermes_turbo_agent():
     assert skin.get_branding("response_label", "").strip() == "⚕ Hermes Turbo"
 
 
-def test_default_identity_introduces_tota():
+def test_default_identity_introduces_hermes_turbo():
     import sys
 
     sys.path.insert(0, str(REPO_ROOT))
@@ -67,7 +67,7 @@ def test_identity_customization_doc_exists():
     assert doc.exists()
     text = doc.read_text()
     assert "SOUL.md" in text
-    assert "TOTA_HOME" in text
+    assert "HERMES_TURBO_HOME" in text
 
 
 def test_pypi_adr_exists():

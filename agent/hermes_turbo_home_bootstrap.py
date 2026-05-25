@@ -16,7 +16,7 @@ file-by-file, skip-if-exists. Each missing file is copied; each existing file
 is left alone.
 
 The bootstrap runs at most once per process and logs every action it takes (or
-skips). Failures land in ``$TOTA_HOME/logs/errors.log`` via the standard
+skips). Failures land in ``$HERMES_TURBO_HOME/logs/errors.log`` via the standard
 logging setup and do not interrupt agent startup — the agent works fine
 without the seed files, the operator just misses the curated defaults.
 """

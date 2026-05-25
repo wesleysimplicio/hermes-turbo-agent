@@ -30,9 +30,9 @@ def test_agent_json_matches_official_registry_required_fields():
     assert FORBIDDEN_MANIFEST_KEYS.isdisjoint(data)
     assert data["id"] == "hermes-agent"
     assert re.fullmatch(r"[a-z][a-z0-9-]*", data["id"])
-    assert data["name"] == "Hermes Agent"
+    assert data["name"] == "Hermes Turbo Agent"
     assert data["description"]
-    assert data["repository"] == "https://github.com/NousResearch/hermes-agent"
+    assert data["repository"] == "https://github.com/wesleysimplicio/hermes-turbo-agent"
     assert data["website"].startswith("https://hermes-agent.nousresearch.com/")
     assert data["authors"] == ["Nous Research"]
     assert data["license"] == "MIT"
@@ -48,7 +48,7 @@ def test_agent_json_uses_uvx_distribution_without_local_command_fields():
     assert set(uvx) <= {"package", "args", "env"}
     assert "package" in uvx
     assert uvx["package"] == f"hermes-agent[acp]=={data['version']}"
-    assert uvx["args"] == ["hermes-acp"]
+    assert uvx["args"] == ["hermes-turbo-acp"]
     # Old command-shape fields must not leak back in.
     assert "type" not in data["distribution"]
     assert "command" not in data["distribution"]

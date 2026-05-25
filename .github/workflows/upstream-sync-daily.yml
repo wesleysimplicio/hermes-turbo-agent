@@ -1,0 +1,158 @@
+name: Upstream Hermes daily sync
+
+# Daily job that captures NousResearch/hermes-agent updates and reapplies them
+# on top of our turbo customizations, opening a draft PR per cycle. Builds on
+# scripts/upstream-sync/* delivered under issues #85-#87.
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # 06:00 UTC every day
+  workflow_dispatch:
+    inputs:
+      upstream_branch:
+        description: "Upstream branch to capture"
+        required: false
+        default: "main"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync-daily
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: capture + reapply
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "hermes-turbo-sync[bot]"
+          git config user.email "hermes-turbo-sync@users.noreply.github.com"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate sync policy
+        run: |
+          python scripts/validate_sync_policy.py
+
+      - name: Capture upstream changes
+        id: capture
+        run: |
+          set -e
+          branch="${{ github.event.inputs.upstream_branch }}"
+          branch="${branch:-main}"
+          scripts/upstream-sync/capture-upstream.sh --branch "$branch"
+          run_dir=$(ls -1dt .upstream-sync/*/ 2>/dev/null | head -n1 || true)
+          if [[ -z "$run_dir" ]]; then
+            echo "no run dir produced — nothing to reapply"
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ ! -s "$run_dir/commits.txt" ]]; then
+            echo "no new commits since last sync"
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          echo "run_dir=${run_dir%/}" >> "$GITHUB_OUTPUT"
+
+      - name: Create sync branch
+        if: steps.capture.outputs.has_changes == 'true'
+        id: branch
+        run: |
+          stamp="$(date -u +%Y%m%d-%H%M%S)"
+          bname="upstream-sync/${stamp}"
+          git checkout -b "$bname"
+          echo "name=$bname" >> "$GITHUB_OUTPUT"
+
+      - name: Reapply patches over turbo
+        if: steps.capture.outputs.has_changes == 'true'
+        run: |
+          scripts/upstream-sync/reapply.sh "${{ steps.capture.outputs.run_dir }}"
+
+      - name: Refresh benchmarks against the new baseline
+        if: steps.capture.outputs.has_changes == 'true'
+        continue-on-error: true
+        run: |
+          python scripts/refresh_sync_benchmarks.py
+          python -m pip install reportlab >/dev/null
+          # 1) micro benchmark + 1-pager PDF
+          python scripts/benchmark_turbo_vs_baseline.py --json \
+            --out docs/perf/turbo-vs-baseline-${{ steps.branch.outputs.name }}.json
+          python scripts/generate_turbo_vs_baseline_pdf.py \
+            --input docs/perf/turbo-vs-baseline-${{ steps.branch.outputs.name }}.json \
+            --output docs/perf/turbo-vs-baseline-${{ steps.branch.outputs.name }}.pdf
+          # 2) full segmented benchmark + multi-page PDF
+          python scripts/benchmark_full_turbo_segments.py --iters 500 --json \
+            --out docs/perf/turbo-full-segments-${{ steps.branch.outputs.name }}.json
+          python scripts/generate_turbo_full_pdf.py \
+            --input docs/perf/turbo-full-segments-${{ steps.branch.outputs.name }}.json \
+            --output docs/perf/turbo-full-segments-${{ steps.branch.outputs.name }}.pdf
+
+      - name: Commit refresh artifacts
+        if: steps.capture.outputs.has_changes == 'true'
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git add docs/perf/ scripts/upstream-sync/sync-state.json || true
+            git commit -m "chore(upstream-sync): refresh artifacts for daily run" || true
+          fi
+
+      - name: Push sync branch
+        if: steps.capture.outputs.has_changes == 'true'
+        run: |
+          git push -u origin "${{ steps.branch.outputs.name }}"
+
+      - name: Open draft PR
+        if: steps.capture.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          run_dir="${{ steps.capture.outputs.run_dir }}"
+          summary=$(head -n 20 "$run_dir/commits.txt" || true)
+          body=$(cat <<EOF
+          ## Daily upstream Hermes sync
+
+          Run id: \`${{ steps.branch.outputs.name }}\`
+          Captured commits (first 20 of $(wc -l < "$run_dir/commits.txt")):
+
+          \`\`\`
+          ${summary}
+          \`\`\`
+
+          Reapplied via \`scripts/upstream-sync/reapply.sh\` on top of the
+          turbo customizations. Benchmark report attached under
+          \`docs/perf/turbo-vs-baseline-${{ steps.branch.outputs.name }}.json\`.
+
+          Reviewer checklist:
+          - [ ] Conflicts resolved (if any).
+          - [ ] DoD workflow green.
+          - [ ] No regression in benchmark vs previous baseline.
+          - [ ] \`scripts/upstream-sync/sync-state.json\` advanced to the new sha.
+          EOF
+          )
+          gh pr create \
+            --draft \
+            --base main \
+            --head "${{ steps.branch.outputs.name }}" \
+            --title "chore(upstream-sync): daily hermes capture $(date -u +%Y-%m-%d)" \
+            --body "$body" \
+            --label "upstream-sync" \
+          || echo "PR creation failed (possibly duplicate) — see logs"
+
+      - name: Report no-op
+        if: steps.capture.outputs.has_changes != 'true'
+        run: |
+          echo "No new upstream commits since last sync. Nothing to do."

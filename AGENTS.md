@@ -13,8 +13,9 @@ Instructions for AI coding assistants and developers working on the Hermes Turbo
 **Core directive (project mapping):** any code project the agent touches must
 be mapped by `llm-project-mapper` first. The skill at
 `skills/software-development/llm-project-mapper/` is idempotent and tracks
-state in `$TOTA_HOME/mapped_projects.json`. Re-running on a fresh project is a
-no-op.
+state in the active Hermes home, usually `$HERMES_TURBO_HOME/mapped_projects.json`
+or the backward-compatible `~/.hermes-turbo/mapped_projects.json`. Re-running on a
+fresh project is a no-op.
 
 ## Development Environment
 

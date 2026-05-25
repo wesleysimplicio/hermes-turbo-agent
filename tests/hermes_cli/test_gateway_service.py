@@ -506,7 +506,7 @@ class TestLaunchdServiceRecovery:
         ]
 
     def test_gateway_service_bases_can_be_overridden(self, tmp_path, monkeypatch):
-        monkeypatch.delenv("TOTA_HOME", raising=False)
+        monkeypatch.delenv("HERMES_TURBO_HOME", raising=False)
         monkeypatch.delenv("HERMES_HOME", raising=False)
         monkeypatch.setenv("HERMES_GATEWAY_SERVICE_BASE", "hermes2-gateway")
         monkeypatch.setenv("HERMES_LAUNCHD_LABEL_BASE", "ai.hermes2.gateway")

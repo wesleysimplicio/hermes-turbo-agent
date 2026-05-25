@@ -1,34 +1,26 @@
 """Telemetry helpers for Hermes Turbo Agent.
 
-Two coexisting subsystems:
-
-- ``token_savings``: gain analytics for the token-economy budget (issues #81-#103).
-- ``stage_timer``: lightweight runtime performance instrumentation for hot
-  paths plus a CLI dashboard reader (issue #82).
-
-Both are no-dependency and safe for production hot paths.
+Trimmed to the modules that survived the post-mortem benchmark cleanup
+(turbo-vs-baseline). Only ``receipts`` (content-addressable append-only
+ledger from P7) and the deterministic content_hash primitive remain.
 """
 
-from agent.telemetry.token_savings import (
-    TokenSavingRecord,
-    default_log_path,
-    iter_records,
-    record_token_saving,
-)
-from agent.telemetry.stage_timer import (
-    StageTimer,
-    record_stage,
-    set_log_path,
-    get_log_path,
+from agent.telemetry.receipts import (
+    Cost,
+    Receipt,
+    content_hash,
+    default_receipts_dir,
+    lookup_receipt,
+    receipt_path,
+    record_receipt,
 )
 
 __all__ = [
-    "TokenSavingRecord",
-    "default_log_path",
-    "iter_records",
-    "record_token_saving",
-    "StageTimer",
-    "record_stage",
-    "set_log_path",
-    "get_log_path",
+    "Cost",
+    "Receipt",
+    "content_hash",
+    "default_receipts_dir",
+    "lookup_receipt",
+    "receipt_path",
+    "record_receipt",
 ]

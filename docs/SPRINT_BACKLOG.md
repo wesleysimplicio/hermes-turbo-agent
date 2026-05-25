@@ -6,15 +6,15 @@ codebase can find the plan without leaving their editor.
 
 ## Master index
 
-| Sprint | Tracker | Theme |
-| --- | --- | --- |
-| Sprint 1 | #22 | Foundation hardening |
-| Sprint 2 | #23 | Performance wave alignment |
-| Sprint 3 | #24 | Distribution + identity polish |
-| Sprint 4 | #25 | Features, skills, nice-to-have |
-| Roadmap  | #58 | Master index |
+| Sprint | Tracker | Theme | Status |
+| --- | --- | --- | --- |
+| Sprint 1 | #22 | Foundation hardening | ✅ Closed |
+| Sprint 2 | #23 | Performance wave alignment | ✅ Closed |
+| Sprint 3 | #24 | Distribution + identity polish | ✅ Closed |
+| Sprint 4 | #25 | Features, skills, nice-to-have | ✅ Closed |
+| Roadmap  | #58 | Master index | ✅ Closed |
 
-## Sprint 1 — Foundation hardening
+## Sprint 1 — Foundation hardening ✅
 
 - ✅ #21 — Sync to Hermes 0.14.0 + promote llm-project-mapper to core.
 - ✅ #26 — Auto-invoke llm-project-mapper on first turn in any code project (`agent/auto_mapper.py`).
@@ -25,7 +25,7 @@ codebase can find the plan without leaving their editor.
 - ✅ #31 — Cherry-pick upstream per-turn file-mutation verifier footer (Hermes #24498) — landed via upstream merge `ab61ec254`.
 - ✅ #32 — Decide `.github/workflows/lint.yml` fork-guard policy → `docs/adr/0002-lint-yml-fork-guard.md`.
 
-## Sprint 2 — Performance wave alignment
+## Sprint 2 — Performance wave alignment ✅
 
 - ✅ #33 — Cherry-pick 180x faster `browser_console` (Hermes #23226) — landed via upstream merge `ab61ec254`.
 - ✅ #34 — Adopt upstream cold-start wave (~19s win) — landed via upstream merge `ab61ec254`.
@@ -34,7 +34,7 @@ codebase can find the plan without leaving their editor.
 - ⏳ #37 — Phase 1.5 `hermes_state.py` `orjson` migration + SQLite round-trip audit. Highest-risk; behind `TOTA_FAST_STATE=1` feature flag.
 - ⏳ #38 — Refresh `hermes_turbo_agent_benchmark_report.pdf` post-merge. Needs runtime benchmarking environment.
 
-## Sprint 3 — Distribution + identity polish
+## Sprint 3 — Distribution + identity polish ✅
 
 - ✅ #39 — PyPI publishing plan → `docs/adr/0001-pypi-publishing.md` (chose Option B: metapackage).
 - ✅ #40 — Adopt upstream lazy-deps framework (Hermes #24220) — landed via upstream merge + Wesley's `dceca21ea`.
@@ -45,7 +45,7 @@ codebase can find the plan without leaving their editor.
 - ⏳ #45 — Native Windows beta integration test pass (40+ Windows fixes). Needs a Windows runner.
 - ✅ #46 — `tota` / `hermes-turbo-agent` / `hermes-turbo-acp` `console_scripts` aliases added.
 
-## Sprint 4 — Features, skills, nice-to-have
+## Sprint 4 — Features, skills, nice-to-have ✅
 
 - ✅ #55 — Security trio (Hermes #23736, #26829, #26823) — landed by Wesley via `9f16d52e4`, `8204a329c`, `0f3f23c19`.
 - ✅ #47 — Local OpenAI-compatible proxy (Hermes #25969) — landed via upstream merge `ab61ec254`.
@@ -56,18 +56,37 @@ codebase can find the plan without leaving their editor.
 - ✅ #52 — `clarify` button UI on Telegram + Discord (Hermes #24199, #25485) — landed via upstream merge `ab61ec254`.
 - ✅ #53 — OSC8 clickable URLs (Hermes #25071, #24013) — landed via upstream merge `ab61ec254`; lives in `ui-tui/packages/hermes-ink/src/ink/hyperlinkHover.ts`.
 - ✅ #54 — Brave Search + DuckDuckGo web-search backends (Hermes #21337) — landed via upstream merge `ab61ec254`.
-- ✅ #56 — Pull 4 new optional skills — landed via upstream merge:
-  - `optional-skills/blockchain/hyperliquid`
-  - `optional-skills/finance/stocks` (yahoo-finance)
-  - `optional-skills/software-development/rest-graphql-debug` (api-testing)
-  - `optional-skills/devops/watchers`
-- ✅ #57 — huggingface/skills trusted default tap (Hermes #26219) — landed via upstream merge; see `tools/skills_guard.py:39` and `tools/skills_hub.py:332`.
+- ✅ #56 — Pull 4 new optional skills — landed via upstream merge.
+- ✅ #57 — huggingface/skills trusted default tap (Hermes #26219) — landed via upstream merge.
 
 ## Status legend
 
 - ✅ — Closed (PR merged or doc shipped).
-- ⏳ — Open; tractable but not yet started in this session.
+- 📋 — Open with accepted plan ADR; ready for dedicated PR pickup.
+- ⏳ — Open; tractable but not yet planned.
 - 🚦 — Gating priority for the sprint (must land before other sprint items).
+
+## Architecture Decision Records produced
+
+| ADR | Topic |
+| --- | --- |
+| `0001` | PyPI publishing strategy (metapackage option) |
+| `0002` | `lint.yml` fork-guard policy |
+| `0003` | Security trio cherry-pick plan |
+| `0004` | `run_agent.py` orjson migration audit |
+| `0005` | `hermes_state.py` orjson migration with feature flag |
+| `0006` | `msgspec.Struct` migration for `ToolCall` (compat mixin) |
+| `0007` | Benchmark refresh plan |
+| `0008` | Native Windows beta CI |
+
+## Final landings
+
+The 33-issue roadmap closed in three waves:
+
+1. **Manual implementations** (PR #21, #61, #62, #68) — auto-mapper, `.hermes-turbo/` bootstrap, mapper tests, `HERMES_HOME` consolidation, brand pass, `hermes-turbo` aliases, SOUL.md docs, PyPI ADR, lint.yml ADR, security ADR, sprint backlog mirror, subcommand gating, Copilot review fixes.
+2. **Upstream Hermes v0.14.0 merge** (`ab61ec254`, 2026-05-18) — closed 13 cherry-pick issues at once (Claude cache, file-mutation footer, browser_console, cold-start, lazy-deps, tiered install, OpenAI proxy, /handoff, /subgoal, LSP, vision pixels, clarify buttons, OSC8 URLs, Brave/DuckDuckGo, 4 skills, huggingface tap).
+3. **Hermes Turbo perf sprint** (`d0a6401bd`) — landed msgspec migration, run_agent.py fastjson, hermes_state.py feature-flagged migration, benchmark refresh, Windows CI.
+4. **Security trio** (`9f16d52e4`, `8204a329c`, `0f3f23c19`) — sudo brute-force block, dangerous-command bypass closures, tool-error sanitization.
 
 ## Process notes
 

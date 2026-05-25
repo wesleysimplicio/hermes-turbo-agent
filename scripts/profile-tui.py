@@ -43,7 +43,7 @@ except ImportError:
     def get_hermes_home() -> Path:  # type: ignore[misc]
         # Resolution order: TOTA_HOME → HERMES_HOME (legacy) → ~/.hermes_turbo.
         val = (
-            (os.environ.get("TOTA_HOME") or "").strip()
+            (os.environ.get("HERMES_TURBO_HOME") or "").strip()
             or (os.environ.get("HERMES_HOME") or "").strip()
         )
         return Path(val) if val else Path.home() / ".hermes_turbo"

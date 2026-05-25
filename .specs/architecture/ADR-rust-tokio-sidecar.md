@@ -61,7 +61,7 @@ PyO3 + `pyo3-async-runtimes`.
 
 Ship a separate Rust binary speaking gRPC (or Unix-socket length-prefixed
 protobuf). Python gateway becomes a thin proxy when the env var
-`TOTA_GATEWAY_SIDECAR=1` is set; otherwise it stays in-process.
+`HERMES_TURBO_GATEWAY_SIDECAR=1` is set; otherwise it stays in-process.
 
 - Pros: full process isolation (panic != user-visible crash); independent
   release cycle; can be deployed on a different host for horizontal scale;
@@ -104,7 +104,7 @@ follow-up if and only if B fails the panic-isolation gate or if a customer
 emerges who needs horizontal sidecar scaling.
 
 A stays the baseline and shipping default. The sidecar is loaded only when
-`TOTA_FAST_GATEWAY=1` is set; absent the flag, behavior must be
+`HERMES_TURBO_FAST_GATEWAY=1` is set; absent the flag, behavior must be
 byte-identical to today.
 
 ## Consequences

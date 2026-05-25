@@ -205,7 +205,7 @@ uv pip install -e ".[all,dev]"
 ./hermes
 ```
 
-Windows users can use the native PowerShell installer at `scripts/install.ps1`.
+Windows users: native PowerShell installer at `scripts/install.ps1`.
 
 ### Performance Extras
 
@@ -278,18 +278,18 @@ Measured wins on the `codex/hermes-agent-100x-fast` branch. Each row is scoped t
 
 | Path | Speedup vs prior path | Source |
 | --- | --- | --- |
-| Batch session writes (`SessionDB.append_messages`) | ~19.64x in startup benchmark; ~22.10x to ~37.74x across runtime samples vs per-message loop writes | [docs/hermes-100x-fast-regression-log.md](docs/hermes-100x-fast-regression-log.md), [docs/runtime-performance-investigation-2026-05-15.md](docs/runtime-performance-investigation-2026-05-15.md), [scripts/benchmark_runtime_usage.py](scripts/benchmark_runtime_usage.py) |
-| Dead local endpoint preflight (numeric loopback TCP check before HTTP context-length probe) | ~9x-10x faster agent/subagent construction vs the 45-51s preflight baseline (`agent_init_file_terminal`, `agent_init_default_tools`, `delegate_child_build`) | [docs/runtime-performance-investigation-2026-05-15.md](docs/runtime-performance-investigation-2026-05-15.md), [scripts/benchmark_runtime_usage.py](scripts/benchmark_runtime_usage.py) |
-| Parallel tool execution for independent I/O-bound batches (`parallel_tool_batch_sleep`) | ~5.14x-5.55x over the sequential equivalent | [docs/hermes-100x-fast-regression-log.md](docs/hermes-100x-fast-regression-log.md), [docs/runtime-performance-investigation-2026-05-15.md](docs/runtime-performance-investigation-2026-05-15.md), [scripts/benchmark_runtime_usage.py](scripts/benchmark_runtime_usage.py) |
-| Parallel read-file guard fast path (`parallel_guard_read_files`) | ~4.26x faster median per parallel safety decision (~0.1557-0.1673 ms per 8-tool guard) | [docs/runtime-performance-investigation-2026-05-15.md](docs/runtime-performance-investigation-2026-05-15.md), [scripts/benchmark_runtime_usage.py](scripts/benchmark_runtime_usage.py) |
-| OpenRouter model metadata disk cache (`openrouter_metadata_disk_cache`) | ~0.0073s per disk lookup over 500 models; avoids cold `/models` network probe within TTL | [docs/hermes-100x-fast-regression-log.md](docs/hermes-100x-fast-regression-log.md), [scripts/benchmark_runtime_usage.py](scripts/benchmark_runtime_usage.py) |
-| Startup / tool discovery (`import_model_tools`, `discover_plugins_fast`, `tool_discovery_source_scan_adaptive`, `resolve_toolset_cached`) | ~2x-4x range on startup/tool-schema paths; deferred platform plugin imports and persistent built-in tool discovery cache | [docs/hermes-100x-fast-regression-log.md](docs/hermes-100x-fast-regression-log.md), [scripts/benchmark_startup_perf.py](scripts/benchmark_startup_perf.py) |
+| Batch session writes (`SessionDB.append_messages`) | ~19.64× startup; ~22.10×–37.74× runtime vs per-message loop | [docs/hermes-100x-fast-regression-log.md](docs/hermes-100x-fast-regression-log.md), [scripts/benchmark_runtime_usage.py](scripts/benchmark_runtime_usage.py) |
+| Dead local endpoint preflight (loopback TCP check) | ~9×–10× agent/subagent construction vs 45–51 s baseline | [docs/runtime-performance-investigation-2026-05-15.md](docs/runtime-performance-investigation-2026-05-15.md) |
+| Parallel tool execution (`parallel_tool_batch_sleep`) | ~5.14×–5.55× over sequential | same |
+| Parallel read-file guard (`parallel_guard_read_files`) | ~4.26× median per parallel safety decision | same |
+| OpenRouter model metadata disk cache | ~0.0073 s per lookup over 500 models | [docs/hermes-100x-fast-regression-log.md](docs/hermes-100x-fast-regression-log.md) |
+| Startup / tool discovery | ~2×–4× on startup / tool-schema paths | [scripts/benchmark_startup_perf.py](scripts/benchmark_startup_perf.py) |
 
-These are real-agent-runtime measurements (agent construction, subagent build, tool dispatch, session persistence, parallel guard). They are distinct from the JSON/messaging microbenchmarks under [Benchmarks](#benchmarks).
+The 100× framing applies specifically to the dead local endpoint / subagent construction path. Other rows are honest 2×–25× wins on their own paths.
 
-## Benchmarks
+---
 
-Two separate sets of measurements ship in this repo. Keep the distinction sharp when quoting numbers.
+## Side-by-side vs Hermes Original and OpenClaw
 
 ### Latest startup hot-path benchmark (v0.14.4)
 
@@ -326,9 +326,9 @@ Result: **3 wins / 2 losses / 1 tie / 1 blocked**.
 
 ### Micro hot paths
 
-These are isolated per-operation microbenchmarks: JSON dumps/loads, message pipeline, tool-call typed parse, async task scheduling, cold start, RSS. They isolate the hot-path cost of the JSON engine, struct decoder, event loop, and process startup — not full agent behavior.
+Full per-category breakdown: [`docs/perf/hermes-vs-turbo-vs-openclaw.pdf`](docs/perf/hermes-vs-turbo-vs-openclaw.pdf) (9 pages, charts + tables per category).
 
-Harness:
+OpenClaw still leads raw 1000-task scheduling thanks to libuv. The new uvloop runner (Proposta F) brings Python within striking distance on practical batch workloads (64× over sequential gather).
 
 - [scripts/benchmark_hermes_turbo_vs_hermes_0140.py](scripts/benchmark_hermes_turbo_vs_hermes_0140.py) — side-by-side against upstream stock Hermes `0.14.0`.
 - [scripts/benchmark_startup_perf.py](scripts/benchmark_startup_perf.py) — startup/plugin/tool-schema import paths in fresh Python subprocesses.
@@ -398,13 +398,28 @@ The headline rows are summarized in [Runtime Speedups](#runtime-speedups) above.
 Run locally:
 
 ```bash
+# Full segmented turbo benchmark (11 stages, 500 iters):
+uv run python scripts/benchmark_full_turbo_segments.py \
+  --iters 500 --out docs/perf/turbo-full-segments.json
+
+# Render the 11-page turbo PDF:
+uv run --with reportlab python scripts/generate_turbo_full_pdf.py
+# → docs/perf/turbo-full-segments.pdf
+
+# Render the 3-way comparison vs upstream + OpenClaw:
+uv run --with reportlab python scripts/generate_3way_comparison_pdf.py
+# → docs/perf/hermes-vs-turbo-vs-openclaw.pdf
+
+# Inherited 100x-fast regression suite:
 python scripts/benchmark_runtime_usage.py -n 3
 python scripts/benchmark_startup_perf.py -n 3
 ```
 
-The 100x framing applies to the dead local endpoint / subagent construction path that previously waited on HTTP connect timeouts. Other rows are measured 2x-25x range wins on their own paths and are not blanket "Hermes is 100x faster everywhere" claims.
+The CI gate (`.github/workflows/dod.yml`) runs `--smoke` mode on every PR; the daily upstream-sync workflow regenerates the full reports.
 
-## Usage Recommendations
+---
+
+## Usage recommendations
 
 | Scenario | Recommended | Reason |
 | --- | --- | --- |
@@ -419,11 +434,11 @@ The 100x framing applies to the dead local endpoint / subagent construction path
 ## Development
 
 ```bash
-source .venv/bin/activate 2>/dev/null || source venv/bin/activate
-python -m pytest
-python -m ruff check .
-taskflow run .
-```
+# Run the turbo test suite (80 unit tests across surviving + new modules):
+uv run --with pytest python -m pytest -o addopts="" \
+  tests/agent/project_mapper tests/router \
+  tests/agent/telemetry tests/agent/async_dag \
+  tests/agent/tracing tests/agent/providers
 
 For this repository, `taskflow inspect .` detects the Python and Node surfaces
 and `taskflow run .` produces the local validation checklist.

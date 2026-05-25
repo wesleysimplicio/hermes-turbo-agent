@@ -23,8 +23,8 @@ agent's identity message and the hardcoded `DEFAULT_AGENT_IDENTITY` is
 
 The resolution order is:
 
-1. `$TOTA_HOME/SOUL.md` if present.
-2. `$TOTA_HOME/profiles/<active>/SOUL.md` when profile mode is on.
+1. `$HERMES_TURBO_HOME/SOUL.md` if present.
+2. `$HERMES_TURBO_HOME/profiles/<active>/SOUL.md` when profile mode is on.
 3. Fallback to the hardcoded `DEFAULT_AGENT_IDENTITY`.
 
 ## Common customizations
@@ -32,7 +32,7 @@ The resolution order is:
 ### 1. White-label deployment — drop the Hermes Turbo / Hermes brand
 
 ```markdown
-# $TOTA_HOME/SOUL.md
+# $HERMES_TURBO_HOME/SOUL.md
 You are Aria, the in-house AI engineer for Acme Corp. You assist Acme
 engineers with code, infrastructure, and ops tasks. Be direct, accurate,
 and admit uncertainty when relevant.
@@ -56,7 +56,7 @@ creative work, and executing actions via your tools.
 
 This keeps the brand but omits the auto-mapping language. The
 `agent.auto_mapper` runtime hook still runs by default — to also disable
-that, set `TOTA_AUTO_MAP=0` or touch `$TOTA_HOME/.disable_auto_mapper`.
+that, set `HERMES_TURBO_AUTO_MAP=0` or touch `$HERMES_TURBO_HOME/.disable_auto_mapper`.
 
 ### 3. Persona-specific (cron, gateway, ACP)
 
@@ -118,7 +118,7 @@ hermes-turbo dump --component=system_prompt
 | `agent/prompt_builder.py` (`DEFAULT_AGENT_IDENTITY`) | Hardcoded identity when no SOUL.md is present. |
 | `agent/prompt_builder.py` (`load_soul_md`) | Resolves the SOUL.md path and reads contents. |
 | `agent/auto_mapper.py` | Runtime hook that invokes `llm-project-mapper`. |
-| `hermes_constants.py` (`get_hermes_home`) | Defines `$TOTA_HOME` resolution order. |
+| `hermes_constants.py` (`get_hermes_home`) | Defines `$HERMES_TURBO_HOME` resolution order. |
 
 For the upstream Hermes equivalent see
 `NousResearch/hermes-agent`'s `SOUL.md` docs — Hermes Turbo's mechanism is

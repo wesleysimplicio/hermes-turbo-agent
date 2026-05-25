@@ -329,7 +329,7 @@ class TestWebServerEndpoints:
         resp = self.client.get("/api/auth/session-token")
         # The endpoint is gone — the catch-all SPA route serves index.html
         # or the middleware returns 401 for unauthenticated /api/ paths.
-        assert resp.status_code in (200, 404)
+        assert resp.status_code in {200, 404}
         # Either way, it must NOT return the token as JSON
         try:
             data = resp.json()
@@ -356,7 +356,7 @@ class TestWebServerEndpoints:
         # %2e%2e = ..
         resp = self.client.get("/%2e%2e/%2e%2e/etc/passwd")
         # Should return 200 with index.html (SPA fallback), not the actual file
-        assert resp.status_code in (200, 404)
+        assert resp.status_code in {200, 404}
         if resp.status_code == 200:
             # Should be the SPA fallback, not the system file
             assert "root:" not in resp.text
@@ -364,7 +364,7 @@ class TestWebServerEndpoints:
     def test_path_traversal_dotdot_blocked(self):
         """Direct .. path traversal via encoded sequences."""
         resp = self.client.get("/%2e%2e/hermes_cli/web_server.py")
-        assert resp.status_code in (200, 404)
+        assert resp.status_code in {200, 404}
         if resp.status_code == 200:
             assert "FastAPI" not in resp.text  # Should not serve the actual source
 
@@ -558,7 +558,7 @@ class TestConfigRoundTrip:
             if val is None:
                 continue  # not set in user config — fine
             expected = entry["type"]
-            if expected in ("string", "select") and not isinstance(val, str):
+            if expected in {"string", "select"} and not isinstance(val, str):
                 mismatches.append(f"{key}: expected str, got {type(val).__name__}")
             elif expected == "number" and not isinstance(val, (int, float)):
                 mismatches.append(f"{key}: expected number, got {type(val).__name__}")
@@ -1055,7 +1055,7 @@ class TestNewEndpoints:
         """GET /api/auth/session-token no longer exists."""
         resp = self.client.get("/api/auth/session-token")
         # Should not return a JSON token object
-        assert resp.status_code in (200, 404)
+        assert resp.status_code in {200, 404}
         try:
             data = resp.json()
             assert "token" not in data
@@ -2307,29 +2307,19 @@ class TestPtyWebSocket:
     def test_pub_broadcasts_to_events_subscribers(self, monkeypatch):
         """Frame written to /api/pub is rebroadcast verbatim to every
         /api/events subscriber on the same channel."""
-        import time
         from urllib.parse import urlencode
         from hermes_cli import web_server as ws_mod
 
-        qs = urlencode({"token": self.token, "channel": "broadcast-test"})
+        qs = urlencode(
+            {"token": self.token, "channel": "broadcast-test", "ready": "1"}
+        )
         pub_path = f"/api/pub?{qs}"
         sub_path = f"/api/events?{qs}"
 
         with self.client.websocket_connect(sub_path) as sub:
-            # Wait for the subscriber to be registered on the server side.
-            # websocket_connect returns when ws.accept() completes, but the
-            # server adds us to ``_event_channels`` in a follow-up await,
-            # so a publish immediately after connect can race ahead of the
-            # subscriber registration and the message is dropped.
-            deadline = time.monotonic() + 5.0
-            while time.monotonic() < deadline:
-                if ws_mod._event_channels.get("broadcast-test"):
-                    break
-                time.sleep(0.01)
-            else:
-                raise AssertionError(
-                    "subscriber did not register on channel within 5s"
-                )
+            ready = sub.receive_text()
+            assert "events.ready" in ready
+            assert ws_mod._event_channels.get("broadcast-test")
 
             with self.client.websocket_connect(pub_path) as pub:
                 pub.send_text('{"type":"tool.start","payload":{"tool_id":"t1"}}')

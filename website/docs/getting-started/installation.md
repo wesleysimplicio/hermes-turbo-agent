@@ -10,31 +10,6 @@ Get Hermes Agent up and running in under two minutes with the one-line installer
 
 ## Quick Install
 
-### pip (recommended for most users)
-
-```bash
-pip install hermes-agent
-```
-
-This gives you the full Hermes Agent — CLI, web dashboard, and TUI — with zero external dependencies for core usage. Node.js, browser engines, and other optional tools are bootstrapped lazily on first use (e.g. when you run `hermes --tui` or use browser tools).
-
-PyPI releases track **tagged versions** (major and minor releases), not every commit on `main`. If you want bleeding-edge changes as they land, use the git install below.
-
-After installing, run:
-
-```bash
-hermes setup   # interactive wizard — configures your LLM provider and API key
-hermes         # start chatting
-```
-
-:::tip Optional: install everything upfront
-`hermes postinstall` installs Node.js, browser engines, ripgrep, and ffmpeg in one shot — then runs the setup wizard. Use this if you want the full experience (TUI, browser tools, voice) without waiting for lazy installs on first use.
-:::
-
-:::tip
-If you have [uv](https://docs.astral.sh/uv/) installed, `uv pip install hermes-agent` is faster.
-:::
-
 ### One-Line Installer (Linux / macOS / WSL2)
 
 For a git-based install that tracks `main` and gives you the latest changes immediately:
@@ -52,7 +27,7 @@ Native Windows support is **early beta**. It installs and works for the common p
 Open PowerShell and run:
 
 ```powershell
-irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1 | iex
+iex (irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1)
 ```
 
 The installer handles **everything**: `uv`, Python 3.11, Node.js 22, `ripgrep`, `ffmpeg`, **and a portable Git Bash** (PortableGit — a self-contained Git-for-Windows distribution that ships `bash.exe` and the full POSIX toolchain Hermes uses for shell commands; on 32-bit Windows the installer falls back to MinGit, which lacks bash and disables terminal-tool / agent-browser features).  It clones the repo under `%LOCALAPPDATA%\hermes\hermes-agent`, creates a virtualenv, and adds `hermes` to your **User PATH**.  Restart your terminal (or open a new PowerShell window) after the install so PATH picks up.

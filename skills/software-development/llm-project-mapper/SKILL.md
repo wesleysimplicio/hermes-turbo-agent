@@ -63,7 +63,7 @@ The script:
    `npx --yes @wesleysimplicio/llm-project-mapper` inside the project root.
    The mapper writes `AGENTS.md`, `INIT.md`, `_BOOTSTRAP.md`, the `.agents/`,
    `.claude/`, `.codex/`, `.skills/`, `.specs/` directories, and CI hooks.
-4. Records the project fingerprint in `$TOTA_HOME/mapped_projects.json` with
+4. Records the project fingerprint in `$HERMES_TURBO_HOME/mapped_projects.json` with
    the timestamp, git remote (if any), and the mapper version that ran.
 5. Returns a JSON summary on stdout so the agent can decide what to read
    next (typically `AGENTS.md` and `INIT.md`).
@@ -74,7 +74,7 @@ top of every coding session.
 
 ## Memory Contract
 
-Mapped-project state lives in `$TOTA_HOME/mapped_projects.json` so it
+Mapped-project state lives in `$HERMES_TURBO_HOME/mapped_projects.json` so it
 survives across sessions and profiles. Each entry looks like:
 
 ```json

@@ -1,0 +1,34 @@
+{
+  "iters": 500,
+  "stages": [
+    {
+      "name": "project_mapper.detect_fingerprint",
+      "iters": 500,
+      "median_us": 2895.4,
+      "p95_us": 3179.1,
+      "baseline_us": 89232.0,
+      "speedup_x": 30.82,
+      "extra": {
+        "languages": 2.0
+      }
+    },
+    {
+      "name": "router.DeterministicRouter.route",
+      "iters": 500,
+      "median_us": 1.4,
+      "p95_us": 1.5,
+      "baseline_us": 186.6,
+      "speedup_x": 129.68,
+      "extra": {}
+    },
+    {
+      "name": "telemetry.receipts.content_hash",
+      "iters": 500,
+      "median_us": 1.0,
+      "p95_us": 1.0,
+      "baseline_us": 0.7,
+      "speedup_x": 0.76,
+      "extra": {}
+    }
+  ]
+}

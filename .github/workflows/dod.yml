@@ -1,0 +1,73 @@
+name: Definition of Done
+
+# Trimmed gate after the post-mortem benchmark cleanup. Runs only the
+# turbo modules that survived: project_mapper, router, receipts.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dod-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dod:
+    name: dod (turbo gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Lint (ruff, turbo surface only)
+        run: |
+          uv tool run ruff check \
+            agent/project_mapper \
+            agent/router \
+            agent/telemetry/receipts.py \
+            agent/telemetry/tool_replay.py \
+            agent/async_dag \
+            agent/tracing \
+            agent/providers \
+            tests/agent/project_mapper \
+            tests/agent/telemetry/test_receipts.py \
+            tests/agent/telemetry/test_tool_replay.py \
+            tests/router \
+            tests/agent/async_dag \
+            tests/agent/tracing \
+            tests/agent/providers \
+            scripts/benchmark_turbo_vs_baseline.py \
+            scripts/benchmark_full_turbo_segments.py \
+            scripts/generate_turbo_vs_baseline_pdf.py \
+            scripts/generate_turbo_full_pdf.py
+
+      - name: Unit tests (turbo surface + upstream improvements)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          uv run --with pytest python -m pytest -o addopts="" \
+            tests/agent/project_mapper \
+            tests/agent/telemetry/test_receipts.py \
+            tests/agent/telemetry/test_tool_replay.py \
+            tests/router \
+            tests/agent/async_dag \
+            tests/agent/tracing \
+            tests/agent/providers
+
+      - name: Turbo vs baseline benchmark (smoke)
+        run: |
+          uv run python scripts/benchmark_turbo_vs_baseline.py --smoke

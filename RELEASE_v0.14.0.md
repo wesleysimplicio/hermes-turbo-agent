@@ -20,7 +20,7 @@ to a **core onboarding step** for all code projects.
   identical to upstream 0.14.0 (additive customizations only —
   `fast`/`perf` extras, Rust `maturin` dev pin, `tui_dist` package data,
   `acp_adapter/bootstrap` package data).
-- **`TOTA_HOME` is first-class.** The fork already honored `TOTA_HOME`
+- **`HERMES_TURBO_HOME` is first-class.** The fork already honored `HERMES_TURBO_HOME`
   ahead of legacy `HERMES_HOME` in `hermes_constants.py`. This release
   documents that contract and ships project-local defaults under `.hermes_turbo/`.
 - **`llm-project-mapper` is Hermes Turbo core.** New skill at
@@ -73,7 +73,7 @@ Hermes Turbo's speed claim depends on never paying the onboarding tax twice.
 `llm-project-mapper` canonicalizes any code repository into an
 `AGENTS.md` + `INIT.md` + `.specs/` + `.skills/` scaffold the agent can
 read in O(1) on every subsequent visit. The memory file in
-`$TOTA_HOME/mapped_projects.json` remembers which projects have been
+`$HERMES_TURBO_HOME/mapped_projects.json` remembers which projects have been
 mapped — runs after the first are no-ops unless the mapping is older
 than 30 days or `--force` is passed.
 
@@ -101,7 +101,7 @@ The script:
 directive: "for any code project you touch, run the
 `llm-project-mapper` skill first". Operators who want to disable this
 behaviour can override the identity via `SOUL.md` in their
-`$TOTA_HOME`.
+`$HERMES_TURBO_HOME`.
 
 ## Local `.hermes_turbo/` defaults
 
@@ -115,7 +115,7 @@ New repo-local directory `.hermes_turbo/` ships the canonical Hermes Turbo defau
 | `.hermes_turbo/mapped_projects.json` | Empty registry, copied into `$TOTA_HOME` on first run |
 | `.hermes_turbo/README.md` | How resolution and seeding work |
 
-Setup scripts can copy these into the operator's `$TOTA_HOME` to keep
+Setup scripts can copy these into the operator's `$HERMES_TURBO_HOME` to keep
 defaults in sync with the fork.
 
 ## Tests + breakage risk

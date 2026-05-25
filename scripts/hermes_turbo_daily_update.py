@@ -31,6 +31,75 @@ class StepError(RuntimeError):
     """Raised when a command step fails."""
 
 
+class ConflictError(StepError):
+    """Upstream merge produced conflicts that need human resolution."""
+
+    def __init__(self, conflicts: list[str], wip_branch: str) -> None:
+        super().__init__(
+            f"upstream merge needs manual conflict resolution on branch {wip_branch!r}"
+            + (f"\nConflicted files:\n" + "\n".join(conflicts) if conflicts else "")
+        )
+        self.conflicts = conflicts
+        self.wip_branch = wip_branch
+
+
+# Transient git failure markers we should retry on. Anything else aborts immediately.
+_TRANSIENT_NETWORK_MARKERS = (
+    "could not resolve host",
+    "connection timed out",
+    "connection reset",
+    "operation timed out",
+    "early eof",
+    "the remote end hung up",
+    "rpc failed",
+    "ssl_read",
+    "tls",
+    "503",
+    "504",
+)
+
+
+def _looks_transient(stderr: str) -> bool:
+    blob = (stderr or "").lower()
+    return any(marker in blob for marker in _TRANSIENT_NETWORK_MARKERS)
+
+
+def _retry_network(
+    cmd: list[str],
+    *,
+    cwd: Path,
+    attempts: int = 4,
+    backoff: tuple[int, ...] = (2, 4, 8, 16),
+) -> subprocess.CompletedProcess[str]:
+    """Run *cmd* with retries for transient network failures.
+
+    Permanent errors (auth, ref not found, etc.) abort on the first try.
+    """
+    last_result: subprocess.CompletedProcess[str] | None = None
+    for attempt in range(1, attempts + 1):
+        result = _run(cmd, cwd=cwd, check=False)
+        last_result = result
+        if result.returncode == 0:
+            return result
+        if not _looks_transient(result.stderr):
+            raise StepError(
+                f"command failed ({result.returncode}, permanent): {' '.join(cmd)}"
+            )
+        if attempt == attempts:
+            break
+        wait = backoff[min(attempt - 1, len(backoff) - 1)]
+        print(
+            f"[retry] {' '.join(cmd)} failed transiently; sleeping {wait}s "
+            f"before attempt {attempt + 1}/{attempts}",
+            file=sys.stderr,
+        )
+        time.sleep(wait)
+    assert last_result is not None
+    raise StepError(
+        f"command failed after {attempts} transient retries: {' '.join(cmd)}"
+    )
+
+
 def _now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%S%z")
 
@@ -128,10 +197,10 @@ def _prepare_checkout(repo: Path, checkout: Path) -> None:
     _ensure_remote(repo, "upstream", UPSTREAM_URL)
     _remove_old_checkout(checkout)
     checkout.parent.mkdir(parents=True, exist_ok=True)
-    _run(["git", "clone", ORIGIN_URL, str(checkout)], cwd=repo)
+    _retry_network(["git", "clone", ORIGIN_URL, str(checkout)], cwd=repo)
     _ensure_remote(checkout, "upstream", UPSTREAM_URL)
-    _git(checkout, "fetch", "origin", "main", "--prune")
-    _git(checkout, "fetch", "upstream", "main", "--prune")
+    _retry_network(["git", "fetch", "origin", "main", "--prune"], cwd=checkout)
+    _retry_network(["git", "fetch", "upstream", "main", "--prune"], cwd=checkout)
     _git(checkout, "checkout", "-B", "main", "origin/main")
     _git(checkout, "config", "rerere.enabled", "true")
 
@@ -164,15 +233,45 @@ def _run_hermes_update(worktree: Path) -> None:
     )
 
 
-def _merge_upstream(worktree: Path) -> None:
+def _merge_upstream(worktree: Path, base_branch: str, state_dir: Path) -> None:
+    """Merge upstream/main into the worktree.
+
+    On conflict, snapshot the partial state to a dedicated WIP branch so a human
+    can resolve from a known commit instead of from a half-merged working tree.
+    Raises :class:`ConflictError` (exit code 2 via main) with the conflict list.
+    """
     result = _git(worktree, "merge", "--no-edit", "upstream/main", check=False)
     if result.returncode == 0:
         return
-    conflicts = _git(worktree, "diff", "--name-only", "--diff-filter=U", check=False).stdout.strip()
-    raise StepError(
-        "upstream merge needs manual conflict resolution"
-        + (f"\nConflicted files:\n{conflicts}" if conflicts else "")
+    conflicts_raw = _git(
+        worktree, "diff", "--name-only", "--diff-filter=U", check=False
+    ).stdout.strip()
+    conflicts = [line for line in conflicts_raw.splitlines() if line]
+    wip_branch = f"{base_branch}-CONFLICT"
+    # Stage everything (including conflict markers) and commit so the WIP state is
+    # not lost. The commit lives only on the WIP branch, never on `main`.
+    _git(worktree, "add", "-A", check=False)
+    _git(
+        worktree,
+        "commit",
+        "-m",
+        f"WIP: upstream merge conflict during {time.strftime('%Y-%m-%d')} sync",
+        "--allow-empty",
+        "--no-verify",
+        check=False,
     )
+    _git(worktree, "checkout", "-B", wip_branch, check=False)
+    state_dir.mkdir(parents=True, exist_ok=True)
+    (state_dir / "latest-conflicts.md").write_text(
+        "# Upstream Sync Conflicts\n\n"
+        f"- Branch: `{wip_branch}`\n"
+        f"- Worktree: `{worktree}`\n\n"
+        "## Conflicted files\n\n"
+        + ("\n".join(f"- `{f}`" for f in conflicts) if conflicts else "(none reported)\n")
+        + "\n",
+        encoding="utf-8",
+    )
+    raise ConflictError(conflicts, wip_branch)
 
 
 def _create_sync_branch(worktree: Path, branch: str) -> None:
@@ -216,6 +315,7 @@ def _run_validation(worktree: Path, skip_tests: bool) -> None:
 def _run_benchmark_refresh(worktree: Path, state_dir: Path) -> Path:
     python_bin = worktree / ".venv" / "bin" / "python"
     _run([str(python_bin), "scripts/validate_sync_policy.py"], cwd=worktree)
+    _run([str(python_bin), "scripts/check_sync_policy_mirror.py"], cwd=worktree)
     _run([str(python_bin), "scripts/refresh_sync_benchmarks.py", "--python", str(python_bin)], cwd=worktree)
     status_path = worktree / "docs" / "benchmark-refresh-status.json"
     status = json.loads(status_path.read_text(encoding="utf-8"))
@@ -245,7 +345,7 @@ def _assert_hermes_turbo_personality(worktree: Path) -> None:
     checks = {
         "README.md": "Hermes Turbo Agent",
         "pyproject.toml": "msgspec",
-        "hermes_constants.py": "TOTA_HOME",
+        "hermes_constants.py": "HERMES_TURBO_HOME",
         "agent/_fastjson.py": "orjson",
     }
     missing = []
@@ -301,7 +401,7 @@ def main() -> int:
         report["steps"].append("ran hermes update --yes --no-backup inside the sync worktree")
         _create_sync_branch(worktree, branch)
         report["steps"].append("created dated sync branch after hermes update")
-        _merge_upstream(worktree)
+        _merge_upstream(worktree, branch, state_dir)
         report["steps"].append("merged upstream/main from NousResearch/hermes-agent")
         _assert_hermes_turbo_personality(worktree)
         report["steps"].append("verified Hermes Turbo identity and speed customizations are still present")
@@ -314,6 +414,12 @@ def main() -> int:
         report["steps"].append(commit_status)
         report["status"] = "passed"
         return_code = 0
+    except ConflictError as exc:
+        report["status"] = "conflict"
+        report["error"] = str(exc)
+        report["conflicts"] = exc.conflicts
+        report["conflict_branch"] = exc.wip_branch
+        return_code = 2
     except Exception as exc:
         report["status"] = "failed"
         report["error"] = str(exc)
@@ -321,6 +427,17 @@ def main() -> int:
     finally:
         report["finished_at"] = _now()
         _write_report(report, state_dir)
+        # Cleanup: on hard failure, remove the worktree so the next run starts fresh.
+        # Conflict state is preserved (the WIP branch lives in origin if pushed; the
+        # worktree itself can be discarded because the branch SHA is in the report).
+        if report["status"] == "failed":
+            try:
+                shutil.rmtree(worktree, ignore_errors=False)
+            except OSError as cleanup_exc:
+                print(
+                    f"[warn] failed to remove worktree {worktree}: {cleanup_exc}",
+                    file=sys.stderr,
+                )
     return return_code
 
 

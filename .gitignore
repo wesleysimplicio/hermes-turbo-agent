@@ -79,3 +79,7 @@ docs/superpowers/*
 .catalog/hamt.json
 .catalog/receipts/*
 !.catalog/receipts/.gitkeep
+
+# Content-addressed receipts (P7) and upstream-sync working dirs
+.receipts/
+.upstream-sync/

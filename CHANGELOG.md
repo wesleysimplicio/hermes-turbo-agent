@@ -111,3 +111,39 @@ under issues #81–#103. Validation: 183 targeted unit tests pass
 `tests/test_github_compact.py`, `tests/test_evidence_store.py`,
 `tests/test_prompt_cache_stability.py`, `tests/scripts`,
 `tests/eval/compression_safety/runner.py`, `eval/clawbench/runner.py`).
+
+### Added (integration batch: llm-project-mapper + simplicio-prompt)
+
+- **Project fingerprint** (`agent/project_mapper/fingerprint.py`, P1):
+  deterministic stack detection via top-level manifests (Node, Python,
+  Go, Rust, Java/Kotlin, Ruby, PHP, Elixir, Dart, Swift, Deno) plus
+  workspaces and entrypoints. Pure stdlib, O(few hundred KB) of I/O.
+- **Containment contract** (`.hermes-meta.json` + `agent/meta_contract.py`,
+  P2): executable enforcement of `read_only_globs`, `init_must_ask`,
+  `init_must_merge`, `managed_paths` via `fnmatch`.
+- **Prompt sync** (`hermes_cli/prompt_sync.py` +
+  `prompts/runtime/hermes-turbo.md`, P3): multi-IDE injector for 8
+  targets with idempotent `<!-- hermes-turbo:start/end -->` block.
+- **Tuple status envelope** (`agent.contracts.TupleStatusEnvelope`, P4):
+  opt-in bracketed runtime status via `HERMES_RUNTIME_STATUS*` envs.
+  Default silent.
+- **Definition-of-Done CI gate** (`.github/workflows/dod.yml`, P5):
+  ruff + unit suite + compression-safety + clawbench + HAMT + benchmark
+  smoke as a single PR-time gate.
+- **Prompt section extractor** (`hermes_cli/prompt_section.py`, P6):
+  `get_section(text, name)` and CLI for serving sub-prompts to
+  subagents from CLAUDE.md / AGENTS.md.
+- **Content-addressed receipts** (`agent/telemetry/receipts.py`, P7):
+  append-only `.receipts/<sha>.json` with `sha`, `yool_id`, `lane`,
+  `status`, `cost.tokens*`, `ts`, `meta`. Idempotent on re-record.
+- **Turbo vs baseline benchmark** (`scripts/benchmark_turbo_vs_baseline.py`
+  + `docs/perf/turbo-vs-baseline.md`): 9 stages compared against
+  intentionally-naive baselines. Headline wins: `project_mapper` **36.65x**,
+  `router.DeterministicRouter` **157.30x**.
+- **Daily upstream sync** (`.github/workflows/upstream-sync-daily.yml`):
+  cron 06:00 UTC, captures NousResearch/hermes-agent, reapplies over the
+  turbo customisations, regenerates benchmarks, opens a draft PR
+  labelled `upstream-sync`.
+
+Validation: 40 new unit tests pass + 170 legacy turbo unit tests pass
+(was 159 — +11 with this batch).

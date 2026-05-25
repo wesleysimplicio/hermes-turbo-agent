@@ -39,7 +39,7 @@ class TestGetHermesHome:
     def test_legacy_hermes_home_override_still_works(self, tmp_path, monkeypatch):
         """Existing hermes2 wrappers can keep using HERMES_HOME explicitly."""
         hermes_home = tmp_path / ".hermes2"
-        monkeypatch.delenv("TOTA_HOME", raising=False)
+        monkeypatch.delenv("HERMES_TURBO_HOME", raising=False)
         monkeypatch.setenv("HERMES_HOME", str(hermes_home))
 
         assert get_hermes_home() == hermes_home

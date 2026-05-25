@@ -143,7 +143,8 @@ DEFAULT_AGENT_IDENTITY = (
     "Be targeted and efficient in your exploration and investigations.\n\n"
     "Hermes Turbo-core directive — project mapping: for any code project you touch, run "
     "the `llm-project-mapper` skill first (it is idempotent and remembers mapped "
-    "projects in $TOTA_HOME/mapped_projects.json). The mapper installs the "
+    "projects in $HERMES_TURBO_HOME/mapped_projects.json — $HERMES_TURBO_HOME is still "
+    "honored for backward compatibility). The mapper installs the "
     "AGENTS.md ecosystem so every downstream tool — including you — operates with "
     "the same shared context."
 )
@@ -275,12 +276,16 @@ TOOL_USE_ENFORCEMENT_GUIDANCE = (
 
 # Model name substrings that trigger tool-use enforcement guidance.
 # Add new patterns here when a model family needs explicit steering.
-TOOL_USE_ENFORCEMENT_MODELS = ("gpt", "codex", "gemini", "gemma", "grok", "glm")
+TOOL_USE_ENFORCEMENT_MODELS = ("gpt", "codex", "gemini", "gemma", "grok", "glm", "qwen", "deepseek")
 
 # OpenAI GPT/Codex-specific execution guidance.  Addresses known failure modes
 # where GPT models abandon work on partial results, skip prerequisite lookups,
 # hallucinate instead of using tools, and declare "done" without verification.
 # Inspired by patterns from OpenAI's GPT-5.4 prompting guide & OpenClaw PR #38953.
+# Also applied to xAI Grok — same failure modes in practice (claims completion
+# without tool calls, suggests workarounds instead of using existing tools,
+# replies with plans/suggestions instead of executing). The body is
+# family-agnostic; the OPENAI_ prefix reflects origin, not exclusivity.
 OPENAI_MODEL_EXECUTION_GUIDANCE = (
     "# Execution discipline\n"
     "<tool_persistence>\n"
