@@ -480,19 +480,19 @@ def _make_update_side_effect(
     return side_effect, recorded
 
 
-def test_cmd_update_falls_back_to_reset_when_ff_only_fails(monkeypatch, tmp_path, capsys):
-    """When --ff-only fails (diverged history), update resets to origin/{branch}."""
+def test_cmd_update_refuses_reset_when_ff_only_fails(monkeypatch, tmp_path, capsys):
+    """When --ff-only fails (diverged history), update leaves the branch intact."""
     _setup_update_mocks(monkeypatch, tmp_path)
     monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/uv" if name == "uv" else None)
 
     side_effect, recorded = _make_update_side_effect(ff_only_fails=True)
     monkeypatch.setattr(hermes_main.subprocess, "run", side_effect)
 
-    hermes_main.cmd_update(SimpleNamespace())
+    with pytest.raises(SystemExit, match="1"):
+        hermes_main.cmd_update(SimpleNamespace())
 
     reset_calls = [c for c in recorded if "reset" in c and "--hard" in c]
-    assert len(reset_calls) == 1
-    assert reset_calls[0] == ["git", "reset", "--hard", "origin/main"]
+    assert reset_calls == []
 
     out = capsys.readouterr().out
     assert "Fast-forward not possible" in out
@@ -638,11 +638,11 @@ def test_cmd_update_auth_error_shows_friendly_message(monkeypatch, tmp_path, cap
 
 
 # ---------------------------------------------------------------------------
-# reset --hard failure — don't attempt stash restore
+# ff-only failure — don't attempt stash restore
 # ---------------------------------------------------------------------------
 
-def test_cmd_update_skips_stash_restore_when_reset_fails(monkeypatch, tmp_path, capsys):
-    """When reset --hard fails, stash restore is skipped with a helpful message."""
+def test_cmd_update_skips_stash_restore_when_ff_only_fails(monkeypatch, tmp_path, capsys):
+    """When ff-only fails, stash restore is skipped with a helpful message."""
     _setup_update_mocks(monkeypatch, tmp_path)
     # Re-enable stash so it actually returns a ref
     monkeypatch.setattr(

@@ -223,6 +223,12 @@ def recommended_update_command_for_method(method: str) -> str:
         if uv:
             return "uv pip install --upgrade hermes-agent"
         return "pip install --upgrade hermes-agent"
+    invoked = Path(sys.argv[0]).name
+    if invoked in {"hermes", "hermes2", "hermes-turbo"}:
+        return f"{invoked} update"
+    hermes_home_name = Path(os.getenv("HERMES_HOME", "")).name.lower()
+    if hermes_home_name in {".hermes2", "hermes2"}:
+        return "hermes2 update"
     return "hermes update"
 
 

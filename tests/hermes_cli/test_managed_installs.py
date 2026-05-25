@@ -28,9 +28,20 @@ def test_format_managed_message_homebrew(monkeypatch):
 
 def test_recommended_update_command_defaults_to_hermes_update(monkeypatch):
     monkeypatch.delenv("HERMES_MANAGED", raising=False)
+    monkeypatch.delenv("HERMES_HOME", raising=False)
+    monkeypatch.setattr("sys.argv", ["python", "-m", "hermes_cli.main"])
 
     with patch("hermes_cli.config.detect_install_method", return_value="git"):
         assert recommended_update_command() == "hermes update"
+
+
+def test_recommended_update_command_preserves_hermes2_wrapper_name(monkeypatch, tmp_path):
+    monkeypatch.delenv("HERMES_MANAGED", raising=False)
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes2"))
+    monkeypatch.setattr("sys.argv", ["python", "-m", "hermes_cli.main"])
+
+    with patch("hermes_cli.config.detect_install_method", return_value="git"):
+        assert recommended_update_command() == "hermes2 update"
 
 
 def test_cmd_update_blocks_managed_homebrew(monkeypatch, capsys):

@@ -151,8 +151,44 @@ def _check_via_rev(local_rev: str) -> Optional[int]:
     return 0 if upstream_rev == local_rev else UPDATE_AVAILABLE_NO_COUNT
 
 
+def _resolve_origin_update_ref(repo_dir: Path) -> str:
+    """Return the best origin ref for update checks in this checkout."""
+    try:
+        tracking = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            cwd=str(repo_dir),
+        )
+        ref = tracking.stdout.strip()
+        if tracking.returncode == 0 and ref.startswith("origin/"):
+            return ref
+    except Exception:
+        pass
+
+    try:
+        symbolic = subprocess.run(
+            ["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            cwd=str(repo_dir),
+        )
+        prefix = "refs/remotes/origin/"
+        ref = symbolic.stdout.strip()
+        if symbolic.returncode == 0 and ref.startswith(prefix):
+            branch = ref[len(prefix):]
+            if branch:
+                return f"origin/{branch}"
+    except Exception:
+        pass
+
+    return "origin/main"
+
+
 def _check_via_local_git(repo_dir: Path) -> Optional[int]:
-    """Count commits behind origin/main in a local checkout."""
+    """Count commits behind the checkout's origin tracking/default ref."""
     try:
         subprocess.run(
             ["git", "fetch", "origin", "--quiet"],
@@ -163,8 +199,9 @@ def _check_via_local_git(repo_dir: Path) -> Optional[int]:
         pass  # Offline or timeout — use stale refs, that's fine
 
     try:
+        update_ref = _resolve_origin_update_ref(repo_dir)
         result = subprocess.run(
-            ["git", "rev-list", "--count", "HEAD..origin/main"],
+            ["git", "rev-list", "--count", f"HEAD..{update_ref}"],
             capture_output=True, text=True, timeout=5,
             cwd=str(repo_dir),
         )

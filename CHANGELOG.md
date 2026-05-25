@@ -6,6 +6,19 @@ All notable changes to Hermes Turbo Agent are recorded here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `hermes update` on Hermes Turbo fork installs now updates from the current
+  origin tracking branch instead of assuming `origin/main`, then fetches and
+  merges official Hermes (`upstream/main`) with fork changes preserved on top,
+  including automatic fork-side resolution for remaining merge conflicts.
+- Update checks now report fork-origin drift and official-upstream drift
+  separately, avoiding false "behind origin/main" warnings on Hermes2.
+- Git update guidance now preserves the `hermes2 update` command name for
+  Hermes2 wrapper installs.
+- Diverged origin history is no longer repaired with `reset --hard`; the
+  updater leaves the local branch and any saved stash intact for manual review.
+
 ### Added (visibility & migration UX — issues #136-#139)
 
 - **Turbo Score** (`scripts/turbo_score.py`, `docs/turbo-score-baselines.json`,
