@@ -11020,7 +11020,7 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "migrate", "migrate-from-openclaw",
         "model", "pairing", "plugins", "portal", "postinstall", "profile", "proxy",
         "report", "send", "sessions", "setup",
-        "skills", "slack", "status", "tools", "uninstall", "update",
+        "skills", "skillopt", "slack", "status", "tools", "uninstall", "update",
         "version", "webhook", "whatsapp", "chat", "secrets", "security",
         # Help-ish invocations — plugin commands not being listed in
         # top-level --help is an acceptable trade-off for skipping an
@@ -13778,6 +13778,86 @@ Examples:
         return 0
 
     report_parser.set_defaults(func=cmd_report)
+
+    # =========================================================================
+    # skillopt command (SkillOpt — self-evolving skill optimization)
+    # =========================================================================
+    # Optimizes a natural-language SKILL document for a frozen agent via the
+    # Rollout -> Reflect -> Edit -> Gate loop. See agent/skillopt/.
+    skillopt_parser = subparsers.add_parser(
+        "skillopt",
+        help="Optimize a natural-language skill document (SkillOpt)",
+        description=(
+            "Self-evolving skill optimization. Treats a SKILL.md as the "
+            "trainable state and improves it against held-out tasks while the "
+            "model stays frozen (Rollout -> Reflect -> Edit -> Gate)."
+        ),
+    )
+    skillopt_subparsers = skillopt_parser.add_subparsers(dest="skillopt_cmd")
+    skillopt_optimize = skillopt_subparsers.add_parser(
+        "optimize",
+        help="Run the SkillOpt loop on a skill file",
+        description="Optimize a SKILL.md against a task set and write the best skill.",
+    )
+    skillopt_optimize.add_argument(
+        "skill", help="Path to a SKILL.md (or a skill directory containing one)"
+    )
+    skillopt_optimize.add_argument(
+        "--tasks", required=True, help="Path to the tasks JSON file"
+    )
+    skillopt_optimize.add_argument(
+        "--iters", type=int, default=10, help="Max iterations (default 10)"
+    )
+    skillopt_optimize.add_argument(
+        "--budget-ops", type=int, default=3,
+        help="Max edits per iteration (textual learning rate)",
+    )
+    skillopt_optimize.add_argument(
+        "--budget-chars", type=int, default=600,
+        help="Max changed characters per iteration",
+    )
+    skillopt_optimize.add_argument(
+        "--gate-margin", type=float, default=0.0,
+        help="Min validation gain required to accept a candidate",
+    )
+    skillopt_optimize.add_argument(
+        "--threshold", type=float, default=0.6,
+        help="Rollout success threshold for the proxy rollout",
+    )
+    skillopt_optimize.add_argument(
+        "--reflector", choices=["local", "llm"], default="local",
+        help="Reflector backend (default local, fully offline)",
+    )
+    skillopt_optimize.add_argument(
+        "--model", default=None, help="Optimizer model slug for --reflector llm"
+    )
+    skillopt_optimize.add_argument(
+        "--out", default=None, help="Write best skill here (default: best_skill.md)"
+    )
+    skillopt_optimize.add_argument(
+        "--in-place", action="store_true",
+        help="Overwrite the input skill file with the best skill",
+    )
+    skillopt_optimize.add_argument(
+        "--dry-run", action="store_true",
+        help="Run the loop but do not write any file",
+    )
+    skillopt_optimize.add_argument("--json", action="store_true", help="Emit JSON")
+    skillopt_optimize.add_argument(
+        "--seed", type=int, default=0, help="RNG seed for rollout sampling"
+    )
+
+    def cmd_skillopt(args):
+        kind = getattr(args, "skillopt_cmd", None)
+        if kind == "optimize":
+            from hermes_cli.skillopt import cmd_optimize
+            return cmd_optimize(args)
+        print("Usage: hermes skillopt optimize <skill> --tasks <tasks.json> [options]")
+        print()
+        print("Run `hermes skillopt optimize --help` for all options.")
+        return 0
+
+    skillopt_parser.set_defaults(func=cmd_skillopt)
 
     # =========================================================================
     # version command

@@ -1,0 +1,31 @@
+{
+  "train": [
+    {
+      "id": "fn-write",
+      "prompt": "Write a Python function that reads a CSV and returns rows.",
+      "reference": "open file safely validate path parse csv handle errors close file return rows type hints docstring"
+    },
+    {
+      "id": "api-call",
+      "prompt": "Call a REST API and parse the JSON response.",
+      "reference": "build request set timeout handle status codes retry on failure parse json validate schema return result"
+    },
+    {
+      "id": "sql-query",
+      "prompt": "Query a database table for active users.",
+      "reference": "use parameterized query avoid sql injection open connection handle errors close connection return rows"
+    }
+  ],
+  "val": [
+    {
+      "id": "fn-write-val",
+      "prompt": "Write a Python function that reads a CSV and returns rows.",
+      "reference": "open file safely validate path parse csv handle errors close file return rows type hints docstring"
+    },
+    {
+      "id": "sql-query-val",
+      "prompt": "Query a database table for active users.",
+      "reference": "use parameterized query avoid sql injection open connection handle errors close connection return rows"
+    }
+  ]
+}

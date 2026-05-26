@@ -1,5 +1,56 @@
 # Goal Result
 
+## SkillOpt — self-evolving skill optimization (current task)
+
+Implemented **SkillOpt** (https://microsoft.github.io/SkillOpt/) on branch
+`claude/skillopt-implementation-6JVkM`: optimize a compact natural-language
+*skill document* for a **frozen** agent (the skill text is the trainable state;
+weights never change) via the loop **Rollout → Reflect → Edit → Gate**.
+
+Fit for this repo: Hermes' headline feature is a closed learning loop where
+"skills self-improve during use", so SkillOpt slots in as a first-class,
+offline-reproducible optimizer over `SKILL.md` documents.
+
+### What was built
+
+- **`agent/skillopt/`** — the engine, stdlib-only, zero import side effects:
+  - `types.py` — `Task`, `Trajectory`, `EditOp`, `EditBudget` (the *textual
+    learning rate*), `ApplyResult`, `GateDecision`, `IterationLog`,
+    `OptimizationResult`.
+  - `document.py` — `SkillDocument` with bounded `add`/`delete`/`replace` edits;
+    applying edits returns a new document so the gate can validate candidates.
+  - `memory.py` — `RejectedEditBuffer` (negative feedback so punished
+    directions aren't re-proposed) + `MetaSkillMemory` (optimizer-side extended
+    feedback that never bloats the deployed skill).
+  - `reflect.py` — `LocalReflector` (deterministic, mines graded-against terms
+    missing from the skill) + `LLMReflector` (wraps any `complete(prompt)->str`,
+    analyzes success/failure batches independently) + robust `parse_edit_ops`.
+  - `rollout.py` — deterministic `OverlapRollout` proxy target +
+    `complete_via_auxiliary` to wire Hermes' configured model.
+  - `optimizer.py` — `SkillOptimizer`: the 4-stage loop, held-out validation
+    gate, slow updates after validated win streaks, eval cache. Exports only
+    `best_skill`.
+- **CLI** — `hermes skillopt optimize <skill> --tasks <tasks.json>` in
+  `hermes_cli/skillopt.py`, wired into `hermes_cli/main.py` (subparser +
+  `_BUILTIN_SUBCOMMANDS`) and `hermes_cli/commands.py` (slash-command registry).
+- **Docs/example** — `docs/skillopt.md`,
+  `datagen-config-examples/skillopt_tasks.example.json`.
+- **Tests** — `tests/agent/skillopt/{test_document,test_memory,test_reflect,test_optimizer,test_rollout}.py`
+  and `tests/hermes_cli/test_skillopt.py`.
+
+### Validation
+
+| Command | Result |
+|---|---|
+| `pytest tests/agent/skillopt tests/hermes_cli/test_skillopt.py` | **51 passed** |
+| `pytest tests/hermes_cli/test_commands.py tests/hermes_cli/test_kanban_cli.py` | **190 passed** (registry invariants hold) |
+| `hermes skillopt optimize` (example task set) | bare skill **0.13 → 0.61**; gate rejects regressions; slow-update widening visible in the trace |
+
+Pre-existing gateway/slack suite failures in this sandbox are missing
+`pytest-asyncio`, unrelated to this change. No remote push performed.
+
+---
+
 ## Summary
 
 Closed all four open feature issues on `wesleysimplicio/hermes-turbo-agent`:

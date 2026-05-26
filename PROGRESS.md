@@ -2,6 +2,10 @@
 
 ## Current Status
 
+SkillOpt (https://microsoft.github.io/SkillOpt/) implemented on branch
+`claude/skillopt-implementation-6JVkM` (Checkpoint 5 below). 51 new tests
+green; command-registry invariants hold. Earlier work unchanged:
+
 Open issues #136–#139 are implemented on branch
 `claude/project-issues-testing-9boGQ`. Tests added and green. Issue #140
 is a strategic roadmap epic and is intentionally out of scope (parent issue
@@ -68,6 +72,39 @@ Validation:
 - `eval/clawbench/runner.py` -> 5/5.
 - `scripts/benchmark_turbo_vs_baseline.py --iters 300` -> headline
   speedups: `project_mapper` **36.65x**, `router` **157.30x**.
+
+### Checkpoint 5 — SkillOpt (https://microsoft.github.io/SkillOpt/)
+Status: done. Branch `claude/skillopt-implementation-6JVkM`.
+
+Implemented a faithful, dependency-light SkillOpt: optimize a natural-language
+skill document for a frozen agent via Rollout → Reflect → Edit → Gate.
+
+Added:
+- `agent/skillopt/` package:
+  - `types.py` — Task, Trajectory, EditOp, EditBudget (textual learning rate),
+    ApplyResult, GateDecision, IterationLog, OptimizationResult.
+  - `document.py` — `SkillDocument` with bounded add/delete/replace edits.
+  - `memory.py` — `RejectedEditBuffer` (negative feedback) + `MetaSkillMemory`.
+  - `reflect.py` — `LocalReflector` (deterministic) + `LLMReflector` (any
+    `complete(prompt)->str`) + robust `parse_edit_ops`.
+  - `rollout.py` — deterministic `OverlapRollout` proxy + `complete_via_auxiliary`.
+  - `optimizer.py` — `SkillOptimizer`: the 4-stage loop, held-out gate, slow
+    updates, eval cache. Exports only `best_skill`.
+- `hermes_cli/skillopt.py` + `skillopt` subparser in `hermes_cli/main.py`
+  (+ `_BUILTIN_SUBCOMMANDS`) + `CommandDef` in `hermes_cli/commands.py`.
+- `docs/skillopt.md`, `datagen-config-examples/skillopt_tasks.example.json`.
+- Tests: `tests/agent/skillopt/{test_document,test_memory,test_reflect,test_optimizer,test_rollout}.py`
+  + `tests/hermes_cli/test_skillopt.py`.
+
+Validation:
+- `pytest tests/agent/skillopt tests/hermes_cli/test_skillopt.py` → **51 passed**.
+- `pytest tests/hermes_cli/test_commands.py tests/hermes_cli/test_kanban_cli.py`
+  → **190 passed** (command-registry invariants hold with the new entry).
+- Full CLI dispatch verified: `hermes skillopt optimize <skill> --tasks <json>`
+  improves a bare skill (e.g. 0.13 → 0.61 on the example task set), with the
+  gate rejecting regressions and slow-update widening visible in the trace.
+- Gateway/slack suite failures in this sandbox are pre-existing (missing
+  `pytest-asyncio`), unrelated to this change.
 
 ## Blockers
 

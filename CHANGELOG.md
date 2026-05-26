@@ -6,6 +6,24 @@ All notable changes to Hermes Turbo Agent are recorded here. Format follows
 
 ## [Unreleased]
 
+### Added (SkillOpt — self-evolving skill optimization)
+
+- **SkillOpt engine** (`agent/skillopt/`): a faithful, dependency-light
+  implementation of Microsoft Research's
+  [SkillOpt](https://microsoft.github.io/SkillOpt/). Optimizes a natural-language
+  skill document for a *frozen* agent via the Rollout → Reflect → Edit → Gate
+  loop, with bounded edits (a "textual learning rate"), a rejected-edit buffer
+  for negative feedback, slow updates after validated win streaks, meta-skill
+  memory on the optimizer side, and a held-out validation gate. Only the best
+  validated skill is exported. The core is provider-agnostic — inject any
+  `rollout_fn` and `Reflector`.
+- **`hermes skillopt optimize`** (`hermes_cli/skillopt.py`): optimizes a
+  `SKILL.md` against a task set and writes the best skill. Runs fully offline by
+  default (deterministic `OverlapRollout` + heuristic `LocalReflector`); pass
+  `--reflector llm` to drive the Reflect/Edit stage with the configured
+  auxiliary model (graceful fallback to local). Docs in `docs/skillopt.md`,
+  example task set in `datagen-config-examples/skillopt_tasks.example.json`.
+
 ### Fixed
 
 - `hermes update` on Hermes Turbo fork installs now updates from the current
