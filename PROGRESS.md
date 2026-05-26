@@ -10,6 +10,24 @@ is unchanged.
 
 ## Checkpoints
 
+### Checkpoint 5 — `using-superpowers` skill (branch `claude/superpowers-skill-VJddB`)
+Status: done.
+Added the core obra/superpowers entry-point skill
+`skills/software-development/using-superpowers/SKILL.md` (adapted to the Hermes
+agent: `skill_view`/`delegate_task`, repo instruction priority). It establishes
+"check for an applicable skill before any response/action" and ties together the
+already-adapted `writing-plans`, `subagent-driven-development`,
+`systematic-debugging`, `test-driven-development`, `requesting-code-review`
+skills. The other superpowers skills (brainstorming, executing-plans,
+dispatching-parallel-agents, receiving-code-review, using-git-worktrees,
+finishing-a-development-branch, verification-before-completion, writing-skills)
+remain unported and out of scope for this change.
+
+Validation (all green):
+- `tools.skill_manager_tool._validate_frontmatter` / `_validate_content_size` → OK (desc 99 chars).
+- `website/scripts/generate-skill-docs.py::mdx_escape_body` runs clean (no box-drawing chars, no ascii-guard wrap needed).
+- `pytest tests/website/test_generate_skill_docs.py tests/tools/test_skill_manager_tool.py` → **93 passed**.
+
 ### Checkpoint 1 — Scoping
 Status: done.
 Audited the repo: `agent/telemetry/`, `scripts/`, `hermes_cli/web_server.py`,
