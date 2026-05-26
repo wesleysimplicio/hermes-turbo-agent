@@ -17,6 +17,34 @@ import sys
 __version__ = "0.15.1"
 __release_date__ = "2026.5.25"
 
+_MIN_PYTHON = (3, 11)
+
+
+def _assert_python_version(current=None, min_version=_MIN_PYTHON, exit_fn=sys.exit):
+    """Fail fast with a friendly message on unsupported Python versions.
+
+    The package uses 3.10+ syntax (`X | None`) that raises an opaque
+    TypeError on import under older interpreters. Surface a clear error.
+    """
+    info = current if current is not None else sys.version_info
+    if tuple(info[:2]) < min_version:
+        running = ".".join(str(p) for p in info[:3])
+        required = ".".join(str(p) for p in min_version)
+        sys.stderr.write(
+            "hermes-agent requires Python "
+            + required
+            + "+ (found "
+            + running
+            + ").\nInstall Python "
+            + required
+            + " or newer and re-run.\n"
+        )
+        return exit_fn(1)
+    return None
+
+
+_assert_python_version()
+
 
 def _ensure_utf8():
     """Force UTF-8 stdout/stderr on Windows to prevent UnicodeEncodeError.

@@ -23,7 +23,9 @@ from hermes_cli.auth import (
     _xai_callback_cors_origin,
     _xai_oauth_build_authorize_url,
     _xai_start_callback_server,
+    _xai_validate_inference_base_url,
     _xai_validate_loopback_redirect_uri,
+    format_auth_error,
     get_xai_oauth_auth_status,
     refresh_xai_oauth_pure,
     resolve_provider,
@@ -554,6 +556,134 @@ def test_resolve_xai_runtime_credentials_honours_env_base_url(tmp_path, monkeypa
 
 
 # ---------------------------------------------------------------------------
+# Inference base-URL host guard (xai-oauth bearer leak protection)
+#
+# The xAI OAuth bearer is a high-value, long-lived SuperGrok credential.
+# ``XAI_BASE_URL`` / ``HERMES_XAI_BASE_URL`` are a credential-leak vector
+# unless the host is pinned to the xAI origin. These tests cover the
+# accept/reject matrix for `_xai_validate_inference_base_url` and confirm
+# the runtime resolver falls back to the default on rejection rather than
+# leaking the bearer to an attacker-controlled endpoint.
+# ---------------------------------------------------------------------------
+
+
+def test_xai_inference_base_url_accepts_default():
+    assert (
+        _xai_validate_inference_base_url(
+            "https://api.x.ai/v1", fallback=DEFAULT_XAI_OAUTH_BASE_URL,
+        )
+        == "https://api.x.ai/v1"
+    )
+
+
+def test_xai_inference_base_url_accepts_bare_apex():
+    assert (
+        _xai_validate_inference_base_url(
+            "https://x.ai/v1", fallback=DEFAULT_XAI_OAUTH_BASE_URL,
+        )
+        == "https://x.ai/v1"
+    )
+
+
+def test_xai_inference_base_url_accepts_subdomain():
+    assert (
+        _xai_validate_inference_base_url(
+            "https://custom.x.ai/v1", fallback=DEFAULT_XAI_OAUTH_BASE_URL,
+        )
+        == "https://custom.x.ai/v1"
+    )
+
+
+def test_xai_inference_base_url_strips_trailing_slash():
+    assert (
+        _xai_validate_inference_base_url(
+            "https://api.x.ai/v1/", fallback=DEFAULT_XAI_OAUTH_BASE_URL,
+        )
+        == "https://api.x.ai/v1"
+    )
+
+
+def test_xai_inference_base_url_empty_returns_fallback():
+    assert (
+        _xai_validate_inference_base_url("", fallback=DEFAULT_XAI_OAUTH_BASE_URL)
+        == DEFAULT_XAI_OAUTH_BASE_URL
+    )
+    assert (
+        _xai_validate_inference_base_url("   ", fallback=DEFAULT_XAI_OAUTH_BASE_URL)
+        == DEFAULT_XAI_OAUTH_BASE_URL
+    )
+
+
+def test_xai_inference_base_url_rejects_off_origin_host():
+    # The headline attack: env var pointing at an attacker-controlled host.
+    result = _xai_validate_inference_base_url(
+        "https://attacker.example/v1", fallback=DEFAULT_XAI_OAUTH_BASE_URL,
+    )
+    assert result == DEFAULT_XAI_OAUTH_BASE_URL
+
+
+def test_xai_inference_base_url_rejects_suffix_lookalike():
+    # ``api.x.ai.example`` ends in ``.example``, not ``.x.ai``. urlparse picks
+    # the full host as the hostname, and the suffix check uses ``.x.ai`` (with
+    # leading dot) so a lookalike like ``apix.ai`` or ``api.x.ai.evil.com``
+    # is rejected.
+    for hostile in (
+        "https://api.x.ai.evil.com/v1",
+        "https://apix.ai/v1",
+        "https://x.ai.evil.com/v1",
+    ):
+        assert (
+            _xai_validate_inference_base_url(
+                hostile, fallback=DEFAULT_XAI_OAUTH_BASE_URL,
+            )
+            == DEFAULT_XAI_OAUTH_BASE_URL
+        ), hostile
+
+
+def test_xai_inference_base_url_rejects_http():
+    # http:// would put the bearer on the wire in cleartext.
+    assert (
+        _xai_validate_inference_base_url(
+            "http://api.x.ai/v1", fallback=DEFAULT_XAI_OAUTH_BASE_URL,
+        )
+        == DEFAULT_XAI_OAUTH_BASE_URL
+    )
+
+
+def test_xai_inference_base_url_rejects_other_schemes():
+    for hostile in (
+        "ftp://api.x.ai/v1",
+        "file:///etc/passwd",
+        "javascript:alert(1)",
+    ):
+        assert (
+            _xai_validate_inference_base_url(
+                hostile, fallback=DEFAULT_XAI_OAUTH_BASE_URL,
+            )
+            == DEFAULT_XAI_OAUTH_BASE_URL
+        ), hostile
+
+
+def test_resolve_xai_runtime_credentials_rejects_off_origin_env_base_url(tmp_path, monkeypatch, caplog):
+    # The end-to-end guarantee: if the env var points at an attacker host,
+    # the resolver MUST silently fall back to the default rather than ship
+    # the OAuth bearer to the attacker.
+    hermes_home = tmp_path / "hermes"
+    fresh = _jwt_with_exp(int(time.time()) + 3600)
+    _setup_hermes_auth(hermes_home, access_token=fresh)
+    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("XAI_BASE_URL", "https://attacker.example/v1")
+    monkeypatch.delenv("HERMES_XAI_BASE_URL", raising=False)
+
+    with caplog.at_level("WARNING"):
+        creds = resolve_xai_oauth_runtime_credentials()
+    assert creds["base_url"] == DEFAULT_XAI_OAUTH_BASE_URL
+    assert any(
+        "attacker.example" in record.getMessage() for record in caplog.records
+    ), "Expected a warning identifying the rejected override host."
+
+
+# ---------------------------------------------------------------------------
 # Quarantine: terminal refresh failure clears dead tokens (#28155 sibling)
 # ---------------------------------------------------------------------------
 
@@ -730,6 +860,53 @@ def test_refresh_xai_oauth_pure_no_relogin_on_500(monkeypatch):
         )
     assert exc.value.code == "xai_refresh_failed"
     assert exc.value.relogin_required is False
+
+
+def test_refresh_xai_oauth_pure_403_marked_tier_denied_not_relogin(monkeypatch):
+    """403 from xAI's token endpoint is tier/entitlement, not stale tokens.
+
+    Regression test for #26847 — xAI's backend has been seen to 403
+    standard SuperGrok subscribers despite the in-app subscription
+    being active. Re-running ``hermes model`` won't help in that
+    case, so the AuthError must NOT set ``relogin_required=True``,
+    and must carry the dedicated ``xai_oauth_tier_denied`` code so
+    ``format_auth_error`` doesn't append the misleading re-auth hint.
+    """
+    response = _StubHTTPResponse(403, {"error": "permission_denied"})
+    _patch_httpx_client(monkeypatch, response)
+    with pytest.raises(AuthError) as exc:
+        refresh_xai_oauth_pure(
+            "at", "rt", token_endpoint="https://auth.x.ai/oauth2/token"
+        )
+    assert exc.value.code == "xai_oauth_tier_denied"
+    assert exc.value.relogin_required is False
+    message = str(exc.value).lower()
+    assert "403" in message
+    assert "xai_api_key" in message
+    assert "tier" in message
+
+
+def test_format_auth_error_tier_denied_does_not_suggest_relogin():
+    """``xai_oauth_tier_denied`` must not append the re-authenticate hint.
+
+    Regression for #26847: telling a tier-gated user to ``hermes model``
+    is actively wrong — re-logging in won't change xAI's allowlist
+    decision. The full message (with ``XAI_API_KEY`` fallback) is built
+    into the error itself.
+    """
+    err = AuthError(
+        "xAI token refresh failed with HTTP 403. Response: forbidden. "
+        "This OAuth account is not authorized for xAI API access — "
+        "xAI may be restricting API/OAuth use to specific SuperGrok tiers. "
+        "Set ``XAI_API_KEY`` and switch to ``provider: xai``.",
+        provider="xai-oauth",
+        code="xai_oauth_tier_denied",
+        relogin_required=False,
+    )
+    rendered = format_auth_error(err)
+    assert "re-authenticate" not in rendered.lower()
+    assert "hermes model" not in rendered.lower()
+    assert "XAI_API_KEY" in rendered
 
 
 def test_refresh_xai_oauth_pure_returns_updated_tokens(monkeypatch):

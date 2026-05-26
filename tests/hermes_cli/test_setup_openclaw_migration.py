@@ -404,6 +404,11 @@ class TestGetSectionConfigSummary:
         assert result == "max turns: 120"
 
     def test_gateway_returns_none_without_tokens(self):
+        # _platform_status reads via hermes_cli.gateway.get_env_value, not
+        # setup_mod.get_env_value, so patch BOTH. Without the second patch,
+        # any environment-variable token (or one leaked in by a sibling
+        # test on the same xdist worker) makes the gateway section report
+        # platforms-configured and the test sees a non-None summary.
         import hermes_cli.gateway as gateway_mod
         with patch.object(setup_mod, "get_env_value", return_value=""), \
              patch.object(gateway_mod, "get_env_value", return_value=""):
@@ -611,8 +616,6 @@ class TestSetupWizardSkipsConfiguredSections:
         Simulates the real flow: get_env_value returns "" during the is_existing
         check (before migration), then returns a key after migration imported it.
         """
-        import hermes_cli.gateway as gateway_mod
-
         args = _first_time_args()
 
         # Track whether migration has "run" — after it does, API key is available
@@ -628,6 +631,13 @@ class TestSetupWizardSkipsConfiguredSections:
             return True
 
         reloaded_config = {"model": "openai/gpt-4"}
+
+        # _platform_status (called by the gateway summary path) reads env
+        # vars via hermes_cli.gateway.get_env_value, NOT setup_mod's. Patch
+        # both so xdist sibling tests can't leak a TELEGRAM_BOT_TOKEN /
+        # WHATSAPP_* / etc. through and trick the wizard into thinking the
+        # gateway section is already configured (which would skip it).
+        import hermes_cli.gateway as gateway_mod
 
         with (
             patch.object(setup_mod, "ensure_hermes_home"),

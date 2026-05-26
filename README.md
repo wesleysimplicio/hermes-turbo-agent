@@ -1,474 +1,215 @@
-# Hermes Turbo Agent
-
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
-  <img src="https://img.shields.io/badge/Version-v0.14.4-19D27F?style=for-the-badge" alt="Version v0.14.4">
-  <img src="https://img.shields.io/badge/Turbo%20Score-62.78%20%2F%20100-FFE15A?style=for-the-badge" alt="Turbo Score 62.78 / 100">
-  <a href="https://github.com/NousResearch/hermes-agent"><img src="https://img.shields.io/badge/Upstream-Hermes%20Agent-FF5D6C?style=for-the-badge" alt="Hermes Agent upstream"></a>
+  <img src="assets/banner.png" alt="Hermes Agent" width="100%">
 </p>
 
-**Hermes Turbo Agent is a performance-focused fork of [Hermes Agent](https://github.com/NousResearch/hermes-agent)** — tuned for low-latency JSON, faster async I/O, typed tool-call parsing, and Rust-ready hot paths. It keeps the upstream Hermes Agent operating model while adding a token-economy stack, an interactive performance dashboard, and a Turbo Score that summarises the whole thing in one number.
+# Hermes Agent ☤
 
-## What's new in v0.14.4 (2026-05-22)
+<p align="center">
+  <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
+  <a href="https://discord.gg/NousResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://github.com/NousResearch/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
+  <a href="https://nousresearch.com"><img src="https://img.shields.io/badge/Built%20by-Nous%20Research-blueviolet?style=for-the-badge" alt="Built by Nous Research"></a>
+  <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
+</p>
 
-Four issues closed in [PR #141](https://github.com/wesleysimplicio/hermes-turbo-agent/pull/141):
+**The self-improving AI agent built by [Nous Research](https://nousresearch.com).** It's the only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, searches its own past conversations, and builds a deepening model of who you are across sessions. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle. It's not tied to your laptop — talk to it from Telegram while it works on a cloud VM.
 
-- **Turbo Score** (`#136`) — single 0–100 figure of merit combining latency, throughput, memory, cold-start and token-savings. Refreshed daily by `.github/workflows/daily-turbo-score.yml`.
-- **`/perf` web dashboard** (`#137`) — interactive view on top of `hermes dashboard` with three JSON endpoints (`/api/perf/{stage_summary,token_savings,turbo_score}`).
-- **`hermes report savings`** (`#138`) — weekly Token Savings Report with USD cost estimates per adapter.
-- **`hermes migrate-from-openclaw --benchmark`** (`#139`) — guided OpenClaw migration with a side-by-side performance comparison.
+Use any model you want — [Nous Portal](https://portal.nousresearch.com), [OpenRouter](https://openrouter.ai) (200+ models), [NovitaAI](https://novita.ai) (AI-native cloud for Model API, Agent Sandbox, and GPU Cloud), [NVIDIA NIM](https://build.nvidia.com) (Nemotron), [Xiaomi MiMo](https://platform.xiaomimimo.com), [z.ai/GLM](https://z.ai), [Kimi/Moonshot](https://platform.moonshot.ai), [MiniMax](https://www.minimax.io), [Hugging Face](https://huggingface.co), OpenAI, or your own endpoint. Switch with `hermes model` — no code changes, no lock-in.
 
-Reports shipped with this release:
+<table>
+<tr><td><b>A real terminal interface</b></td><td>Full TUI with multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output.</td></tr>
+<tr><td><b>Lives where you do</b></td><td>Telegram, Discord, Slack, WhatsApp, Signal, and CLI — all from a single gateway process. Voice memo transcription, cross-platform conversation continuity.</td></tr>
+<tr><td><b>A closed learning loop</b></td><td>Agent-curated memory with periodic nudges. Autonomous skill creation after complex tasks. Skills self-improve during use. FTS5 session search with LLM summarization for cross-session recall. <a href="https://github.com/plastic-labs/honcho">Honcho</a> dialectic user modeling. Compatible with the <a href="https://agentskills.io">agentskills.io</a> open standard.</td></tr>
+<tr><td><b>Scheduled automations</b></td><td>Built-in cron scheduler with delivery to any platform. Daily reports, nightly backups, weekly audits — all in natural language, running unattended.</td></tr>
+<tr><td><b>Delegates and parallelizes</b></td><td>Spawn isolated subagents for parallel workstreams. Write Python scripts that call tools via RPC, collapsing multi-step pipelines into zero-context-cost turns.</td></tr>
+<tr><td><b>Runs anywhere, not just your laptop</b></td><td>Seven terminal backends — local, Docker, SSH, Singularity, Modal, Daytona, and Vercel Sandbox. Daytona and Modal offer serverless persistence — your agent's environment hibernates when idle and wakes on demand, costing nearly nothing between sessions. Run it on a $5 VPS or a GPU cluster.</td></tr>
+<tr><td><b>Research-ready</b></td><td>Batch trajectory generation, trajectory compression for training the next generation of tool-calling models.</td></tr>
+</table>
 
-- [RELEASE_v0.14.4.md](RELEASE_v0.14.4.md) — full release notes and validation matrix.
-- [docs/three-way-comparison-v0.14.4.md](docs/three-way-comparison-v0.14.4.md) — Hermes 0.14.0 × **Hermes Turbo** × OpenClaw, 15 sections.
-- [docs/three-way-comparison-v0.14.4.pdf](docs/three-way-comparison-v0.14.4.pdf) — 4-page A4 PDF version of the three-way comparison.
-- [docs/hermes-turbo-v0.14.4-perf-report.pdf](docs/hermes-turbo-v0.14.4-perf-report.pdf) — Turbo Score + side-by-side + fresh startup benchmark, single-page PDF.
-- [docs/turbo-score-latest.md](docs/turbo-score-latest.md) — Markdown perf snapshot.
+---
 
-## Turbo Score
+## Quick Install
 
-| Family       | Weight | Raw  | Weighted | Metrics |
-| ---          | ---:   | ---: | ---:     | ---:    |
-| latency      | 30     | 0.10 | 3.15     | 3       |
-| throughput   | 20     | 1.00 | 20.00    | 1       |
-| cold_start   | 15     | 0.81 | 12.08    | 1       |
-| memory       | 15     | 1.00 | 15.00    | 1       |
-
-**Score: 62.78 / 100** (token_savings family dropped — log empty on this build).
-
-Reproduce locally:
+### Linux, macOS, WSL2, Termux
 
 ```bash
-python scripts/turbo_score.py            # ASCII report
-python scripts/turbo_score.py --markdown # README-ready
-python scripts/turbo_score.py --json     # machine-readable
+curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
 ```
 
-## Why Hermes Turbo
+### Windows (native, PowerShell) — Early Beta
 
-| Need | Answer |
-| --- | --- |
-| Keep upstream Hermes compatibility | Forks Hermes Agent instead of replacing its architecture. |
-| Reduce message hot-path cost | Uses `orjson` / `msgspec` / Rust-ready paths measured in the benchmark. |
-| Improve async responsiveness | Uses `uvloop` for Python I/O scheduling where supported. |
-| Track real spend | Token-savings ledger + `hermes report savings` weekly report. |
-| Compare against alternatives | Side-by-side measurements vs upstream Hermes and OpenClaw. |
-| Migrate from OpenClaw safely | `hermes migrate-from-openclaw --benchmark` with rollback-friendly snapshots. |
+> **Heads up:** Native Windows support is **early beta**. It installs and runs, but hasn't been road-tested as broadly as our Linux/macOS/WSL2 paths. Please [file issues](https://github.com/NousResearch/hermes-agent/issues) when you hit rough edges. For the most battle-tested Windows setup today, run the Linux/macOS one-liner above inside **WSL2**.
 
-## Three-way comparison — Hermes 0.14.0 × Hermes Turbo × OpenClaw
+Run this in PowerShell:
 
-**Full report (v0.14.4):** [Markdown](docs/three-way-comparison-v0.14.4.md) · [PDF](docs/three-way-comparison-v0.14.4.pdf).
-
-### Final scoreboard (battle cards)
-
-Each category scored 0–5; higher is better. The **Hermes Turbo** column is highlighted as the headline winner (44 / 50 total).
-
-| Category               | Hermes Original | **Hermes Turbo** | OpenClaw |
-| ---                    | ---:            | ---:              | ---:     |
-| JSON performance       | 2 / 5           | **5 / 5**         | 4 / 5    |
-| Memory                 | **5 / 5**       | **5 / 5**         | 2 / 5    |
-| Message throughput     | 2 / 5           | **5 / 5**         | 4 / 5    |
-| Tool-call parsing      | 1 / 5           | **5 / 5**         | 4 / 5    |
-| Token counting         | 3 / 5           | 3 / 5             | **4 / 5**|
-| Concurrency / async    | 3 / 5           | 4 / 5             | **5 / 5**|
-| Startup / cold start   | 4 / 5           | **5 / 5**         | 2 / 5    |
-| Integrations           | 3 / 5           | 3 / 5             | **5 / 5**|
-| Library ecosystem      | 2 / 5           | **5 / 5**         | 4 / 5    |
-| Disk footprint         | **5 / 5**       | 4 / 5             | 2 / 5    |
-| **TOTAL**              | **30 / 50**     | **44 / 50** 🏆    | **36 / 50** |
-
-### Headline metrics (lower is better unless noted)
-
-| Metric                          | Hermes Original | Hermes Turbo    | OpenClaw     | Winner |
-| ---                             | ---:            | ---:            | ---:         | ---    |
-| JSON dumps, large payload       | 18.40 us        | **3.20 us**     | 5.80 us      | Hermes Turbo |
-| JSON loads, large payload       | 12.80 us        | **2.80 us**     | 5.20 us      | Hermes Turbo |
-| Medium message latency          | 7.50 us         | **2.20 us**     | 3.46 us      | Hermes Turbo |
-| Medium message throughput ↑     | 133k msg/s      | **454k msg/s**  | 289k msg/s   | Hermes Turbo |
-| Tool-call typed parse           | Error / N/A     | **0.45 us**     | N/A          | Hermes Turbo |
-| 1,000 async tasks               | 2.50 ms         | 1.40 ms         | **0.08 ms**  | OpenClaw |
-| Cold start total                | ~52 ms          | **~50 ms**      | ~280 ms      | Hermes Turbo |
-| RSS memory                      | **~30 MB**      | **~30 MB**      | ~97 MB       | Python variants |
-
-### System & architecture
-
-| Attribute       | Hermes Original         | Hermes Turbo                          | OpenClaw                                  |
-| ---             | ---                     | ---                                   | ---                                       |
-| Language        | Python 3.14             | Python 3.11.14                        | TypeScript / Node.js 22                   |
-| JSON engine     | stdlib `json`           | `orjson`                              | V8 built-in JSON                          |
-| Event loop      | `asyncio`               | `uvloop`                              | `libuv`                                   |
-| Struct decode   | none                    | `msgspec`                             | none                                      |
-| Native ext.     | none                    | Rust / PyO3 ready                     | none                                      |
-| Tool-call path  | `json.loads`            | Rust + `orjson` + `msgspec`           | `JSON.parse`                              |
-| Packaging       | pip / venv              | pip / venv + Rust `.so`               | npm / node_modules                        |
-
-### JSON serialization — `dumps`
-
-| Payload size  | Hermes 0.14.0 | Hermes Turbo | OpenClaw | Turbo vs Hermes |
-| ---           | ---:          | ---:         | ---:     | ---:            |
-| Short ~50 B   | 1.29 us       | **0.21 us**  | 0.17 us  | **6.1x**        |
-| Medium ~600 B | 3.38 us       | **0.80 us**  | 1.00 us  | **4.2x**        |
-| Large ~50 KB  | 18.40 us      | **3.20 us**  | 5.80 us  | **5.8x**        |
-
-### JSON serialization — `loads`
-
-| Payload size  | Hermes 0.14.0 | Hermes Turbo | OpenClaw | Turbo vs Hermes |
-| ---           | ---:          | ---:         | ---:     | ---:            |
-| Short ~50 B   | 0.62 us       | **0.30 us**  | 0.33 us  | **2.1x**        |
-| Medium ~600 B | 2.90 us       | **1.30 us**  | 2.29 us  | **2.2x**        |
-| Large ~50 KB  | 12.80 us      | **2.80 us**  | 5.20 us  | **4.6x**        |
-
-### Memory
-
-| Metric                                   | Hermes Original | Hermes Turbo | OpenClaw |
-| ---                                      | ---:            | ---:         | ---:     |
-| `json.dumps` medium heap / 1k calls      | ~420 KB         | ~180 KB      | **~160 KB** |
-| `json.loads` medium heap / 1k calls      | ~380 KB         | **~140 KB**  | ~200 KB     |
-| `msgspec` encode medium heap / 1k calls  | N/A             | ~95 KB       | N/A         |
-| Process RSS                              | **~30 MB**      | **~30 MB**   | ~97 MB      |
-| Disk footprint                           | ~10 MB          | ~15 MB       | ~200 MB     |
-
-### Message pipeline
-
-| Pipeline metric            | Hermes Original | Hermes Turbo | OpenClaw | Turbo vs Hermes |
-| ---                        | ---:            | ---:         | ---:     | ---:            |
-| Short message latency      | 2.10 us         | **0.55 us**  | 0.55 us  | **3.8x**        |
-| Medium message latency     | 7.50 us         | **2.20 us**  | 3.46 us  | **3.4x**        |
-| Short message throughput   | 476k msg/s      | **1.82M/s**  | 1.82M/s  | **3.8x**        |
-| Medium message throughput  | 133k msg/s      | **454k/s**   | 289k/s   | **3.4x**        |
-
-### Tool-call parsing
-
-| Method                          | Hermes Original | Hermes Turbo | OpenClaw |
-| ---                             | ---:            | ---:         | ---:     |
-| JSON parse path                 | ERROR           | 1.30 us      | **0.54 us** |
-| `orjson.loads`                  | N/A             | 1.00 us      | N/A         |
-| `msgspec` ToolCall struct       | N/A             | **0.45 us**  | N/A         |
-| Rust `parse_tool_call_delta`    | N/A             | **~0.40 us** | N/A         |
-| Typed throughput                | N/A             | **~2.5M/s**  | ~1.85M/s    |
-
-### Tokens, async, startup
-
-| Metric                | Hermes Original | Hermes Turbo | OpenClaw     | Winner       |
-| ---                   | ---:            | ---:         | ---:         | ---          |
-| Fast token estimate   | 0.12 us         | 0.10 us      | **0.04 us**  | OpenClaw     |
-| Token throughput      | 8.3M texts/s    | 10M texts/s  | **25M/s**    | OpenClaw     |
-| 1,000 async tasks     | 2.50 ms         | 1.40 ms      | **0.08 ms**  | OpenClaw     |
-| Async batches/s       | 400/s           | 714/s        | **12,500/s** | OpenClaw     |
-| Cold start total      | ~52 ms          | **~50 ms**   | ~280 ms      | Hermes Turbo |
-
-### Live side-by-side vs upstream Hermes 0.14.0 (measured 2026-05-19)
-
-OpenClaw was not part of this run (separate harness). Source: [`docs/hermes-turbo-benchmark-hermes-0.14.0.json`](docs/hermes-turbo-benchmark-hermes-0.14.0.json).
-
-| Row                                | Hermes 0.14.0 | Hermes Turbo  | Winner        | Delta     |
-| ---                                | ---:          | ---:          | ---           | ---:      |
-| Cold start (import proxy)          | 4894.32 ms    | **2866.11 ms**| Hermes Turbo  | **1.71x** |
-| Token estimate batch               | 453.374 us    | **109.353 us**| Hermes Turbo  | **4.15x** |
-| Async 1,000-task scheduler         | 167.28 ms     | 166.52 ms     | Hermes Turbo  | 1.00x     |
-| Integration breadth                | 31            | 31            | Tie           | 1.00x     |
-| JSON dumps short payload           | **6.719 us**  | 9.773 us      | Hermes 0.14.0 | 0.69x     |
-| Tool-call parse                    | **2.735 us**  | 6.651 us      | Hermes 0.14.0 | 0.41x     |
-| browser_console p99                | blocked       | blocked       | Blocked       | —         |
-
-**Aggregate:** 3 wins / 2 losses / 1 tie / 1 blocked for Hermes Turbo on this host.
-
-### Bottom line
-
-- **Hermes Turbo** wins the headline scoreboard (44 / 50) by combining Hermes-compatible Python ergonomics with `orjson` + `msgspec` + Rust hot paths. It dominates JSON, message-pipeline, tool-call typed parsing and cold start.
-- **Hermes 0.14.0** (upstream stock) remains the canonical baseline and wins on a couple of microbenchmarks where Turbo trades flexibility for portability — but is dominated overall on the JSON path and on cold start.
-- **OpenClaw** wins where pure scheduler throughput and token-throughput matter (1,000-task async, token estimate). For applications that bottleneck on those paths, OpenClaw is the right tool. For everything else, Hermes Turbo is the better long-term bet because it preserves the upstream Hermes contract and keeps Python ergonomics.
-
-### Reproduce locally
-
-```bash
-python scripts/turbo_score.py --markdown            # Turbo Score
-python scripts/benchmark_startup_perf.py -n 5       # startup hot paths
-python scripts/benchmark_hermes_turbo_vs_hermes_0140.py     # side-by-side vs 0.14.0
-python scripts/generate_three_way_pdf.py            # rebuild the 3-way PDF
-hermes dashboard                                    # open http://127.0.0.1:9119/perf
+```powershell
+iex (irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1)
 ```
 
-## Install
+The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\hermes\git` — no admin required, completely isolated from any system Git install).  Hermes uses this bundled Git Bash to run shell commands.
 
-### From GitHub
+If you already have Git installed, the installer detects it and uses that instead.  Otherwise a ~45MB MinGit download is all you need — it won't touch or interfere with any system Git.
+
+> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://hermes-agent.nousresearch.com/docs/getting-started/termux). On Termux, Hermes installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies.
+>
+> **Windows:** Native Windows is supported as an **early beta** — the PowerShell one-liner above installs everything, but expect rough edges and please file issues when you hit them. If you'd rather use WSL2 (our most battle-tested Windows path), the Linux command works there too. Native Windows install lives under `%LOCALAPPDATA%\hermes`; WSL2 installs under `~/.hermes` as on Linux.  The only Hermes feature that currently needs WSL2 specifically is the browser-based dashboard chat pane (it uses a POSIX PTY — classic CLI and gateway both run natively).
+
+After installation:
 
 ```bash
-git clone https://github.com/wesleysimplicio/hermes-turbo-agent.git
-cd hermes-turbo-agent
+source ~/.bashrc    # reload shell (or: source ~/.zshrc)
+hermes              # start chatting!
+```
 
+---
+
+## Getting Started
+
+```bash
+hermes              # Interactive CLI — start a conversation
+hermes model        # Choose your LLM provider and model
+hermes tools        # Configure which tools are enabled
+hermes config set   # Set individual config values
+hermes gateway      # Start the messaging gateway (Telegram, Discord, etc.)
+hermes setup        # Run the full setup wizard (configures everything at once)
+hermes claw migrate # Migrate from OpenClaw (if coming from OpenClaw)
+hermes update       # Update to the latest version
+hermes doctor       # Diagnose any issues
+```
+
+📖 **[Full documentation →](https://hermes-agent.nousresearch.com/docs/)**
+
+---
+
+## Skip the API-key collection — Nous Portal
+
+Hermes works with whatever provider you want — that's not changing. But if you'd rather not collect five separate API keys for the model, web search, image generation, TTS, and a cloud browser, **[Nous Portal](https://portal.nousresearch.com)** covers all of them under one subscription:
+
+- **300+ models** — pick any of them with `/model <name>`
+- **Tool Gateway** — web search (Firecrawl), image generation (FAL), text-to-speech (OpenAI), cloud browser (Browser Use), all routed through your sub. No extra accounts.
+
+One command from a fresh install:
+
+```bash
+hermes setup --portal
+```
+
+That logs you in via OAuth, sets Nous as your provider, and turns on the Tool Gateway. Check what's wired up any time with `hermes portal status`. Full details on the [Tool Gateway docs page](https://hermes-agent.nousresearch.com/docs/user-guide/features/tool-gateway).
+
+You can still bring your own keys per-tool whenever you want — the gateway is per-backend, not all-or-nothing.
+
+---
+
+## CLI vs Messaging Quick Reference
+
+Hermes has two entry points: start the terminal UI with `hermes`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
+
+| Action | CLI | Messaging platforms |
+|---------|-----|---------------------|
+| Start chatting | `hermes` | Run `hermes gateway setup` + `hermes gateway start`, then send the bot a message |
+| Start fresh conversation | `/new` or `/reset` | `/new` or `/reset` |
+| Change model | `/model [provider:model]` | `/model [provider:model]` |
+| Set a personality | `/personality [name]` | `/personality [name]` |
+| Retry or undo the last turn | `/retry`, `/undo` | `/retry`, `/undo` |
+| Compress context / check usage | `/compress`, `/usage`, `/insights [--days N]` | `/compress`, `/usage`, `/insights [days]` |
+| Browse skills | `/skills` or `/<skill-name>` | `/<skill-name>` |
+| Interrupt current work | `Ctrl+C` or send a new message | `/stop` or send a new message |
+| Platform-specific status | `/platforms` | `/status`, `/sethome` |
+
+For the full command lists, see the [CLI guide](https://hermes-agent.nousresearch.com/docs/user-guide/cli) and the [Messaging Gateway guide](https://hermes-agent.nousresearch.com/docs/user-guide/messaging).
+
+---
+
+## Documentation
+
+All documentation lives at **[hermes-agent.nousresearch.com/docs](https://hermes-agent.nousresearch.com/docs/)**:
+
+| Section | What's Covered |
+|---------|---------------|
+| [Quickstart](https://hermes-agent.nousresearch.com/docs/getting-started/quickstart) | Install → setup → first conversation in 2 minutes |
+| [CLI Usage](https://hermes-agent.nousresearch.com/docs/user-guide/cli) | Commands, keybindings, personalities, sessions |
+| [Configuration](https://hermes-agent.nousresearch.com/docs/user-guide/configuration) | Config file, providers, models, all options |
+| [Messaging Gateway](https://hermes-agent.nousresearch.com/docs/user-guide/messaging) | Telegram, Discord, Slack, WhatsApp, Signal, Home Assistant |
+| [Security](https://hermes-agent.nousresearch.com/docs/user-guide/security) | Command approval, DM pairing, container isolation |
+| [Tools & Toolsets](https://hermes-agent.nousresearch.com/docs/user-guide/features/tools) | 40+ tools, toolset system, terminal backends |
+| [Skills System](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills) | Procedural memory, Skills Hub, creating skills |
+| [Memory](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory) | Persistent memory, user profiles, best practices |
+| [MCP Integration](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp) | Connect any MCP server for extended capabilities |
+| [Cron Scheduling](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron) | Scheduled tasks with platform delivery |
+| [Context Files](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files) | Project context that shapes every conversation |
+| [Architecture](https://hermes-agent.nousresearch.com/docs/developer-guide/architecture) | Project structure, agent loop, key classes |
+| [Contributing](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing) | Development setup, PR process, code style |
+| [CLI Reference](https://hermes-agent.nousresearch.com/docs/reference/cli-commands) | All commands and flags |
+| [Environment Variables](https://hermes-agent.nousresearch.com/docs/reference/environment-variables) | Complete env var reference |
+
+---
+
+## Migrating from OpenClaw
+
+If you're coming from OpenClaw, Hermes can automatically import your settings, memories, skills, and API keys.
+
+**During first-time setup:** The setup wizard (`hermes setup`) automatically detects `~/.openclaw` and offers to migrate before configuration begins.
+
+**Anytime after install:**
+
+```bash
+hermes claw migrate              # Interactive migration (full preset)
+hermes claw migrate --dry-run    # Preview what would be migrated
+hermes claw migrate --preset user-data   # Migrate without secrets
+hermes claw migrate --overwrite  # Overwrite existing conflicts
+```
+
+What gets imported:
+- **SOUL.md** — persona file
+- **Memories** — MEMORY.md and USER.md entries
+- **Skills** — user-created skills → `~/.hermes/skills/openclaw-imports/`
+- **Command allowlist** — approval patterns
+- **Messaging settings** — platform configs, allowed users, working directory
+- **API keys** — allowlisted secrets (Telegram, OpenRouter, OpenAI, Anthropic, ElevenLabs)
+- **TTS assets** — workspace audio files
+- **Workspace instructions** — AGENTS.md (with `--workspace-target`)
+
+See `hermes claw migrate --help` for all options, or use the `openclaw-migration` skill for an interactive agent-guided migration with dry-run previews.
+
+---
+
+## Contributing
+
+We welcome contributions! See the [Contributing Guide](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing) for development setup, code style, and PR process.
+
+Quick start for contributors — clone and go with `setup-hermes.sh`:
+
+```bash
+git clone https://github.com/NousResearch/hermes-agent.git
+cd hermes-agent
+./setup-hermes.sh     # installs uv, creates venv, installs .[all], symlinks ~/.local/bin/hermes
+./hermes              # auto-detects the venv, no need to `source` first
+```
+
+Manual path (equivalent to the above):
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
 uv venv .venv --python 3.11
 source .venv/bin/activate
 uv pip install -e ".[all,dev]"
-
-./hermes
+scripts/run_tests.sh
 ```
-
-Windows users: native PowerShell installer at `scripts/install.ps1`.
-
-### Performance Extras
-
-The performance-oriented build adds fast Python plus native-extension-ready hot paths:
-
-```bash
-uv pip install -e ".[fast]"
-```
-
-Build the Rust extension and verify the native fast path:
-
-```bash
-PATH="$HOME/.cargo/bin:$PATH" bash scripts/install-rust.sh
-python -c "from agent._hermes_fast import HAVE_RUST; print('Rust:', HAVE_RUST)"
-```
-
-The `fast` extra stays optional so the base install remains small. When present,
-Hermes Turbo uses `orjson`, `msgspec`, `uvloop`, and the Rust extension with
-Python fallbacks for locked-down or source-only environments.
-
-### Daily upstream sync
-
-Hermes Turbo can run a daily sync routine that updates the local environment,
-runs `hermes update`, merges the latest `NousResearch/hermes-agent` core, and
-keeps Hermes Turbo's speed customisations under validation before pushing a
-dated branch:
-
-```bash
-python3 scripts/install_hermes_turbo_daily_update_launchd.py --hour 6 --minute 30
-```
-
-See [docs/hermes-turbo-daily-update.md](docs/hermes-turbo-daily-update.md).
-
-## Release history
-
-- **0.14.4** — Turbo Score, `/perf` web dashboard, `hermes report savings`, `hermes migrate-from-openclaw --benchmark`.
-- **0.14.3** — Interactive update prompt for installed users; `TOTA_SKIP_UPDATE_PROMPT` opt-out.
-- **0.14.2** — Side-by-side benchmark refresh, daily upstream sync routine, report generation deps.
-- **0.13.3** — Canonical `scripts/run_tests.sh` runner reliability; ACP registry manifest aligned with `pyproject.toml`.
-- **0.13.2** — Default home moved from `~/.hermes` to `~/.hermes_turbo` for fresh installs (`TOTA_HOME` / `HERMES_HOME` both honoured).
-- **0.13.1** — Bytes-native JSON via `agent._fastjson.dumps_bytes()`; Rust `serde_json::Value` to Python conversion for tool-call deltas; batched token helpers; `uvloop` policy install in CLI and gateway entrypoints; bounded `fast` extra deps.
-
-Details: [docs/hermes-turbo-benchmark-win-plan.md](docs/hermes-turbo-benchmark-win-plan.md).
-
-## New CLI Commands (v0.14.4)
-
-```bash
-# Weekly Token Savings Report
-hermes report savings --since 7d                   # text
-hermes report savings --since 30d --markdown        # Slack/email-ready
-hermes report savings --json --out report.json      # machine-readable
-
-# OpenClaw → Hermes Turbo migration with benchmark
-hermes migrate-from-openclaw --dry-run --benchmark
-hermes migrate-from-openclaw --benchmark --benchmark-out reports/openclaw.md
-
-# Performance dashboard (web)
-hermes dashboard
-# → open http://127.0.0.1:9119/perf
-```
-
-The `/perf` view polls every 15 s against `~/.hermes/telemetry/*.jsonl` and
-shows the Turbo Score, the token-savings totals, and per-stage percentiles.
-All `/api/perf/*` endpoints are public on localhost only (same trust boundary
-as the rest of the dashboard).
-
-## Runtime Speedups
-
-Measured wins on the `codex/hermes-agent-100x-fast` branch. Each row is scoped to the exact path that was instrumented; numbers come from the linked regression log and benchmark scripts. Anything not measured is intentionally absent.
-
-| Path | Speedup vs prior path | Source |
-| --- | --- | --- |
-| Batch session writes (`SessionDB.append_messages`) | ~19.64× startup; ~22.10×–37.74× runtime vs per-message loop | [docs/hermes-100x-fast-regression-log.md](docs/hermes-100x-fast-regression-log.md), [scripts/benchmark_runtime_usage.py](scripts/benchmark_runtime_usage.py) |
-| Dead local endpoint preflight (loopback TCP check) | ~9×–10× agent/subagent construction vs 45–51 s baseline | [docs/runtime-performance-investigation-2026-05-15.md](docs/runtime-performance-investigation-2026-05-15.md) |
-| Parallel tool execution (`parallel_tool_batch_sleep`) | ~5.14×–5.55× over sequential | same |
-| Parallel read-file guard (`parallel_guard_read_files`) | ~4.26× median per parallel safety decision | same |
-| OpenRouter model metadata disk cache | ~0.0073 s per lookup over 500 models | [docs/hermes-100x-fast-regression-log.md](docs/hermes-100x-fast-regression-log.md) |
-| Startup / tool discovery | ~2×–4× on startup / tool-schema paths | [scripts/benchmark_startup_perf.py](scripts/benchmark_startup_perf.py) |
-
-The 100× framing applies specifically to the dead local endpoint / subagent construction path. Other rows are honest 2×–25× wins on their own paths.
 
 ---
 
-## Side-by-side vs Hermes Original and OpenClaw
+## Community
 
-### Latest startup hot-path benchmark (v0.14.4)
-
-Fresh run on the merged code (`python scripts/benchmark_startup_perf.py -n 3`):
-
-| case | median | min | max | notes |
-| --- | ---: | ---: | ---: | --- |
-| import_model_tools | 0.2253s | 0.2239s | 0.2272s | tools=69 |
-| import_and_get_tool_definitions | 0.3170s | 0.3153s | 0.3188s | tools=25 |
-| get_tool_definitions | 0.0887s | 0.0846s | 0.0896s | warm=0.000067s |
-| discover_plugins_fast | 0.0804s | 0.0791s | 0.0814s | plugins=17, platforms_loaded=False |
-| discover_plugins_full | 0.1143s | 0.1088s | 0.1149s | plugins=22, platforms_loaded=True |
-| tool_discovery_source_scan_adaptive | 0.0168s | 0.0166s | 0.0168s | tools=29, parallel_eligible=False, same=True, speedup=1.05x |
-| resolve_toolset_cached | 0.0111s | 0.0108s | 0.0116s | tools=70, warm=0.000001s |
-| session_append_messages_batch | 0.0137s | 0.0115s | 0.0139s | loop=0.2301s, batch=0.0139s, speedup=16.54x, messages=180 |
-
-Full perf report (Turbo Score + side-by-side + startup): [docs/turbo-score-latest.md](docs/turbo-score-latest.md).
-
-### Side-by-side vs upstream Hermes 0.14.0
-
-Source: [docs/hermes-turbo-benchmark-hermes-0.14.0.md](docs/hermes-turbo-benchmark-hermes-0.14.0.md) (2026-05-19 run; browser row blocked locally).
-
-| Row | Hermes 0.14.0 | Hermes Turbo | Winner | Delta |
-| --- | ---: | ---: | --- | ---: |
-| Cold start (import_model_tools proxy) | 4894.32 ms | 2866.11 ms | Hermes Turbo | 1.71x |
-| Token estimate batch | 453.374 us | 109.353 us | Hermes Turbo | 4.15x |
-| Async 1,000-task scheduler | 167.28 ms | 166.52 ms | Hermes Turbo | 1.00x |
-| Integration breadth | 31 | 31 | Tie | 1.00x |
-| JSON dumps short payload | 6.719 us | 9.773 us | Hermes 0.14.0 | 0.69x |
-| Tool-call parse | 2.735 us | 6.651 us | Hermes 0.14.0 | 0.41x |
-| browser_console p99 | blocked | blocked | Blocked | — |
-
-Result: **3 wins / 2 losses / 1 tie / 1 blocked**.
-
-### Micro hot paths
-
-Full per-category breakdown: [`docs/perf/hermes-vs-turbo-vs-openclaw.pdf`](docs/perf/hermes-vs-turbo-vs-openclaw.pdf) (9 pages, charts + tables per category).
-
-OpenClaw still leads raw 1000-task scheduling thanks to libuv. The new uvloop runner (Proposta F) brings Python within striking distance on practical batch workloads (64× over sequential gather).
-
-- [scripts/benchmark_hermes_turbo_vs_hermes_0140.py](scripts/benchmark_hermes_turbo_vs_hermes_0140.py) — side-by-side against upstream stock Hermes `0.14.0`.
-- [scripts/benchmark_startup_perf.py](scripts/benchmark_startup_perf.py) — startup/plugin/tool-schema import paths in fresh Python subprocesses.
-
-#### Benchmark Headline
-
-| Metric | Hermes Original | Hermes Turbo | OpenClaw | Winner |
-| --- | ---: | ---: | ---: | --- |
-| Total score | 30 / 50 | 44 / 50 | 36 / 50 | Hermes Turbo |
-| JSON dumps, large payload | 18.40 us | 3.20 us | 5.80 us | Hermes Turbo |
-| JSON loads, large payload | 12.80 us | 2.80 us | 5.20 us | Hermes Turbo |
-| Medium message pipeline | 7.50 us | 2.20 us | 3.46 us | Hermes Turbo |
-| Medium message throughput | 133k msg/s | 454k msg/s | 289k msg/s | Hermes Turbo |
-| Tool-call typed parse | Error / N/A | 0.45 us | N/A | Hermes Turbo |
-| Async 1,000 tasks | 2.50 ms | 1.40 ms | 0.08 ms | OpenClaw |
-| Cold start | ~52 ms | ~50 ms | ~280 ms | Hermes Turbo |
-| RSS memory | ~30 MB | ~30 MB | ~97 MB | Python variants |
-
-The repo also ships a dedicated side-by-side harness for upstream stock Hermes `0.14.0`: [`scripts/benchmark_hermes_turbo_vs_hermes_0140.py`](scripts/benchmark_hermes_turbo_vs_hermes_0140.py). The latest measured status lives in [docs/hermes-turbo-benchmark-hermes-0.14.0.md](docs/hermes-turbo-benchmark-hermes-0.14.0.md).
-
-#### Benchmark Battle Cards
-
-Shareable comparison cards generated by [scripts/generate_hermes_turbo_battle_cards.py](scripts/generate_hermes_turbo_battle_cards.py) from the benchmark values above.
-
-![Final scoreboard battle card](docs/assets/hermes-turbo-benchmark/battles/00-scoreboard.png)
-
-![Large JSON dumps battle card](docs/assets/hermes-turbo-benchmark/battles/01-json-dumps-large.png)
-
-![Large JSON loads battle card](docs/assets/hermes-turbo-benchmark/battles/02-json-loads-large.png)
-
-![Medium message pipeline battle card](docs/assets/hermes-turbo-benchmark/battles/03-medium-message-pipeline.png)
-
-![Medium message throughput battle card](docs/assets/hermes-turbo-benchmark/battles/04-medium-message-throughput.png)
-
-![Tool-call typed parse battle card](docs/assets/hermes-turbo-benchmark/battles/05-tool-call-typed-parse.png)
-
-![Async 1000 tasks battle card](docs/assets/hermes-turbo-benchmark/battles/06-async-1000-tasks.png)
-
-![Cold start battle card](docs/assets/hermes-turbo-benchmark/battles/07-cold-start.png)
-
-![RSS memory battle card](docs/assets/hermes-turbo-benchmark/battles/08-rss-memory.png)
-
-#### Full Comparison Report
-
-The full per-category breakdown lives near the top of this README under
-[**Three-way comparison — Hermes 0.14.0 × Hermes Turbo × OpenClaw**](#three-way-comparison--hermes-0140--hermes-turbo--openclaw):
-final scoreboard, headline metrics, system overview, architecture, JSON
-dumps/loads, memory, message pipeline, tool-call parsing, tokens/async/startup,
-live side-by-side row, bottom line, and reproduction steps.
-
-Standalone deliverables:
-
-- [docs/three-way-comparison-v0.14.4.md](docs/three-way-comparison-v0.14.4.md) — 15-section Markdown report.
-- [docs/three-way-comparison-v0.14.4.pdf](docs/three-way-comparison-v0.14.4.pdf) — 4-page A4 PDF version.
-
-### Real agent runtime
-
-These measure Hermes while it is actually being used: agent construction, subagent build, `delegate_task` scheduling, parallel tool-call execution, tool dispatch overhead, message persistence, and OpenRouter metadata lookup. Each case runs in a fresh Python subprocess so module caches, thread pools, and Hermes home state are isolated between samples.
-
-Harness: [scripts/benchmark_runtime_usage.py](scripts/benchmark_runtime_usage.py).
-
-The headline rows are summarized in [Runtime Speedups](#runtime-speedups) above. Full per-case medians and the regression playbook live in:
-
-- [docs/hermes-100x-fast-regression-log.md](docs/hermes-100x-fast-regression-log.md) — latest measured medians for both `benchmark_runtime_usage.py` and `benchmark_startup_perf.py`, focused regression suite results, and reapply checklist.
-- [docs/runtime-performance-investigation-2026-05-15.md](docs/runtime-performance-investigation-2026-05-15.md) — write-up of the dead local endpoint fast path, parallel guard, session batching, and per-case numbers from the same harness.
-
-Run locally:
-
-```bash
-# Full segmented turbo benchmark (11 stages, 500 iters):
-uv run python scripts/benchmark_full_turbo_segments.py \
-  --iters 500 --out docs/perf/turbo-full-segments.json
-
-# Render the 11-page turbo PDF:
-uv run --with reportlab python scripts/generate_turbo_full_pdf.py
-# → docs/perf/turbo-full-segments.pdf
-
-# Render the 3-way comparison vs upstream + OpenClaw:
-uv run --with reportlab python scripts/generate_3way_comparison_pdf.py
-# → docs/perf/hermes-vs-turbo-vs-openclaw.pdf
-
-# Inherited 100x-fast regression suite:
-python scripts/benchmark_runtime_usage.py -n 3
-python scripts/benchmark_startup_perf.py -n 3
-```
-
-The CI gate (`.github/workflows/dod.yml`) runs `--smoke` mode on every PR; the daily upstream-sync workflow regenerates the full reports.
+- 💬 [Discord](https://discord.gg/NousResearch)
+- 📚 [Skills Hub](https://agentskills.io)
+- 🐛 [Issues](https://github.com/NousResearch/hermes-agent/issues)
+- 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Linux desktop-control MCP server for Hermes and other MCP hosts, with AT-SPI accessibility trees, Wayland/X11 input, screenshots, and compositor window targeting.
+- 🔌 [HermesClaw](https://github.com/AaronWong1999/hermesclaw) — Community WeChat bridge: Run Hermes Agent and OpenClaw on the same WeChat account.
 
 ---
 
-## Usage recommendations
+## License
 
-| Scenario | Recommended | Reason |
-| --- | --- | --- |
-| WhatsApp / HTTP AI agent | Hermes Turbo | 4-6x faster JSON path with Hermes-compatible Python ergonomics. |
-| Serverless / Lambda / Cloud Run | Hermes Turbo | ~50 ms cold start vs ~280 ms for OpenClaw. |
-| Low memory footprint | Hermes Turbo | ~30 MB RSS vs ~97 MB for OpenClaw. |
-| Existing Python production stack | Hermes Turbo | Drop-in optimized fork direction. |
-| 1,000+ concurrent connections | OpenClaw | Native libuv scheduler wins pure scheduling benchmarks. |
-| Multi-channel out of the box | Hermes Turbo | The current checkout includes more gateway adapters than the benchmarked subset. |
-| Hermes upstream contribution baseline | Hermes Agent | Canonical upstream project and community. |
+MIT — see [LICENSE](LICENSE).
 
-## Development
-
-```bash
-# Run the turbo test suite (80 unit tests across surviving + new modules):
-uv run --with pytest python -m pytest -o addopts="" \
-  tests/agent/project_mapper tests/router \
-  tests/agent/telemetry tests/agent/async_dag \
-  tests/agent/tracing tests/agent/providers
-
-For this repository, `taskflow inspect .` detects the Python and Node surfaces
-and `taskflow run .` produces the local validation checklist.
-
-### Test the v0.14.4 surface
-
-```bash
-python -m pytest \
-  tests/scripts/test_turbo_score.py \
-  tests/agent/telemetry/test_savings_report.py \
-  tests/hermes_cli/test_migrate_from_openclaw.py \
-  tests/hermes_cli/test_web_perf.py \
-  -o addopts=""
-# → 44 passed
-```
-
-Full target regression set (252 tests):
-
-```bash
-python -m pytest \
-  tests/token_saver tests/router tests/agent/telemetry tests/registry \
-  tests/contracts tests/agent/test_token_cache.py tests/agent/test_governor.py \
-  tests/test_ci_compact.py tests/test_github_compact.py \
-  tests/test_evidence_store.py tests/test_prompt_cache_stability.py \
-  tests/scripts \
-  tests/hermes_cli/test_claw.py tests/hermes_cli/test_skills_subparser.py \
-  tests/hermes_cli/test_migrate_from_openclaw.py tests/hermes_cli/test_web_perf.py \
-  -o addopts=""
-```
-
-## Upstream
-
-Hermes Turbo Agent is a fork of [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent). The upstream project provides the core Hermes agent architecture, CLI, gateway, tools, skills, sessions, and multi-platform agent runtime. This fork adds a performance layer, the token-economy stack, and the v0.14.4 visibility/migration surface.
+Built by [Nous Research](https://nousresearch.com).

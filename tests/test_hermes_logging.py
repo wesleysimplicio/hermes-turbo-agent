@@ -538,6 +538,9 @@ class TestComponentPrefixes:
 
     def test_gateway_prefix(self):
         assert "gateway" in hermes_logging.COMPONENT_PREFIXES
+        # The gateway component captures both core gateway logs and the
+        # hermes_plugins facility (plugin-installed gateway adapters log
+        # under that prefix).
         assert ("gateway", "hermes_plugins") == hermes_logging.COMPONENT_PREFIXES["gateway"]
 
     def test_agent_prefix(self):
