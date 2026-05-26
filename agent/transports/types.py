@@ -14,9 +14,13 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
+try:
+    import msgspec
+except ImportError:  # pragma: no cover - optional fast-path dependency
+    msgspec = None
 
-@dataclass
-class ToolCall:
+
+class _ToolCallCompatMixin:
     """A normalized tool call from any provider.
 
     ``id`` is the protocol's canonical identifier — what gets used in
@@ -31,11 +35,6 @@ class ToolCall:
     * Gemini: ``{"extra_content": {"google": {"thought_signature": "..."}}}``
     * Others: ``None``
     """
-
-    id: str | None
-    name: str
-    arguments: str  # JSON string
-    provider_data: dict[str, Any] | None = field(default=None, repr=False)
 
     # ── Backward compatibility ──────────────────────────────────
     # The agent loop reads tc.function.name / tc.function.arguments
@@ -74,6 +73,21 @@ class ToolCall:
         uniformly.
         """
         return (self.provider_data or {}).get("extra_content")
+
+
+if msgspec is not None:
+    class ToolCall(_ToolCallCompatMixin, msgspec.Struct, omit_defaults=True):
+        id: str | None
+        name: str
+        arguments: str  # JSON string
+        provider_data: dict[str, Any] | None = None
+else:
+    @dataclass
+    class ToolCall(_ToolCallCompatMixin):
+        id: str | None
+        name: str
+        arguments: str  # JSON string
+        provider_data: dict[str, Any] | None = field(default=None, repr=False)
 
 
 @dataclass

@@ -1,0 +1,7 @@
+name: token-saver
+version: 0.1.0
+description: "Compacts noisy terminal and tool output while preserving full redacted evidence handles for on-demand expansion."
+author: Wesley Simplicio
+hooks:
+  - transform_terminal_output
+  - transform_tool_result

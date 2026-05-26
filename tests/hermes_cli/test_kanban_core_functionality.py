@@ -1262,10 +1262,11 @@ def test_migration_renames_legacy_event_kinds(tmp_path, monkeypatch):
 
 def test_list_profiles_on_disk(tmp_path, monkeypatch):
     """list_profiles_on_disk returns the implicit default profile plus
-    named profiles under ~/.hermes/profiles/ that contain a config.yaml."""
+    named profiles under the default home's profiles/ that contain a config.yaml."""
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     monkeypatch.delenv("HERMES_HOME", raising=False)
-    profiles = tmp_path / ".hermes" / "profiles"
+    monkeypatch.delenv("TOTA_HOME", raising=False)
+    profiles = tmp_path / ".hermes_turbo" / "profiles"
     profiles.mkdir(parents=True)
     for name in ("researcher", "writer"):
         d = profiles / name

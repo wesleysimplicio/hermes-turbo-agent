@@ -17,13 +17,16 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from hermes_constants import DEFAULT_HOME_DIRNAME, LEGACY_HOME_ENV, HERMES_TURBO_HOME_ENV
+
 
 @pytest.fixture()
 def hermes_home(tmp_path, monkeypatch):
-    home = tmp_path / ".hermes"
+    home = tmp_path / DEFAULT_HOME_DIRNAME
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv(HERMES_TURBO_HOME_ENV, str(home))
+    monkeypatch.setenv(LEGACY_HOME_ENV, str(home))
 
     # Bust the goal-module DB cache so it re-resolves HERMES_HOME.
     from hermes_cli import goals
@@ -52,9 +55,9 @@ def server(hermes_home):
 
 
 @pytest.fixture()
-def session(server):
+def session(server, hermes_home):
     sid = "sid-test"
-    session_key = "tui-goal-session-1"
+    session_key = f"tui-goal-session-{hermes_home.parent.name}"
     s = {
         "session_key": session_key,
         "history": [],

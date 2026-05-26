@@ -191,17 +191,27 @@ class FeatureUnavailable(RuntimeError):
     installs, or the install attempt failed.
     """
 
-    def __init__(self, feature: str, missing: tuple[str, ...], reason: str):
+    def __init__(
+        self,
+        feature: str,
+        missing: tuple[str, ...],
+        reason: str,
+        *,
+        show_install_hint: bool = True,
+    ):
         self.feature = feature
         self.missing = missing
         self.reason = reason
+        self.show_install_hint = show_install_hint
         super().__init__(self._format())
 
     def _format(self) -> str:
+        msg = f"Feature {self.feature!r} unavailable: {self.reason}."
+        if not self.show_install_hint or not self.missing:
+            return msg
         spec_list = " ".join(repr(s) for s in self.missing)
         return (
-            f"Feature {self.feature!r} unavailable: {self.reason}. "
-            f"To enable manually: uv pip install {spec_list}  "
+            f"{msg} To enable manually: uv pip install {spec_list}  "
             f"(or: pip install {spec_list})."
         )
 
@@ -336,6 +346,77 @@ def _is_present(spec: str) -> bool:
         return False
 
 
+def _spec_hits_advisory(spec: str, bad_versions: frozenset[str]) -> bool:
+    """Return True when ``spec`` could resolve to a compromised version."""
+    if not bad_versions:
+        return True
+
+    spec_tail = _specifier_from_spec(spec)
+    if not spec_tail:
+        return True
+
+    try:
+        from packaging.specifiers import InvalidSpecifier, SpecifierSet
+        from packaging.version import InvalidVersion, Version
+    except ImportError:
+        return spec_tail.startswith("==") and spec_tail[2:] in bad_versions
+
+    try:
+        specifier = SpecifierSet(spec_tail)
+    except InvalidSpecifier:
+        return spec_tail.startswith("==") and spec_tail[2:] in bad_versions
+
+    for version_text in bad_versions:
+        try:
+            if Version(version_text) in specifier:
+                return True
+        except InvalidVersion:
+            if spec_tail.startswith("==") and spec_tail[2:] == version_text:
+                return True
+    return False
+
+
+def _advisory_conflicts_for_specs(specs: tuple[str, ...]) -> list[str]:
+    """Return human-readable advisory conflicts for candidate install specs."""
+    try:
+        from hermes_cli.security_advisories import ADVISORIES
+    except Exception:
+        return []
+
+    conflicts: list[str] = []
+    for spec in specs:
+        pkg = _pkg_name_from_spec(spec)
+        for advisory in ADVISORIES:
+            for compromised_pkg, bad_versions in advisory.compromised:
+                if pkg != compromised_pkg:
+                    continue
+                if not _spec_hits_advisory(spec, bad_versions):
+                    continue
+                versions = ", ".join(sorted(bad_versions)) if bad_versions else "any version"
+                conflicts.append(
+                    f"{spec} matches advisory {advisory.id} ({versions})"
+                )
+    return conflicts
+
+
+def _installed_advisory_hits_for_specs(specs: tuple[str, ...]) -> list[Any]:
+    """Return active advisory hits affecting the packages behind ``specs``."""
+    try:
+        from hermes_cli.security_advisories import detect_compromised
+    except Exception:
+        return []
+
+    packages = {_pkg_name_from_spec(spec) for spec in specs}
+    return [hit for hit in detect_compromised() if hit.package in packages]
+
+
+def _format_advisory_hits(hits: list[Any]) -> str:
+    return "; ".join(
+        f"{hit.package}=={hit.installed_version} matches advisory {hit.advisory.id}"
+        for hit in hits
+    )
+
+
 def _venv_pip_install(specs: tuple[str, ...], *, timeout: int = 300) -> _InstallResult:
     """Install ``specs`` into the active venv using uv → pip → ensurepip ladder.
 
@@ -427,7 +508,22 @@ def ensure(feature: str, *, prompt: bool = True) -> None:
             feature, (), f"feature {feature!r} not in LAZY_DEPS allowlist"
         )
 
-    missing = feature_missing(feature)
+    specs = feature_specs(feature)
+    installed_hits = _installed_advisory_hits_for_specs(specs)
+    if installed_hits:
+        raise FeatureUnavailable(
+            feature,
+            tuple(
+                spec for spec in specs
+                if _pkg_name_from_spec(spec) in {hit.package for hit in installed_hits}
+            ),
+            "security advisory active for installed backend dependency: "
+            + _format_advisory_hits(installed_hits)
+            + ". Run 'hermes doctor' for remediation",
+            show_install_hint=False,
+        )
+
+    missing = tuple(spec for spec in specs if not _is_satisfied(spec))
     if not missing:
         return
 
@@ -439,6 +535,17 @@ def ensure(feature: str, *, prompt: bool = True) -> None:
                 feature, missing,
                 f"refusing to install unsafe spec {spec!r}"
             )
+
+    advisory_conflicts = _advisory_conflicts_for_specs(missing)
+    if advisory_conflicts:
+        raise FeatureUnavailable(
+            feature,
+            missing,
+            "security advisory blocks lazy install: "
+            + "; ".join(advisory_conflicts)
+            + ". Run 'hermes doctor' for remediation",
+            show_install_hint=False,
+        )
 
     if not _allow_lazy_installs():
         raise FeatureUnavailable(
@@ -489,6 +596,20 @@ def ensure(feature: str, *, prompt: bool = True) -> None:
             feature, still_missing,
             "install reported success but packages still not importable "
             "(may require Python restart)"
+        )
+
+    installed_hits = _installed_advisory_hits_for_specs(specs)
+    if installed_hits:
+        raise FeatureUnavailable(
+            feature,
+            tuple(
+                spec for spec in specs
+                if _pkg_name_from_spec(spec) in {hit.package for hit in installed_hits}
+            ),
+            "security advisory active after lazy install: "
+            + _format_advisory_hits(installed_hits)
+            + ". Run 'hermes doctor' for remediation",
+            show_install_hint=False,
         )
 
     logger.info("Lazy install complete for feature %r", feature)

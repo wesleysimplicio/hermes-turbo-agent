@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">TUI MCP reload avoidance comparison</title>
+  <desc id="desc">Comparison of MCP reload behavior before and after fingerprinting mcp_servers.</desc>
+  <rect width="1200" height="675" fill="#101820"/>
+  <text x="60" y="78" fill="#f8fafc" font-family="Arial, sans-serif" font-size="34" font-weight="700">TUI config polling: MCP reload avoidance</text>
+  <text x="60" y="116" fill="#b8c4d5" font-family="Arial, sans-serif" font-size="18">Display and voice config edits still hydrate UI state but no longer reload MCP tools.</text>
+  <text x="90" y="218" fill="#fca5a5" font-family="Arial, sans-serif" font-size="24" font-weight="700">before</text>
+  <rect x="240" y="185" width="680" height="58" rx="6" fill="#ef4444"/>
+  <text x="945" y="223" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24">1 reload per config edit</text>
+  <text x="90" y="338" fill="#67e8f9" font-family="Arial, sans-serif" font-size="24" font-weight="700">after</text>
+  <rect x="240" y="305" width="12" height="58" rx="6" fill="#06b6d4"/>
+  <text x="275" y="343" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24">0 reloads for non-MCP edits</text>
+  <rect x="90" y="445" width="1015" height="100" rx="10" fill="#1f2937" stroke="#22d3ee" stroke-width="2"/>
+  <text x="120" y="485" fill="#cffafe" font-family="Arial, sans-serif" font-size="24" font-weight="700">Reload only when mcp_servers fingerprint changes</text>
+  <text x="120" y="520" fill="#b8c4d5" font-family="Arial, sans-serif" font-size="18">Missing fingerprints fail open and reload, preserving correctness over speed.</text>
+</svg>

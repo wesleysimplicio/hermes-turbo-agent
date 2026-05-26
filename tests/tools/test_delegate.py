@@ -216,6 +216,69 @@ class TestDelegateTask(unittest.TestCase):
         self.assertEqual(result["results"][1]["summary"], "Result B")
         self.assertIn("total_duration_seconds", result)
 
+    def test_batch_reuses_one_config_snapshot_for_children(self):
+        parent = _make_mock_parent()
+        parent._memory_manager = None
+        tasks = [{"goal": "Task A"}, {"goal": "Task B"}, {"goal": "Task C"}]
+        cfg = {
+            "max_iterations": 17,
+            "max_spawn_depth": 2,
+            "max_concurrent_children": 3,
+            "orchestrator_enabled": True,
+            "inherit_mcp_toolsets": False,
+            "child_timeout_seconds": 45,
+            "subagent_auto_approve": False,
+        }
+        load_calls = 0
+
+        def fake_load_config():
+            nonlocal load_calls
+            load_calls += 1
+            return dict(cfg)
+
+        def fake_child(index):
+            child = MagicMock()
+            child._delegate_role = "leaf"
+            child._subagent_id = f"sa-{index}"
+            return child
+
+        with patch("tools.delegate_tool._load_config", side_effect=fake_load_config), \
+             patch("tools.delegate_tool._build_child_agent") as mock_build, \
+             patch("tools.delegate_tool._run_single_child") as mock_run:
+            mock_build.side_effect = lambda **kwargs: fake_child(kwargs["task_index"])
+            mock_run.side_effect = lambda **kwargs: {
+                "task_index": kwargs["task_index"],
+                "status": "completed",
+                "summary": f"done {kwargs['task_index']}",
+                "api_calls": 0,
+                "duration_seconds": 0.01,
+                "_child_role": "leaf",
+            }
+
+            result = json.loads(delegate_task(tasks=tasks, parent_agent=parent))
+
+        self.assertEqual(load_calls, 1)
+        self.assertEqual(mock_build.call_count, 3)
+        self.assertEqual(mock_run.call_count, 3)
+        self.assertIn("phase_timings", result)
+        self.assertEqual(set(result["phase_timings"].keys()), {
+            "config_seconds",
+            "credentials_seconds",
+            "child_build_seconds",
+            "child_run_seconds",
+            "aggregation_seconds",
+        })
+        for call in mock_build.call_args_list:
+            kwargs = call.kwargs
+            self.assertEqual(kwargs["delegation_cfg"], cfg)
+            self.assertEqual(kwargs["max_spawn_depth"], 2)
+            self.assertIs(kwargs["orchestrator_enabled"], True)
+            self.assertIs(kwargs["inherit_mcp_toolsets"], False)
+            self.assertIs(kwargs["child_reasoning_config_resolved"], True)
+        for call in mock_run.call_args_list:
+            self.assertEqual(call.kwargs["child_timeout"], 45.0)
+            self.assertIsNotNone(call.kwargs["approval_callback"])
+
     @patch("tools.delegate_tool._run_single_child")
     def test_batch_mode_accepts_json_string_tasks(self, mock_run):
         mock_run.side_effect = [

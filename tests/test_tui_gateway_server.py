@@ -1397,6 +1397,32 @@ def test_config_get_busy_survives_non_dict_display(monkeypatch):
     assert resp["result"]["value"] == "interrupt"
 
 
+def test_config_get_mtime_includes_mcp_fingerprint(tmp_path, monkeypatch):
+    cfg_path = tmp_path / "config.yaml"
+    cfg_path.write_text("display: {}\n", encoding="utf-8")
+    monkeypatch.setattr(server, "_hermes_home", tmp_path)
+    monkeypatch.setattr(
+        server,
+        "_load_cfg",
+        lambda: {"mcp_servers": {"fs": {"command": "npx", "args": ["-y", "mcp"]}}},
+    )
+
+    resp = server.handle_request(
+        {"id": "1", "method": "config.get", "params": {"key": "mtime"}}
+    )
+
+    assert resp["result"]["mtime"] > 0
+    assert resp["result"]["mcp_fingerprint"] == (
+        '{"fs":{"args":["-y","mcp"],"command":"npx"}}'
+    )
+
+
+def test_mcp_config_fingerprint_treats_missing_section_as_empty(monkeypatch):
+    monkeypatch.setattr(server, "_load_cfg", lambda: {"display": {"skin": "mono"}})
+
+    assert server._mcp_config_fingerprint() == "{}"
+
+
 def test_config_set_statusbar_survives_non_dict_display(tmp_path, monkeypatch):
     import yaml
 
@@ -4078,6 +4104,10 @@ def test_browser_manage_connect_default_local_reports_launch_hint(monkeypatch):
             patch(
                 "hermes_cli.browser_connect.get_chrome_debug_candidates",
                 return_value=[],
+            ),
+            patch(
+                "hermes_cli.browser_connect.manual_chrome_debug_command",
+                return_value="",
             ),
         ):
             resp = server.handle_request(

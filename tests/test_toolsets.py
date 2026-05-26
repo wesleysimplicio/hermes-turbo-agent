@@ -11,6 +11,7 @@ from toolsets import (
     validate_toolset,
     create_custom_toolset,
     get_toolset_info,
+    clear_toolset_resolution_cache,
 )
 
 
@@ -96,6 +97,28 @@ class TestResolveToolset:
         monkeypatch.setattr("tools.registry.registry", reg)
 
         assert resolve_toolset("plugin_example") == ["plugin_a", "plugin_b"]
+
+    def test_resolution_cache_follows_registry_generation(self, monkeypatch):
+        clear_toolset_resolution_cache()
+        reg = ToolRegistry()
+        reg.register(
+            name="plugin_a",
+            toolset="plugin_cached",
+            schema=_make_schema("plugin_a", "A"),
+            handler=_dummy_handler,
+        )
+        monkeypatch.setattr("tools.registry.registry", reg)
+
+        assert resolve_toolset("plugin_cached") == ["plugin_a"]
+
+        reg.register(
+            name="plugin_b",
+            toolset="plugin_cached",
+            schema=_make_schema("plugin_b", "B"),
+            handler=_dummy_handler,
+        )
+
+        assert resolve_toolset("plugin_cached") == ["plugin_a", "plugin_b"]
 
     def test_all_alias(self):
         tools = resolve_toolset("all")

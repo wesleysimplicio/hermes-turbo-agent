@@ -1,0 +1,54 @@
+name: Daily Turbo Score
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 07:00 UTC — keeps the README badge fresh without spamming.
+    - cron: "0 7 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compute Turbo Score (JSON)
+        run: python scripts/turbo_score.py --json --out artifacts/turbo_score.json
+
+      - name: Compute Turbo Score (Markdown)
+        run: python scripts/turbo_score.py --markdown --out artifacts/turbo_score.md
+
+      - name: Print human-readable Turbo Score
+        run: python scripts/turbo_score.py
+
+      - name: Upload Turbo Score artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: turbo-score
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Render battle cards (best-effort)
+        continue-on-error: true
+        run: |
+          python scripts/generate_hermes_turbo_battle_cards.py || true
+
+      - name: Upload battle cards
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-cards
+          path: docs/assets/hermes-turbo-benchmark/battles/
+          if-no-files-found: warn
+          retention-days: 30

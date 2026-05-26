@@ -1,3 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <text y=".9em" font-size="90">⚕</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Hermes Turbo Agent">
+  <rect width="64" height="64" rx="14" fill="#1A2115"/>
+  <circle cx="32" cy="32" r="25" fill="#C49A28" stroke="#F7F3DF" stroke-width="4"/>
+  <path d="M16 40 C20 26 28 16 40 14 C50 20 52 34 45 48 C36 42 26 40 16 40 Z" fill="#3F4B2F"/>
+  <path d="M21 24 C28 16 42 15 49 22 C42 21 38 24 36 29 C30 25 25 24 21 24 Z" fill="#1A2115"/>
+  <text x="27" y="25" fill="#C49A28" font-family="Arial Black, Arial, sans-serif" font-size="18" font-style="italic">A</text>
 </svg>

@@ -97,6 +97,13 @@ def _subagent_auto_approve(command: str, description: str, **kwargs) -> str:
     return "once"
 
 
+def _get_subagent_approval_callback_from_config(cfg: dict):
+    val = cfg.get("subagent_auto_approve", False)
+    if is_truthy_value(val):
+        return _subagent_auto_approve
+    return _subagent_auto_deny
+
+
 def _get_subagent_approval_callback():
     """Return the callback to install into subagent worker threads.
 
@@ -104,11 +111,7 @@ def _get_subagent_approval_callback():
     Reads via the same _load_config() path as the rest of delegate_task so
     priority is config.yaml > (no env override for this knob) > default.
     """
-    cfg = _load_config()
-    val = cfg.get("subagent_auto_approve", False)
-    if is_truthy_value(val):
-        return _subagent_auto_approve
-    return _subagent_auto_deny
+    return _get_subagent_approval_callback_from_config(_load_config())
 
 # Build a description fragment listing toolsets available for subagents.
 # Excludes toolsets where ALL tools are blocked, composite/platform toolsets
@@ -326,16 +329,7 @@ def _normalize_role(r: Optional[str]) -> str:
     return "leaf"
 
 
-def _get_max_concurrent_children() -> int:
-    """Read delegation.max_concurrent_children from config, falling back to
-    DELEGATION_MAX_CONCURRENT_CHILDREN env var, then the default (3).
-
-    Users can raise this as high as they want; only the floor (1) is enforced.
-
-    Uses the same ``_load_config()`` path that the rest of ``delegate_task``
-    uses, keeping config priority consistent (config.yaml > env > default).
-    """
-    cfg = _load_config()
+def _get_max_concurrent_children_from_config(cfg: dict) -> int:
     val = cfg.get("max_concurrent_children")
     if val is not None:
         try:
@@ -364,13 +358,19 @@ def _get_max_concurrent_children() -> int:
     return _DEFAULT_MAX_CONCURRENT_CHILDREN
 
 
-def _get_child_timeout() -> float:
-    """Read delegation.child_timeout_seconds from config.
+def _get_max_concurrent_children() -> int:
+    """Read delegation.max_concurrent_children from config, falling back to
+    DELEGATION_MAX_CONCURRENT_CHILDREN env var, then the default (3).
 
-    Returns the number of seconds a single child agent is allowed to run
-    before being considered stuck.  Default: 600 s (10 minutes).
+    Users can raise this as high as they want; only the floor (1) is enforced.
+
+    Uses the same ``_load_config()`` path that the rest of ``delegate_task``
+    uses, keeping config priority consistent (config.yaml > env > default).
     """
-    cfg = _load_config()
+    return _get_max_concurrent_children_from_config(_load_config())
+
+
+def _get_child_timeout_from_config(cfg: dict) -> float:
     val = cfg.get("child_timeout_seconds")
     if val is not None:
         try:
@@ -391,20 +391,16 @@ def _get_child_timeout() -> float:
     return float(DEFAULT_CHILD_TIMEOUT)
 
 
-def _get_max_spawn_depth() -> int:
-    """Read delegation.max_spawn_depth from config, clamped to [1, 3].
+def _get_child_timeout() -> float:
+    """Read delegation.child_timeout_seconds from config.
 
-    depth 0 = parent agent.  max_spawn_depth = N means agents at depths
-    0..N-1 can spawn; depth N is the leaf floor.  Default 1 is flat:
-    parent spawns children (depth 1), depth-1 children cannot spawn
-    (blocked by this guard AND, for leaf children, by the delegation
-    toolset strip in _strip_blocked_tools).
-
-    Raise to 2 or 3 to unlock nested orchestration. role="orchestrator"
-    removes the toolset strip for depth-1 children when
-    max_spawn_depth >= 2, enabling them to spawn their own workers.
+    Returns the number of seconds a single child agent is allowed to run
+    before being considered stuck.  Default: 600 s (10 minutes).
     """
-    cfg = _load_config()
+    return _get_child_timeout_from_config(_load_config())
+
+
+def _get_max_spawn_depth_from_config(cfg: dict) -> int:
     val = cfg.get("max_spawn_depth")
     if val is None:
         return MAX_DEPTH
@@ -429,14 +425,23 @@ def _get_max_spawn_depth() -> int:
     return clamped
 
 
-def _get_orchestrator_enabled() -> bool:
-    """Global kill switch for the orchestrator role.
+def _get_max_spawn_depth() -> int:
+    """Read delegation.max_spawn_depth from config, clamped to [1, 3].
 
-    When False, role="orchestrator" is silently forced to "leaf" in
-    _build_child_agent and the delegation toolset is stripped as before.
-    Lets an operator disable the feature without a code revert.
+    depth 0 = parent agent.  max_spawn_depth = N means agents at depths
+    0..N-1 can spawn; depth N is the leaf floor.  Default 1 is flat:
+    parent spawns children (depth 1), depth-1 children cannot spawn
+    (blocked by this guard AND, for leaf children, by the delegation
+    toolset strip in _strip_blocked_tools).
+
+    Raise to 2 or 3 to unlock nested orchestration. role="orchestrator"
+    removes the toolset strip for depth-1 children when
+    max_spawn_depth >= 2, enabling them to spawn their own workers.
     """
-    cfg = _load_config()
+    return _get_max_spawn_depth_from_config(_load_config())
+
+
+def _get_orchestrator_enabled_from_config(cfg: dict) -> bool:
     val = cfg.get("orchestrator_enabled", True)
     if isinstance(val, bool):
         return val
@@ -446,10 +451,43 @@ def _get_orchestrator_enabled() -> bool:
     return True
 
 
+def _get_orchestrator_enabled() -> bool:
+    """Global kill switch for the orchestrator role.
+
+    When False, role="orchestrator" is silently forced to "leaf" in
+    _build_child_agent and the delegation toolset is stripped as before.
+    Lets an operator disable the feature without a code revert.
+    """
+    return _get_orchestrator_enabled_from_config(_load_config())
+
+
+def _get_inherit_mcp_toolsets_from_config(cfg: dict) -> bool:
+    return is_truthy_value(cfg.get("inherit_mcp_toolsets"), default=True)
+
+
 def _get_inherit_mcp_toolsets() -> bool:
     """Whether narrowed child toolsets should keep the parent's MCP toolsets."""
-    cfg = _load_config()
-    return is_truthy_value(cfg.get("inherit_mcp_toolsets"), default=True)
+    return _get_inherit_mcp_toolsets_from_config(_load_config())
+
+
+def _resolve_child_reasoning_config(cfg: dict, parent_reasoning):
+    child_reasoning = parent_reasoning
+    try:
+        delegation_effort = str(cfg.get("reasoning_effort") or "").strip()
+        if delegation_effort:
+            from hermes_constants import parse_reasoning_effort
+
+            parsed = parse_reasoning_effort(delegation_effort)
+            if parsed is not None:
+                child_reasoning = parsed
+            else:
+                logger.warning(
+                    "Unknown delegation.reasoning_effort '%s', inheriting parent level",
+                    delegation_effort,
+                )
+    except Exception as exc:
+        logger.debug("Could not load delegation reasoning_effort: %s", exc)
+    return child_reasoning
 
 
 def _is_mcp_toolset_name(name: str) -> bool:
@@ -888,6 +926,12 @@ def _build_child_agent(
     # 'leaf' (default) cannot; 'orchestrator' retains the delegation
     # toolset subject to depth/kill-switch bounds applied below.
     role: str = "leaf",
+    delegation_cfg: Optional[dict] = None,
+    max_spawn_depth: Optional[int] = None,
+    orchestrator_enabled: Optional[bool] = None,
+    inherit_mcp_toolsets: Optional[bool] = None,
+    child_reasoning_config: Optional[dict] = None,
+    child_reasoning_config_resolved: bool = False,
 ):
     """
     Build a child AIAgent on the main thread (thread-safe construction).
@@ -901,6 +945,9 @@ def _build_child_agent(
     from run_agent import AIAgent
     import uuid as _uuid
 
+    if delegation_cfg is None:
+        delegation_cfg = _load_config()
+
     # ── Role resolution ─────────────────────────────────────────────────
     # Honor the caller's role only when BOTH the kill switch and the
     # child's depth allow it.  This is the single point where role
@@ -908,8 +955,17 @@ def _build_child_agent(
     # the normalised role (_normalize_role ran in delegate_task) so
     # we only deal with 'leaf' or 'orchestrator' here.
     child_depth = getattr(parent_agent, "_delegate_depth", 0) + 1
-    max_spawn = _get_max_spawn_depth()
-    orchestrator_ok = _get_orchestrator_enabled() and child_depth < max_spawn
+    max_spawn = (
+        max_spawn_depth
+        if max_spawn_depth is not None
+        else _get_max_spawn_depth_from_config(delegation_cfg)
+    )
+    orchestrator_allowed = (
+        orchestrator_enabled
+        if orchestrator_enabled is not None
+        else _get_orchestrator_enabled_from_config(delegation_cfg)
+    )
+    orchestrator_ok = orchestrator_allowed and child_depth < max_spawn
     effective_role = role if (role == "orchestrator" and orchestrator_ok) else "leaf"
 
     # ── Subagent identity (stable across events, 0-indexed for TUI) ─────
@@ -920,8 +976,6 @@ def _build_child_agent(
     subagent_id = f"sa-{task_index}-{_uuid.uuid4().hex[:8]}"
     parent_subagent_id = getattr(parent_agent, "_subagent_id", None)
     tui_depth = max(0, child_depth - 1)  # 0 = first-level child for the UI
-
-    delegation_cfg = _load_config()
 
     # When no explicit toolsets given, inherit from parent's enabled toolsets
     # so disabled tools (e.g. web) don't leak to subagents.
@@ -948,7 +1002,12 @@ def _build_child_agent(
         # toolset names (e.g. web, terminal) are recognised during intersection.
         expanded_parent = _expand_parent_toolsets(parent_toolsets)
         child_toolsets = [t for t in toolsets if t in expanded_parent]
-        if _get_inherit_mcp_toolsets():
+        inherit_mcp = (
+            inherit_mcp_toolsets
+            if inherit_mcp_toolsets is not None
+            else _get_inherit_mcp_toolsets_from_config(delegation_cfg)
+        )
+        if inherit_mcp:
             child_toolsets = _preserve_parent_mcp_toolsets(
                 child_toolsets, parent_toolsets
             )
@@ -1057,24 +1116,12 @@ def _build_child_agent(
         effective_provider = "copilot-acp"
         effective_api_mode = "chat_completions"
 
-    # Resolve reasoning config: delegation override > parent inherit
     parent_reasoning = getattr(parent_agent, "reasoning_config", None)
-    child_reasoning = parent_reasoning
-    try:
-        delegation_effort = str(delegation_cfg.get("reasoning_effort") or "").strip()
-        if delegation_effort:
-            from hermes_constants import parse_reasoning_effort
-
-            parsed = parse_reasoning_effort(delegation_effort)
-            if parsed is not None:
-                child_reasoning = parsed
-            else:
-                logger.warning(
-                    "Unknown delegation.reasoning_effort '%s', inheriting parent level",
-                    delegation_effort,
-                )
-    except Exception as exc:
-        logger.debug("Could not load delegation reasoning_effort: %s", exc)
+    child_reasoning = (
+        child_reasoning_config
+        if child_reasoning_config_resolved
+        else _resolve_child_reasoning_config(delegation_cfg, parent_reasoning)
+    )
 
     # Inherit the parent's fallback provider chain so subagents can recover
     # from rate-limits and credential exhaustion exactly like the top-level
@@ -1323,6 +1370,8 @@ def _run_single_child(
     goal: str,
     child=None,
     parent_agent=None,
+    child_timeout: Optional[float] = None,
+    approval_callback=None,
     **_kwargs,
 ) -> Dict[str, Any]:
     """
@@ -1366,74 +1415,83 @@ def _run_single_child(
     _last_seen_tool = [None]  # type: list
     _stale_count = [0]
 
-    def _heartbeat_loop():
-        while not _heartbeat_stop.wait(_HEARTBEAT_INTERVAL):
-            if parent_agent is None:
-                continue
-            touch = getattr(parent_agent, "_touch_activity", None)
-            if not touch:
-                continue
-            # Pull detail from the child's own activity tracker
-            desc = f"delegate_task: subagent {task_index} working"
-            try:
-                child_summary = child.get_activity_summary()
-                child_tool = child_summary.get("current_tool")
-                child_iter = child_summary.get("api_call_count", 0)
-                child_max = child_summary.get("max_iterations", 0)
+    def _heartbeat_tick():
+        if parent_agent is None:
+            return
+        touch = getattr(parent_agent, "_touch_activity", None)
+        if not touch:
+            return
+        # Pull detail from the child's own activity tracker
+        desc = f"delegate_task: subagent {task_index} working"
+        try:
+            child_summary = child.get_activity_summary()
+            child_tool = child_summary.get("current_tool")
+            child_iter = child_summary.get("api_call_count", 0)
+            child_max = child_summary.get("max_iterations", 0)
 
-                # Stale detection: count cycles where neither the iteration
-                # count nor the current_tool advances. A child running a
-                # legitimately long-running tool (terminal command, web
-                # fetch) keeps current_tool set but doesn't advance
-                # api_call_count — we don't want that to look stale at the
-                # idle threshold.
-                iter_advanced = child_iter > _last_seen_iter[0]
-                tool_changed = child_tool != _last_seen_tool[0]
-                if iter_advanced or tool_changed:
-                    _last_seen_iter[0] = child_iter
-                    _last_seen_tool[0] = child_tool
-                    _stale_count[0] = 0
-                else:
-                    _stale_count[0] += 1
+            # Stale detection: count cycles where neither the iteration
+            # count nor the current_tool advances. A child running a
+            # legitimately long-running tool (terminal command, web
+            # fetch) keeps current_tool set but doesn't advance
+            # api_call_count — we don't want that to look stale at the
+            # idle threshold.
+            iter_advanced = child_iter > _last_seen_iter[0]
+            tool_changed = child_tool != _last_seen_tool[0]
+            if iter_advanced or tool_changed:
+                _last_seen_iter[0] = child_iter
+                _last_seen_tool[0] = child_tool
+                _stale_count[0] = 0
+            else:
+                _stale_count[0] += 1
 
-                # Pick threshold based on whether the child is currently
-                # inside a tool call. In-tool threshold is high enough to
-                # cover legitimately slow tools; idle threshold stays
-                # tight so the gateway timeout can fire on a truly wedged
-                # child.
-                stale_limit = (
-                    _HEARTBEAT_STALE_CYCLES_IN_TOOL
-                    if child_tool
-                    else _HEARTBEAT_STALE_CYCLES_IDLE
+            # Pick threshold based on whether the child is currently
+            # inside a tool call. In-tool threshold is high enough to
+            # cover legitimately slow tools; idle threshold stays
+            # tight so the gateway timeout can fire on a truly wedged
+            # child.
+            stale_limit = (
+                _HEARTBEAT_STALE_CYCLES_IN_TOOL
+                if child_tool
+                else _HEARTBEAT_STALE_CYCLES_IDLE
+            )
+            if _stale_count[0] >= stale_limit:
+                logger.warning(
+                    "Subagent %d appears stale (no progress for %d "
+                    "heartbeat cycles, tool=%s) — stopping heartbeat",
+                    task_index,
+                    _stale_count[0],
+                    child_tool or "<none>",
                 )
-                if _stale_count[0] >= stale_limit:
-                    logger.warning(
-                        "Subagent %d appears stale (no progress for %d "
-                        "heartbeat cycles, tool=%s) — stopping heartbeat",
-                        task_index,
-                        _stale_count[0],
-                        child_tool or "<none>",
-                    )
-                    break  # stop touching parent, let gateway timeout fire
+                return False
 
-                if child_tool:
+            if child_tool:
+                desc = (
+                    f"delegate_task: subagent running {child_tool} "
+                    f"(iteration {child_iter}/{child_max})"
+                )
+            else:
+                child_desc = child_summary.get("last_activity_desc", "")
+                if child_desc:
                     desc = (
-                        f"delegate_task: subagent running {child_tool} "
+                        f"delegate_task: subagent {child_desc} "
                         f"(iteration {child_iter}/{child_max})"
                     )
-                else:
-                    child_desc = child_summary.get("last_activity_desc", "")
-                    if child_desc:
-                        desc = (
-                            f"delegate_task: subagent {child_desc} "
-                            f"(iteration {child_iter}/{child_max})"
-                        )
-            except Exception:
-                pass
-            try:
-                touch(desc)
-            except Exception:
-                pass
+        except Exception:
+            pass
+        try:
+            touch(desc)
+        except Exception:
+            pass
+        return True
+
+    def _heartbeat_loop():
+        while True:
+            if _heartbeat_stop.is_set():
+                break
+            if _heartbeat_tick() is False:
+                break
+            if _heartbeat_stop.wait(_HEARTBEAT_INTERVAL):
+                break
 
     _heartbeat_thread = threading.Thread(target=_heartbeat_loop, daemon=True)
 
@@ -1488,7 +1546,10 @@ def _run_single_child(
 
         # Run child with a hard timeout to prevent indefinite blocking
         # when the child's API call or tool-level HTTP request hangs.
-        child_timeout = _get_child_timeout()
+        if child_timeout is None:
+            child_timeout = _get_child_timeout()
+        if approval_callback is None:
+            approval_callback = _get_subagent_approval_callback()
         _timeout_executor = ThreadPoolExecutor(
             max_workers=1,
             # Install a non-interactive approval callback in the worker thread
@@ -1496,7 +1557,7 @@ def _run_single_child(
             # input() and deadlock the parent's prompt_toolkit TUI.
             # Callback (deny vs approve) is governed by delegation.subagent_auto_approve.
             initializer=_set_subagent_approval_cb,
-            initargs=(_get_subagent_approval_callback(),),
+            initargs=(approval_callback,),
         )
         # Capture the worker thread so the timeout diagnostic can dump its
         # Python stack (see #14726 — 0-API-call hangs are opaque without it).
@@ -1952,13 +2013,29 @@ def delegate_task(
             "(`p` in /agents) or the `delegation.pause` RPC before retrying."
         )
 
+    overall_start = time.monotonic()
+    phase_timings: Dict[str, float] = {}
+
     # Normalise the top-level role once; per-task overrides re-normalise.
     top_role = _normalize_role(role)
+
+    config_start = time.monotonic()
+    cfg = _load_config()
+    max_spawn = _get_max_spawn_depth_from_config(cfg)
+    default_max_iter = cfg.get("max_iterations", DEFAULT_MAX_ITERATIONS)
+    max_children = _get_max_concurrent_children_from_config(cfg)
+    orchestrator_enabled = _get_orchestrator_enabled_from_config(cfg)
+    inherit_mcp_toolsets = _get_inherit_mcp_toolsets_from_config(cfg)
+    child_timeout = _get_child_timeout_from_config(cfg)
+    approval_callback = _get_subagent_approval_callback_from_config(cfg)
+    child_reasoning = _resolve_child_reasoning_config(
+        cfg, getattr(parent_agent, "reasoning_config", None)
+    )
+    phase_timings["config_seconds"] = time.monotonic() - config_start
 
     # Depth limit — configurable via delegation.max_spawn_depth,
     # default 2 for parity with the original MAX_DEPTH constant.
     depth = getattr(parent_agent, "_delegate_depth", 0)
-    max_spawn = _get_max_spawn_depth()
     if depth >= max_spawn:
         return json.dumps(
             {
@@ -1971,9 +2048,6 @@ def delegate_task(
             }
         )
 
-    # Load config
-    cfg = _load_config()
-    default_max_iter = cfg.get("max_iterations", DEFAULT_MAX_ITERATIONS)
     # Model-supplied max_iterations is ignored — the config value is authoritative
     # so users get predictable budgets. The kwarg is retained for internal callers
     # and tests; a model-emitted value here would only shrink the budget and
@@ -1992,13 +2066,14 @@ def delegate_task(
     # bundle (base_url, api_key, api_mode) via the same runtime provider system
     # used by CLI/gateway startup.  When unconfigured, returns None values so
     # children inherit from the parent.
+    credential_start = time.monotonic()
     try:
         creds = _resolve_delegation_credentials(cfg, parent_agent)
     except ValueError as exc:
         return tool_error(str(exc))
+    phase_timings["credentials_seconds"] = time.monotonic() - credential_start
 
     # Normalize to task list
-    max_children = _get_max_concurrent_children()
     recovered_tasks, tasks_error = _recover_tasks_from_json_string(tasks)
     if tasks_error:
         return tool_error(tasks_error)
@@ -2034,7 +2109,6 @@ def delegate_task(
         if not task.get("goal", "").strip():
             return tool_error(f"Task {i} is missing a 'goal'.")
 
-    overall_start = time.monotonic()
     results = []
 
     n_tasks = len(task_list)
@@ -2052,6 +2126,7 @@ def delegate_task(
     # Wrapped in try/finally so the global is always restored even if a
     # child build raises (otherwise _last_resolved_tool_names stays corrupted).
     children = []
+    build_start = time.monotonic()
     try:
         for i, t in enumerate(task_list):
             task_acp_args = t.get("acp_args") if "acp_args" in t else None
@@ -2080,6 +2155,12 @@ def delegate_task(
                     else (acp_args if acp_args is not None else creds.get("args"))
                 ),
                 role=effective_role,
+                delegation_cfg=cfg,
+                max_spawn_depth=max_spawn,
+                orchestrator_enabled=orchestrator_enabled,
+                inherit_mcp_toolsets=inherit_mcp_toolsets,
+                child_reasoning_config=child_reasoning,
+                child_reasoning_config_resolved=True,
             )
             # Override with correct parent tool names (before child construction mutated global)
             child._delegate_saved_tool_names = _parent_tool_names
@@ -2087,11 +2168,20 @@ def delegate_task(
     finally:
         # Authoritative restore: reset global to parent's tool names after all children built
         _model_tools._last_resolved_tool_names = _parent_tool_names
+        phase_timings["child_build_seconds"] = time.monotonic() - build_start
 
+    run_start = time.monotonic()
     if n_tasks == 1:
         # Single task -- run directly (no thread pool overhead)
         _i, _t, child = children[0]
-        result = _run_single_child(0, _t["goal"], child, parent_agent)
+        result = _run_single_child(
+            0,
+            _t["goal"],
+            child,
+            parent_agent,
+            child_timeout=child_timeout,
+            approval_callback=approval_callback,
+        )
         results.append(result)
     else:
         # Batch -- run in parallel with per-task progress lines
@@ -2107,6 +2197,8 @@ def delegate_task(
                     goal=t["goal"],
                     child=child,
                     parent_agent=parent_agent,
+                    child_timeout=child_timeout,
+                    approval_callback=approval_callback,
                 )
                 futures[future] = i
 
@@ -2211,6 +2303,9 @@ def delegate_task(
 
         # Sort by task_index so results match input order
         results.sort(key=lambda r: r["task_index"])
+    phase_timings["child_run_seconds"] = time.monotonic() - run_start
+
+    aggregation_start = time.monotonic()
 
     # Notify parent's memory provider of delegation outcomes
     if (
@@ -2298,12 +2393,16 @@ def delegate_task(
         except Exception:
             logger.debug("Subagent cost rollup failed", exc_info=True)
 
+    phase_timings["aggregation_seconds"] = time.monotonic() - aggregation_start
     total_duration = round(time.monotonic() - overall_start, 2)
 
     return json.dumps(
         {
             "results": results,
             "total_duration_seconds": total_duration,
+            "phase_timings": {
+                name: round(duration, 4) for name, duration in phase_timings.items()
+            },
         },
         ensure_ascii=False,
     )

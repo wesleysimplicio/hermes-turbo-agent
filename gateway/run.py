@@ -53,8 +53,11 @@ from typing import Dict, Optional, Any, List, Union
 from agent.account_usage import fetch_account_usage, render_account_usage_lines
 from agent.async_utils import safe_schedule_threadsafe
 from agent.i18n import t
+from agent.uvloop_utils import install_uvloop_policy
 from hermes_cli.config import cfg_get
 from hermes_cli.fallback_config import get_fallback_chain
+
+install_uvloop_policy()
 
 # --- Agent cache tuning ---------------------------------------------------
 # Bounds the per-session AIAgent cache to prevent unbounded growth in
@@ -18427,6 +18430,14 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
 
 def main():
     """CLI entry point for the gateway."""
+    # uvloop: drop-in libuv-backed event loop (20-40% I/O throughput gain).
+    # Graceful fallback on Windows/Termux where uvloop is unavailable.
+    try:
+        import uvloop  # type: ignore
+        uvloop.install()
+    except Exception:
+        pass
+
     # Force UTF-8 stdio on Windows — gateway logs and startup banner would
     # otherwise UnicodeEncodeError on cp1252 consoles.  No-op on POSIX.
     try:

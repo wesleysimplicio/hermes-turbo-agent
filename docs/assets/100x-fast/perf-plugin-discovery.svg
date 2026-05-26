@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">plugin discovery performance comparison</title>
+  <desc id="desc">Bar chart comparing full plugin discovery with platform plugins against the fast path with platform plugins deferred.</desc>
+  <rect width="1200" height="675" fill="#101820"/>
+  <text x="60" y="78" fill="#f8fafc" font-family="Arial, sans-serif" font-size="34" font-weight="700">Plugin discovery: full vs fast path</text>
+  <text x="60" y="116" fill="#b8c4d5" font-family="Arial, sans-serif" font-size="18">Normal startup can skip platform plugin import work until a platform caller needs it.</text>
+  <text x="90" y="218" fill="#fca5a5" font-family="Arial, sans-serif" font-size="24" font-weight="700">full</text>
+  <rect x="240" y="185" width="680" height="58" rx="6" fill="#ef4444"/>
+  <text x="945" y="223" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24">0.5571s</text>
+  <text x="90" y="338" fill="#86efac" font-family="Arial, sans-serif" font-size="24" font-weight="700">fast</text>
+  <rect x="240" y="305" width="235" height="58" rx="6" fill="#22c55e"/>
+  <text x="500" y="343" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24">0.1930s</text>
+  <rect x="90" y="445" width="1015" height="100" rx="10" fill="#1f2937" stroke="#34d399" stroke-width="2"/>
+  <text x="120" y="485" fill="#d1fae5" font-family="Arial, sans-serif" font-size="24" font-weight="700">Measured speedup: 2.89x</text>
+  <text x="120" y="520" fill="#b8c4d5" font-family="Arial, sans-serif" font-size="18">Platform plugins still load through the full path when gateway/platform code needs them.</text>
+</svg>

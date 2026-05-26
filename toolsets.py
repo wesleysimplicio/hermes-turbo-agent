@@ -23,7 +23,31 @@ Usage:
     all_tools = resolve_toolset("full_stack")
 """
 
+import threading
 from typing import List, Dict, Any, Set, Optional
+
+
+_TOOLSET_CACHE_LOCK = threading.RLock()
+_RESOLVED_TOOLSET_CACHE: Dict[tuple[tuple[int, int], str], List[str]] = {}
+_ALL_TOOLSETS_CACHE: Dict[tuple[int, int], Dict[str, Dict[str, Any]]] = {}
+_TOOLSET_NAMES_CACHE: Dict[tuple[int, int], List[str]] = {}
+
+
+def _registry_cache_key() -> tuple[int, int]:
+    try:
+        from tools.registry import registry
+
+        return (id(registry), int(getattr(registry, "_generation", 0)))
+    except Exception:
+        return (-1, -1)
+
+
+def clear_toolset_resolution_cache() -> None:
+    """Clear memoized toolset resolution helpers."""
+    with _TOOLSET_CACHE_LOCK:
+        _RESOLVED_TOOLSET_CACHE.clear()
+        _ALL_TOOLSETS_CACHE.clear()
+        _TOOLSET_NAMES_CACHE.clear()
 
 
 # Shared tool list for CLI and all messaging platform toolsets.
@@ -611,6 +635,14 @@ def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
     Returns:
         List[str]: List of all tool names in the toolset
     """
+    root_call = visited is None
+    generation = _registry_cache_key() if root_call else (-1, -1)
+    if root_call:
+        with _TOOLSET_CACHE_LOCK:
+            cached = _RESOLVED_TOOLSET_CACHE.get((generation, name))
+            if cached is not None:
+                return list(cached)
+
     if visited is None:
         visited = set()
     
@@ -622,7 +654,11 @@ def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
             # Use a fresh visited set per branch to avoid cross-branch contamination
             resolved = resolve_toolset(toolset_name, visited.copy())
             all_tools.update(resolved)
-        return sorted(all_tools)
+        result = sorted(all_tools)
+        if root_call:
+            with _TOOLSET_CACHE_LOCK:
+                _RESOLVED_TOOLSET_CACHE[(generation, name)] = list(result)
+        return result
 
     # Check for cycles / already-resolved (diamond deps).
     # Silently return [] — either this is a diamond (not a bug, tools already
@@ -652,7 +688,11 @@ def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
                         )
                     except Exception:
                         pass
-                    return list(plugin_tools)
+                    result = sorted(plugin_tools)
+                    if root_call:
+                        with _TOOLSET_CACHE_LOCK:
+                            _RESOLVED_TOOLSET_CACHE[(generation, name)] = list(result)
+                    return result
             except Exception:
                 pass
 
@@ -668,7 +708,11 @@ def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
         included_tools = resolve_toolset(included_name, visited)
         tools.update(included_tools)
     
-    return sorted(tools)
+    result = sorted(tools)
+    if root_call:
+        with _TOOLSET_CACHE_LOCK:
+            _RESOLVED_TOOLSET_CACHE[(generation, name)] = list(result)
+    return result
 
 
 def resolve_multiple_toolsets(toolset_names: List[str]) -> List[str]:
@@ -725,6 +769,12 @@ def get_all_toolsets() -> Dict[str, Dict[str, Any]]:
     Returns:
         Dict: All toolset definitions
     """
+    generation = _registry_cache_key()
+    with _TOOLSET_CACHE_LOCK:
+        cached = _ALL_TOOLSETS_CACHE.get(generation)
+        if cached is not None:
+            return dict(cached)
+
     result = dict(TOOLSETS)
     aliases = _get_registry_toolset_aliases()
     for ts_name in _get_plugin_toolset_names():
@@ -738,6 +788,8 @@ def get_all_toolsets() -> Dict[str, Dict[str, Any]]:
         toolset = get_toolset(display_name)
         if toolset:
             result[display_name] = toolset
+    with _TOOLSET_CACHE_LOCK:
+        _ALL_TOOLSETS_CACHE[generation] = dict(result)
     return result
 
 
@@ -750,6 +802,12 @@ def get_toolset_names() -> List[str]:
     Returns:
         List[str]: List of toolset names
     """
+    generation = _registry_cache_key()
+    with _TOOLSET_CACHE_LOCK:
+        cached = _TOOLSET_NAMES_CACHE.get(generation)
+        if cached is not None:
+            return list(cached)
+
     names = set(TOOLSETS.keys())
     aliases = _get_registry_toolset_aliases()
     for ts_name in _get_plugin_toolset_names():
@@ -759,7 +817,10 @@ def get_toolset_names() -> List[str]:
                 break
         else:
             names.add(ts_name)
-    return sorted(names)
+    result = sorted(names)
+    with _TOOLSET_CACHE_LOCK:
+        _TOOLSET_NAMES_CACHE[generation] = list(result)
+    return result
 
 
 
@@ -804,6 +865,7 @@ def create_custom_toolset(
         "tools": tools or [],
         "includes": includes or []
     }
+    clear_toolset_resolution_cache()
 
 
 

@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from agent._fastjson import loads as _fast_loads
+
 
 FILE_MUTATING_TOOL_NAMES = frozenset({"write_file", "patch"})
 
@@ -14,7 +16,7 @@ def file_mutation_result_landed(tool_name: str, result: Any) -> bool:
     if tool_name not in FILE_MUTATING_TOOL_NAMES or not isinstance(result, str):
         return False
     try:
-        data = json.loads(result.strip())
+        data = _fast_loads(result.strip())
     except Exception:
         return False
     if not isinstance(data, dict) or data.get("error"):

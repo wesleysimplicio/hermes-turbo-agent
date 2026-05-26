@@ -252,6 +252,14 @@ def main(argv: list[str] | None = None) -> None:
     except Exception:
         logger.debug("MCP tool discovery failed at ACP startup", exc_info=True)
 
+    # uvloop: libuv-backed event loop. Install policy before asyncio.run so
+    # the ACP agent benefits from faster I/O dispatch. Graceful fallback.
+    try:
+        import uvloop  # type: ignore
+        uvloop.install()
+    except Exception:
+        pass
+
     agent = HermesACPAgent()
     try:
         asyncio.run(acp.run_agent(agent, use_unstable_protocol=True))

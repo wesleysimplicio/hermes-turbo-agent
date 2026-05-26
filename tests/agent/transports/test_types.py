@@ -1,8 +1,10 @@
 """Tests for agent/transports/types.py — dataclass construction + helpers."""
 
 import json
+
 import pytest
 
+from agent.transports import types as transport_types
 from agent.transports.types import (
     NormalizedResponse,
     ToolCall,
@@ -37,6 +39,18 @@ class TestToolCall:
         )
         assert tc.provider_data["call_id"] == "call_x"
         assert tc.provider_data["response_item_id"] == "fc_x"
+
+    def test_function_write_through_mutates_flat_fields(self):
+        tc = ToolCall(id="call_abc", name="terminal", arguments='{"cmd":"ls"}')
+        tc.function.name = "read_file"
+        tc.function.arguments = '{"path":"/tmp/x"}'
+        assert tc.name == "read_file"
+        assert tc.arguments == '{"path":"/tmp/x"}'
+
+    def test_msgspec_struct_fast_path_when_available(self):
+        if transport_types.msgspec is None:
+            pytest.skip("msgspec not installed")
+        assert issubclass(ToolCall, transport_types.msgspec.Struct)
 
 
 # ---------------------------------------------------------------------------

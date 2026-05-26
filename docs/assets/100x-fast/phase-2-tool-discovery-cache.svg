@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Phase 2 tool discovery cache</title>
+  <desc id="desc">Before and after diagram showing built-in tool discovery moving from source scans on every startup to a fingerprinted cache.</desc>
+  <rect width="1200" height="675" fill="#101820"/>
+  <text x="60" y="78" fill="#f5f7fb" font-family="Arial, sans-serif" font-size="34" font-weight="700">Phase 2 - Tool discovery cache</text>
+  <text x="60" y="116" fill="#aeb8c7" font-family="Arial, sans-serif" font-size="18">Inspired by US4 hot/cold cache: keep the hot startup path on a small fingerprint, scan source only when files changed.</text>
+  <rect x="60" y="165" width="500" height="370" rx="10" fill="#26313d" stroke="#e05d5d" stroke-width="3"/>
+  <text x="90" y="215" fill="#ffb0a8" font-family="Arial, sans-serif" font-size="26" font-weight="700">Before</text>
+  <text x="90" y="265" fill="#f5f7fb" font-family="Consolas, monospace" font-size="22">startup</text>
+  <text x="198" y="265" fill="#f5f7fb" font-family="Arial, sans-serif" font-size="22">-> glob every tool file</text>
+  <text x="90" y="315" fill="#f5f7fb" font-family="Consolas, monospace" font-size="22">scan</text>
+  <text x="155" y="315" fill="#f5f7fb" font-family="Arial, sans-serif" font-size="22">-> read source / detect register</text>
+  <text x="90" y="365" fill="#f5f7fb" font-family="Consolas, monospace" font-size="22">import</text>
+  <text x="168" y="365" fill="#f5f7fb" font-family="Arial, sans-serif" font-size="22">-> load matching modules</text>
+  <text x="90" y="448" fill="#ffcfcc" font-family="Arial, sans-serif" font-size="18">Repeated work even when tools/ is unchanged.</text>
+  <rect x="640" y="165" width="500" height="370" rx="10" fill="#1f342c" stroke="#44c08a" stroke-width="3"/>
+  <text x="670" y="215" fill="#9cf0c3" font-family="Arial, sans-serif" font-size="26" font-weight="700">After</text>
+  <text x="670" y="265" fill="#f5f7fb" font-family="Consolas, monospace" font-size="22">fingerprint</text>
+  <text x="815" y="265" fill="#f5f7fb" font-family="Arial, sans-serif" font-size="22">-> filename / size / mtime</text>
+  <text x="670" y="315" fill="#f5f7fb" font-family="Consolas, monospace" font-size="22">cache hit</text>
+  <text x="785" y="315" fill="#f5f7fb" font-family="Arial, sans-serif" font-size="22">-> module list from disk</text>
+  <text x="670" y="365" fill="#f5f7fb" font-family="Consolas, monospace" font-size="22">cache miss</text>
+  <text x="800" y="365" fill="#f5f7fb" font-family="Arial, sans-serif" font-size="22">-> safe source scan + refresh</text>
+  <text x="670" y="448" fill="#c9f7dd" font-family="Arial, sans-serif" font-size="18">Cold correctness, warm startup shortcut.</text>
+  <path d="M565 350 C590 350 610 350 635 350" stroke="#f5f7fb" stroke-width="4" fill="none"/>
+  <path d="M625 338 L642 350 L625 362" stroke="#f5f7fb" stroke-width="4" fill="none"/>
+  <text x="60" y="610" fill="#d6dee9" font-family="Arial, sans-serif" font-size="20">Files: tools/registry.py, tests/tools/test_registry.py</text>
+</svg>

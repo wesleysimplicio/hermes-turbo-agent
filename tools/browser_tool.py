@@ -485,6 +485,25 @@ def _ensure_browser_plugins_loaded() -> None:
         logger.debug("Browser plugin discovery failed (non-fatal): %s", exc)
 
 
+def _new_cloud_provider(factory):
+    """Instantiate a provider through one patchable choke point."""
+    return factory()
+
+
+def _has_cloud_provider_hint() -> bool:
+    """Avoid touching cloud provider code when the local browser is clearly selected."""
+    if os.environ.get("BROWSER_USE_API_KEY"):
+        return True
+    if os.environ.get("BROWSERBASE_API_KEY") and os.environ.get("BROWSERBASE_PROJECT_ID"):
+        return True
+    if os.environ.get("TOOL_GATEWAY_USER_TOKEN"):
+        return True
+    try:
+        return (get_hermes_home() / "auth.json").is_file()
+    except Exception:
+        return False
+
+
 def _get_cloud_provider() -> Optional[CloudBrowserProvider]:
     """Return the configured cloud browser provider, or None for local mode.
 
@@ -527,7 +546,7 @@ def _get_cloud_provider() -> Optional[CloudBrowserProvider]:
                     # cache-policy unit tests keep working.
                     factory = _PROVIDER_REGISTRY.get(provider_key)
                     if factory is not None:
-                        resolved = factory()
+                        resolved = _new_cloud_provider(factory)
                 else:
                     # Ensure plugins are discovered so the registry is
                     # populated. Idempotent — cheap on subsequent calls.
@@ -560,6 +579,8 @@ def _get_cloud_provider() -> Optional[CloudBrowserProvider]:
         logger.debug("Could not read cloud_provider from config: %s", e)
 
     if resolved is None:
+        if not provider_key and not _has_cloud_provider_hint():
+            return None
         # Auto-detect path: Browser Use first (managed Nous gateway or
         # direct API key), then Browserbase (direct credentials). Uses
         # the legacy class names imported at the top of this module so
@@ -570,11 +591,11 @@ def _get_cloud_provider() -> Optional[CloudBrowserProvider]:
         # mirroring the firecrawl gate documented on
         # :data:`agent.browser_registry._LEGACY_PREFERENCE`.
         try:
-            fallback_provider = BrowserUseProvider()
+            fallback_provider = _new_cloud_provider(BrowserUseProvider)
             if fallback_provider.is_configured():
                 resolved = fallback_provider
             else:
-                fallback_provider = BrowserbaseProvider()
+                fallback_provider = _new_cloud_provider(BrowserbaseProvider)
                 if fallback_provider.is_configured():
                     resolved = fallback_provider
         except Exception:  # pragma: no cover - defensive: never poison cache

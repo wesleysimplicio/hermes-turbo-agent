@@ -1,9 +1,11 @@
 """Tests for hermes_state.py — SessionDB SQLite CRUD, FTS5 search, export."""
 
+import json
 import time
 import pytest
 from pathlib import Path
 
+import hermes_state
 from hermes_state import SessionDB
 
 
@@ -235,6 +237,31 @@ class TestMessageStorage:
         messages = db.get_messages("s1")
         assert messages[0]["tool_calls"] == tool_calls
 
+    def test_append_messages_batches_session_counter_updates(self, db):
+        db.create_session(session_id="s1", source="cli")
+        tool_calls = [
+            {"id": "call_1", "function": {"name": "web_search", "arguments": "{}"}},
+            {"id": "call_2", "function": {"name": "read_file", "arguments": "{}"}},
+        ]
+
+        ids = db.append_messages(
+            "s1",
+            [
+                {"role": "user", "content": "Hello"},
+                {"role": "assistant", "content": "", "tool_calls": tool_calls},
+                {"role": "tool", "content": "ok", "tool_name": "web_search"},
+            ],
+        )
+
+        assert len(ids) == 3
+        messages = db.get_messages("s1")
+        assert [m["role"] for m in messages] == ["user", "assistant", "tool"]
+        assert messages[0]["content"] == "Hello"
+        assert messages[1]["tool_calls"] == tool_calls
+        session = db.get_session("s1")
+        assert session["message_count"] == 3
+        assert session["tool_call_count"] == 2
+
     def test_multimodal_list_content_round_trip(self, db):
         """Multimodal ``content`` (list of parts) must survive the SQLite
         round-trip.  sqlite3 cannot bind Python lists directly, so the DB
@@ -327,6 +354,80 @@ class TestMessageStorage:
         assert len(msgs) == 2
         assert msgs[0]["content"] == content
         assert msgs[1]["content"] == "I see a screenshot."
+
+    def test_fast_state_flag_default_off_keeps_stdlib_path(self, db, monkeypatch):
+        """Fast JSON stays opt-in; default behavior must not touch the fast path."""
+        monkeypatch.delenv("HERMES_TURBO_FAST_STATE", raising=False)
+
+        def _unexpected_fast_path(*args, **kwargs):
+            raise AssertionError("fast state JSON should stay disabled by default")
+
+        monkeypatch.setattr(hermes_state, "_fast_json_dumps", _unexpected_fast_path)
+        monkeypatch.setattr(hermes_state, "_fast_json_loads", _unexpected_fast_path)
+
+        content = [{"type": "text", "text": "plain default path"}]
+        db.create_session(session_id="fast-off", source="cli")
+        db.append_message("fast-off", role="user", content=content)
+
+        msgs = db.get_messages("fast-off")
+        assert msgs[0]["content"] == content
+
+    def test_fast_state_flag_round_trips_structured_payloads(self, db, monkeypatch):
+        """`HERMES_TURBO_FAST_STATE=1` switches state JSON fields to the fast codec."""
+        monkeypatch.setenv("HERMES_TURBO_FAST_STATE", "1")
+        calls = {"dumps": 0, "loads": 0}
+
+        def _tracking_dumps(value):
+            calls["dumps"] += 1
+            return json.dumps(value)
+
+        def _tracking_loads(value):
+            calls["loads"] += 1
+            return json.loads(value)
+
+        monkeypatch.setattr(hermes_state, "_fast_json_dumps", _tracking_dumps)
+        monkeypatch.setattr(hermes_state, "_fast_json_loads", _tracking_loads)
+
+        content = [
+            {"type": "text", "text": "use fast state"},
+            {"type": "image_url", "image_url": {"url": "data:image/png;base64,BBB"}},
+        ]
+        tool_calls = [
+            {"id": "c1", "type": "function", "function": {"name": "read_file", "arguments": "{\"path\":\"README.md\"}"}}
+        ]
+        reasoning_details = [
+            {"type": "reasoning.summary", "summary": "using fast state json"}
+        ]
+        codex_reasoning_items = [
+            {"type": "reasoning", "id": "rs_fast", "encrypted_content": "blob"}
+        ]
+        codex_message_items = [
+            {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "done"}]}
+        ]
+
+        db.create_session(session_id="fast-on", source="cli")
+        db.append_message(
+            "fast-on",
+            role="assistant",
+            content=content,
+            tool_calls=tool_calls,
+            reasoning="fast path",
+            reasoning_details=reasoning_details,
+            codex_reasoning_items=codex_reasoning_items,
+            codex_message_items=codex_message_items,
+        )
+
+        msgs = db.get_messages("fast-on")
+        conv = db.get_messages_as_conversation("fast-on")
+
+        assert msgs[0]["content"] == content
+        assert msgs[0]["tool_calls"] == tool_calls
+        assert conv[0]["content"] == content
+        assert conv[0]["reasoning_details"] == reasoning_details
+        assert conv[0]["codex_reasoning_items"] == codex_reasoning_items
+        assert conv[0]["codex_message_items"] == codex_message_items
+        assert calls["dumps"] >= 5
+        assert calls["loads"] >= 4
 
     def test_get_messages_as_conversation(self, db):
         db.create_session(session_id="s1", source="cli")
@@ -3020,4 +3121,3 @@ class TestFTS5ToolCallMigration:
             assert version == SCHEMA_VERSION
         finally:
             session_db.close()
-

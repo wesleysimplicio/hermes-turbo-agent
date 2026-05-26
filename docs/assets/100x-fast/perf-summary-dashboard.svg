@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Hermes performance comparison dashboard</title>
+  <desc id="desc">Summary dashboard of measured Hermes performance improvements in the 100X Fast branch.</desc>
+  <rect width="1200" height="675" fill="#0f1720"/>
+  <text x="60" y="72" fill="#f8fafc" font-family="Arial, sans-serif" font-size="34" font-weight="700">Hermes Agent 100X Fast - Performance Dashboard</text>
+  <text x="60" y="112" fill="#b8c4d5" font-family="Arial, sans-serif" font-size="18">Local Windows measurements from benchmark_startup_perf.py. Numbers are measured, not universal guarantees.</text>
+  <g font-family="Arial, sans-serif" font-size="20">
+    <rect x="70" y="165" width="500" height="85" rx="10" fill="#1e2b3a" stroke="#60a5fa" stroke-width="2"/>
+    <text x="95" y="205" fill="#dbeafe">model_tools cold import</text>
+    <text x="445" y="205" fill="#93c5fd" font-size="30" font-weight="700">2.48x</text>
+    <text x="95" y="232" fill="#b8c4d5" font-size="16">2.0847s main -> 0.8419s branch</text>
+
+    <rect x="630" y="165" width="500" height="85" rx="10" fill="#1e2b3a" stroke="#60a5fa" stroke-width="2"/>
+    <text x="655" y="205" fill="#dbeafe">tool schema startup</text>
+    <text x="1005" y="205" fill="#93c5fd" font-size="30" font-weight="700">2.15x</text>
+    <text x="655" y="232" fill="#b8c4d5" font-size="16">1.8782s main -> 0.8741s branch</text>
+
+    <rect x="70" y="290" width="500" height="85" rx="10" fill="#1f3329" stroke="#34d399" stroke-width="2"/>
+    <text x="95" y="330" fill="#d1fae5">platform plugin fast path</text>
+    <text x="445" y="330" fill="#86efac" font-size="30" font-weight="700">2.89x</text>
+    <text x="95" y="357" fill="#b8c4d5" font-size="16">0.5571s full baseline -> 0.1930s fast path</text>
+
+    <rect x="630" y="290" width="500" height="85" rx="10" fill="#33251f" stroke="#fb923c" stroke-width="2"/>
+    <text x="655" y="330" fill="#ffedd5">SQLite session persistence</text>
+    <text x="980" y="330" fill="#fdba74" font-size="30" font-weight="700">24.21x</text>
+    <text x="655" y="357" fill="#b8c4d5" font-size="16">0.6329s loop -> 0.0240s batch for 180 messages</text>
+
+    <rect x="70" y="415" width="500" height="85" rx="10" fill="#2f2740" stroke="#c084fc" stroke-width="2"/>
+    <text x="95" y="455" fill="#f3e8ff">toolset warm cache</text>
+    <text x="387" y="455" fill="#d8b4fe" font-size="30" font-weight="700">~2us</text>
+    <text x="95" y="482" fill="#b8c4d5" font-size="16">warm resolve_toolset('all') call after cold resolution</text>
+
+    <rect x="630" y="415" width="500" height="85" rx="10" fill="#1f2937" stroke="#94a3b8" stroke-width="2"/>
+    <text x="655" y="455" fill="#e5e7eb">MCP reload on display edit</text>
+    <text x="1005" y="455" fill="#cbd5e1" font-size="30" font-weight="700">0</text>
+    <text x="655" y="482" fill="#b8c4d5" font-size="16">reload.mcp skipped unless mcp_servers fingerprint changes</text>
+  </g>
+  <text x="60" y="590" fill="#d6dee9" font-family="Arial, sans-serif" font-size="18">See individual charts below for before/after bars and notes.</text>
+</svg>

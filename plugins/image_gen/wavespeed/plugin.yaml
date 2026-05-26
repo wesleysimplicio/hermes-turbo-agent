@@ -1,0 +1,7 @@
+name: wavespeed
+version: 1.0.0
+description: "WaveSpeedAI image generation backend (FLUX.1 [schnell]). Uses wavespeed-cli wrapper."
+author: NousResearch
+kind: backend
+requires_env:
+  - WAVESPEED_API_KEY

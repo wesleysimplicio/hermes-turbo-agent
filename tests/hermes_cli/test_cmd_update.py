@@ -61,10 +61,10 @@ class TestCmdUpdateBranchFallback:
         assert "origin/main" in rev_list_cmds[0]
         assert "origin/fix/stoicneko" not in rev_list_cmds[0]
 
-        # pull should use main, not fix/stoicneko
-        pull_cmds = [c for c in commands if "pull" in c]
-        assert len(pull_cmds) == 1
-        assert "main" in pull_cmds[0]
+        # merge should use main, not fix/stoicneko
+        merge_cmds = [c for c in commands if "merge --ff-only" in c]
+        assert len(merge_cmds) == 1
+        assert "origin/main" in merge_cmds[0]
 
     @patch("shutil.which", return_value=None)
     @patch("subprocess.run")
@@ -83,9 +83,9 @@ class TestCmdUpdateBranchFallback:
         assert len(rev_list_cmds) == 1
         assert "origin/main" in rev_list_cmds[0]
 
-        pull_cmds = [c for c in commands if "pull" in c]
-        assert len(pull_cmds) == 1
-        assert "main" in pull_cmds[0]
+        merge_cmds = [c for c in commands if "merge --ff-only" in c]
+        assert len(merge_cmds) == 1
+        assert "origin/main" in merge_cmds[0]
 
     @patch("shutil.which", return_value=None)
     @patch("subprocess.run")
@@ -101,10 +101,10 @@ class TestCmdUpdateBranchFallback:
         captured = capsys.readouterr()
         assert "Already up to date!" in captured.out
 
-        # Should NOT have called pull
+        # Should NOT have merged updates
         commands = [" ".join(str(a) for a in c.args[0]) for c in mock_run.call_args_list]
-        pull_cmds = [c for c in commands if "pull" in c]
-        assert len(pull_cmds) == 0
+        merge_cmds = [c for c in commands if "merge --ff-only" in c]
+        assert len(merge_cmds) == 0
 
     @patch("shutil.which")
     @patch("subprocess.run")

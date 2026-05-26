@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Phase 3 toolset resolution cache</title>
+  <desc id="desc">Before and after diagram showing repeated recursive toolset resolution replaced by registry-generation memoization.</desc>
+  <rect width="1200" height="675" fill="#111722"/>
+  <text x="60" y="78" fill="#f7f9fc" font-family="Arial, sans-serif" font-size="34" font-weight="700">Phase 3 - Toolset resolution memoization</text>
+  <text x="60" y="116" fill="#b8c3d4" font-family="Arial, sans-serif" font-size="18">Inspired by US4 profile stores: resolved tool plans are valid until the registry generation changes.</text>
+  <rect x="70" y="165" width="460" height="380" rx="10" fill="#302638" stroke="#c77dff" stroke-width="3"/>
+  <text x="100" y="215" fill="#e2b9ff" font-family="Arial, sans-serif" font-size="26" font-weight="700">Before</text>
+  <circle cx="170" cy="295" r="45" fill="#4b365b"/>
+  <circle cx="300" cy="295" r="45" fill="#4b365b"/>
+  <circle cx="430" cy="295" r="45" fill="#4b365b"/>
+  <text x="145" y="303" fill="#fff" font-family="Arial, sans-serif" font-size="20">all</text>
+  <text x="277" y="303" fill="#fff" font-family="Arial, sans-serif" font-size="20">web</text>
+  <text x="392" y="303" fill="#fff" font-family="Arial, sans-serif" font-size="20">core</text>
+  <path d="M215 295 H255 M345 295 H385" stroke="#f7f9fc" stroke-width="4"/>
+  <text x="105" y="405" fill="#f7f9fc" font-family="Arial, sans-serif" font-size="21">Every call walks includes, aliases,</text>
+  <text x="105" y="437" fill="#f7f9fc" font-family="Arial, sans-serif" font-size="21">plugin toolsets, and registry aliases.</text>
+  <rect x="670" y="165" width="460" height="380" rx="10" fill="#21372f" stroke="#3dd68c" stroke-width="3"/>
+  <text x="700" y="215" fill="#a5f2cc" font-family="Arial, sans-serif" font-size="26" font-weight="700">After</text>
+  <rect x="725" y="260" width="350" height="92" rx="8" fill="#2c5143"/>
+  <text x="755" y="316" fill="#fff" font-family="Consolas, monospace" font-size="24">(registry_id, generation, name)</text>
+  <text x="705" y="405" fill="#f7f9fc" font-family="Arial, sans-serif" font-size="21">Warm calls return a copied list.</text>
+  <text x="705" y="437" fill="#f7f9fc" font-family="Arial, sans-serif" font-size="21">Plugin changes invalidate safely.</text>
+  <path d="M540 352 C585 352 615 352 660 352" stroke="#f7f9fc" stroke-width="4" fill="none"/>
+  <path d="M650 340 L668 352 L650 364" stroke="#f7f9fc" stroke-width="4" fill="none"/>
+  <text x="60" y="610" fill="#d6dee9" font-family="Arial, sans-serif" font-size="20">Benchmark: resolve_toolset('all') warm path ~0.000002s per call in local run.</text>
+</svg>

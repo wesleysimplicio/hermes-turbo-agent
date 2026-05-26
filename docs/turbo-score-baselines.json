@@ -1,0 +1,8 @@
+{
+  "_comment": "Hand-curated baselines for Turbo Score families that the upstream benchmark JSON does not cover. Update when the canonical benchmark report is refreshed.",
+  "memory_rss_mb": {
+    "stock": 60,
+    "local": 30,
+    "source": "scripts/generate_hermes_turbo_battle_cards.py Battle 08 'RSS Memory'"
+  }
+}

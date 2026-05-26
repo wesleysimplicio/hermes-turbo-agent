@@ -1,0 +1,102 @@
+name: Auto Update Check
+
+# Scheduled detector for upstream Hermes updates. On drift it opens (or
+# refreshes) a single tracking issue so maintainers can run the sync. It
+# deliberately does NOT auto-merge upstream code — the proven path is to
+# review a sync branch (scripts/hermes_turbo_daily_update.py), not to land
+# untested upstream commits straight onto main.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 06:30 UTC.
+    - cron: "30 6 * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: auto-update-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Detect upstream drift
+        id: drift
+        run: |
+          set +e
+          python scripts/check_upstream_updates.py > drift.json
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          echo "----- drift.json -----"
+          cat drift.json
+        # exit codes: 0 up-to-date, 10 drift, 1 error
+
+      - name: Open or refresh tracking issue on drift
+        if: steps.drift.outputs.exit_code == '10'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const verdict = JSON.parse(fs.readFileSync('drift.json', 'utf8'));
+            const title = 'chore: upstream Hermes updates available';
+            const body = [
+              'A scheduled check found new commits on upstream Hermes.',
+              '',
+              '```json',
+              JSON.stringify(verdict, null, 2),
+              '```',
+              '',
+              'To sync, run the maintained routine (pushes a dated branch and',
+              'validates before any merge):',
+              '',
+              '```bash',
+              'python scripts/hermes_turbo_daily_update.py',
+              '```',
+              '',
+              '_Opened automatically by .github/workflows/auto-update-check.yml._',
+            ].join('\n');
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'upstream-sync',
+              per_page: 50,
+            });
+            const match = existing.data.find(i => i.title === title);
+            if (match) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: match.number,
+                body,
+              });
+              core.notice(`Refreshed tracking issue #${match.number}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['upstream-sync'],
+              });
+              core.notice(`Opened tracking issue #${created.data.number}`);
+            }
+
+      - name: Fail the job on checker error
+        if: steps.drift.outputs.exit_code == '1'
+        run: |
+          echo "::error::check_upstream_updates.py reported an error"
+          exit 1

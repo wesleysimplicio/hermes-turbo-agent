@@ -354,7 +354,7 @@ DEFAULT_STREAMING_CURSOR: str = " ▉"
 @dataclass
 class StreamingConfig:
     """Configuration for real-time token streaming to messaging platforms."""
-    enabled: bool = False
+    enabled: bool = True
     # Transport selection:
     #   "auto"  — prefer native streaming-draft updates when the platform
     #             supports them (Telegram sendMessageDraft, Bot API 9.5+);

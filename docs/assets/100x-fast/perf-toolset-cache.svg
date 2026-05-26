@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">toolset cache performance comparison</title>
+  <desc id="desc">Bar chart comparing cold resolve_toolset all against warm cached lookup time.</desc>
+  <rect width="1200" height="675" fill="#101820"/>
+  <text x="60" y="78" fill="#f8fafc" font-family="Arial, sans-serif" font-size="34" font-weight="700">Toolsets: cold recursive resolution vs warm cache</text>
+  <text x="60" y="116" fill="#b8c4d5" font-family="Arial, sans-serif" font-size="18">Cache key includes registry identity and generation, so plugin changes invalidate safely.</text>
+  <text x="90" y="218" fill="#fca5a5" font-family="Arial, sans-serif" font-size="24" font-weight="700">cold</text>
+  <rect x="240" y="185" width="680" height="58" rx="6" fill="#a855f7"/>
+  <text x="945" y="223" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24">0.1610s</text>
+  <text x="90" y="338" fill="#d8b4fe" font-family="Arial, sans-serif" font-size="24" font-weight="700">warm</text>
+  <rect x="240" y="305" width="12" height="58" rx="6" fill="#7c3aed"/>
+  <text x="275" y="343" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24">~0.000002s per call</text>
+  <rect x="90" y="445" width="1015" height="100" rx="10" fill="#1f2937" stroke="#c084fc" stroke-width="2"/>
+  <text x="120" y="485" fill="#f3e8ff" font-family="Arial, sans-serif" font-size="24" font-weight="700">Warm lookup becomes effectively free</text>
+  <text x="120" y="520" fill="#b8c4d5" font-family="Arial, sans-serif" font-size="18">The tiny warm bar is drawn with a minimum width so it remains visible.</text>
+</svg>

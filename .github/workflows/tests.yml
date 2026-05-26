@@ -23,7 +23,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
@@ -54,7 +54,7 @@ jobs:
           rg --version
 
       - name: Install uv
-        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
 
       - name: Set up Python 3.11
         run: uv python install 3.11
@@ -138,6 +138,45 @@ jobs:
           path: test_durations.json
           key: test-durations
 
+  windows-smoke:
+    name: Windows smoke (blocking)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          uv venv .venv --python 3.11
+          uv pip install --python .\.venv\Scripts\python.exe -e ".[all,dev]"
+
+      - name: Import smoke
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\python.exe -c "import hermes_cli.main, gateway.run, hermes_cli.web_server"
+
+      - name: Run targeted Windows tests
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\python.exe -m pytest `
+            tests/tools/test_windows_native_support.py `
+            tests/test_hermes_bootstrap.py `
+            tests/tools/test_browser_chromium_check.py `
+            tests/hermes_cli/test_relaunch.py `
+            -q --tb=short
+        env:
+          OPENROUTER_API_KEY: ""
+          OPENAI_API_KEY: ""
+          NOUS_API_KEY: ""
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -160,7 +199,7 @@ jobs:
           rg --version
 
       - name: Install uv
-        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
 
       - name: Set up Python 3.11
         run: uv python install 3.11

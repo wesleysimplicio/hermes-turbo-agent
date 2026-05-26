@@ -602,7 +602,7 @@ class ProcessRegistry:
             errors="replace",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            stdin=subprocess.DEVNULL,
+            stdin=subprocess.PIPE,
             preexec_fn=None if _IS_WINDOWS else os.setsid,
             **_popen_kwargs,
         )

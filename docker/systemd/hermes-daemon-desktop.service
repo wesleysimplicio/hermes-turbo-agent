@@ -1,0 +1,20 @@
+[Unit]
+Description=Hermes warm daemon (desktop profile)
+Documentation=https://github.com/wesleysimplicio/hermes-turbo-agent/blob/main/docs/runtime/warm-daemon.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env python -m hermes_cli.daemon start --profile desktop
+ExecStop=/usr/bin/env python -m hermes_cli.daemon stop
+Restart=on-failure
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+# Resource guardrails (see AGENTS.md yool/tuple/HAMT §11)
+CPUQuota=60%
+MemoryMax=1G
+TasksMax=128
+
+[Install]
+WantedBy=default.target

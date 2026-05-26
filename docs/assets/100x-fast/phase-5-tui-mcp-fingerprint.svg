@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Phase 5 TUI MCP fingerprint reload</title>
+  <desc id="desc">Before and after diagram showing TUI config polling changing from unconditional MCP reload to fingerprint-based reload.</desc>
+  <rect width="1200" height="675" fill="#0f1720"/>
+  <text x="60" y="78" fill="#f8fafc" font-family="Arial, sans-serif" font-size="34" font-weight="700">Phase 5 - TUI MCP reload fingerprint</text>
+  <text x="60" y="116" fill="#b8c4d5" font-family="Arial, sans-serif" font-size="18">Inspired by US4 backend selectors: reload the expensive subsystem only when its profile changed.</text>
+  <rect x="70" y="165" width="470" height="385" rx="10" fill="#332a23" stroke="#f59e0b" stroke-width="3"/>
+  <text x="100" y="215" fill="#ffd58a" font-family="Arial, sans-serif" font-size="26" font-weight="700">Before</text>
+  <text x="100" y="275" fill="#fff" font-family="Arial, sans-serif" font-size="22">config.yaml mtime changes</text>
+  <text x="100" y="328" fill="#fff" font-family="Arial, sans-serif" font-size="22">TUI hydrates config</text>
+  <text x="100" y="381" fill="#fff" font-family="Arial, sans-serif" font-size="22">TUI reloads MCP every time</text>
+  <text x="100" y="455" fill="#ffe4b5" font-family="Arial, sans-serif" font-size="19">Display edits can invalidate MCP prompt cache.</text>
+  <rect x="660" y="165" width="470" height="385" rx="10" fill="#203446" stroke="#38bdf8" stroke-width="3"/>
+  <text x="690" y="215" fill="#9ae6ff" font-family="Arial, sans-serif" font-size="26" font-weight="700">After</text>
+  <text x="690" y="275" fill="#fff" font-family="Arial, sans-serif" font-size="22">config.yaml mtime changes</text>
+  <text x="690" y="328" fill="#fff" font-family="Arial, sans-serif" font-size="22">TUI hydrates config</text>
+  <text x="690" y="381" fill="#fff" font-family="Arial, sans-serif" font-size="22">Reload MCP only when mcp_servers fingerprint changed</text>
+  <text x="690" y="455" fill="#d8f4ff" font-family="Arial, sans-serif" font-size="19">Display, voice, status edits stay cheap.</text>
+  <path d="M550 358 C590 358 620 358 650 358" stroke="#f8fafc" stroke-width="4" fill="none"/>
+  <path d="M640 346 L658 358 L640 370" stroke="#f8fafc" stroke-width="4" fill="none"/>
+  <text x="60" y="610" fill="#d6dee9" font-family="Arial, sans-serif" font-size="20">Files: tui_gateway/server.py, ui-tui/src/app/useConfigSync.ts, ui-tui/src/gatewayTypes.ts</text>
+</svg>

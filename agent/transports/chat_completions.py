@@ -282,6 +282,8 @@ class ChatCompletionsTransport(ProviderTransport):
             if is_moonshot_model(model):
                 tools = sanitize_moonshot_tools(tools)
             api_kwargs["tools"] = tools
+            if not params.get("is_lmstudio", False):
+                api_kwargs["parallel_tool_calls"] = True
 
         # max_tokens resolution — priority: ephemeral > user > provider default
         max_tokens_fn = params.get("max_tokens_param_fn")
@@ -470,6 +472,8 @@ class ChatCompletionsTransport(ProviderTransport):
             if is_moonshot_model(model):
                 tools = sanitize_moonshot_tools(tools)
             api_kwargs["tools"] = tools
+            if not params.get("is_lmstudio", False):
+                api_kwargs["parallel_tool_calls"] = True
 
         # max_tokens resolution — priority: ephemeral > user > profile default
         max_tokens_fn = params.get("max_tokens_param_fn")

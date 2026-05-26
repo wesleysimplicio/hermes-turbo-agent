@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 520" role="img" aria-labelledby="title desc">
+  <title id="title">Hermes Turbo Agent logo</title>
+  <desc id="desc">Hermes Turbo Agent army green and dark mustard wordmark, credited by Hermes Agent.</desc>
+  <defs>
+    <linearGradient id="slash" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#3F4B2F"/>
+      <stop offset="0.56" stop-color="#C49A28"/>
+      <stop offset="1" stop-color="#3F4B2F"/>
+    </linearGradient>
+  </defs>
+  <rect width="1680" height="520" fill="#1A2115"/>
+  <path d="M0 520 L618 0 H900 L276 520 Z" fill="#C49A28"/>
+  <path d="M1180 0 H1680 V520 H1430 Z" fill="#11160E" opacity=".52"/>
+  <circle cx="252" cy="260" r="196" fill="#C49A28" stroke="#F7F3DF" stroke-width="18"/>
+  <circle cx="252" cy="260" r="216" fill="none" stroke="#3F4B2F" stroke-width="18"/>
+  <path d="M124 352 C152 230 210 146 292 118 C380 160 410 254 364 374 C300 346 208 344 124 352 Z" fill="#3F4B2F"/>
+  <path d="M152 190 C204 128 306 104 390 158 C340 158 316 176 304 212 C252 190 204 186 152 190 Z" fill="#1A2115"/>
+  <path d="M188 318 C220 366 286 384 338 346" fill="none" stroke="#F7F3DF" stroke-width="22" stroke-linecap="round"/>
+  <text x="278" y="172" fill="#C49A28" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="78" font-weight="900" font-style="italic">A</text>
+  <g transform="translate(580 126)">
+    <text x="0" y="110" fill="#F7F3DF" stroke="#11160E" stroke-width="4" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="112" font-weight="900" letter-spacing="1">HERMES TURBO AGENT</text>
+    <text x="4" y="176" fill="#C49A28" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="800" letter-spacing="4">BY HERMES AGENT</text>
+    <path d="M4 218 H830" stroke="url(#slash)" stroke-width="8" stroke-linecap="round"/>
+    <text x="4" y="278" fill="#F7F3DF" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Whoever is Hermes Turbo, will never be Claw.</text>
+  </g>
+</svg>

@@ -5,9 +5,11 @@ and run_agent.py for pre-flight context checks.
 """
 
 import ipaddress
+import json
 import logging
 import os
 import re
+import socket
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -18,9 +20,14 @@ import yaml
 
 from utils import base_url_host_matches, base_url_hostname
 
-from hermes_constants import OPENROUTER_MODELS_URL
+from hermes_constants import OPENROUTER_MODELS_URL, get_hermes_home
 
 logger = logging.getLogger(__name__)
+
+
+_LOCAL_ENDPOINT_REACHABILITY_TTL = 30.0
+_LOCAL_ENDPOINT_REACHABILITY_TIMEOUT = 0.25
+_local_endpoint_reachability_cache: Dict[str, tuple[float, bool]] = {}
 
 
 def _resolve_requests_verify() -> bool | str:
@@ -40,6 +47,57 @@ def _resolve_requests_verify() -> bool | str:
         if val and os.path.isfile(val):
             return val
     return True
+
+
+def _loopback_ip_endpoint_key(base_url: str) -> Optional[tuple[str, str, int]]:
+    """Return a cache/socket key for numeric loopback endpoints.
+
+    We intentionally keep this narrow: tests and some users mock or tunnel
+    hostname/private-LAN endpoints, while numeric loopback addresses are cheap
+    and safe to preflight before heavier HTTP metadata probes.
+    """
+    normalized = _normalize_base_url(base_url)
+    if not normalized:
+        return None
+    url = normalized if "://" in normalized else f"http://{normalized}"
+    try:
+        parsed = urlparse(url)
+        host = parsed.hostname or ""
+        if not host or parsed.port is None:
+            return None
+        addr = ipaddress.ip_address(host)
+        if not addr.is_loopback:
+            return None
+        return (normalized, host, int(parsed.port))
+    except Exception:
+        return None
+
+
+def _local_endpoint_reachable(base_url: str) -> bool:
+    """Fast TCP preflight for numeric loopback endpoints.
+
+    Returns True for endpoints outside this narrow scope so normal HTTP probing
+    behaviour is preserved. For dead localhost ports, this prevents repeated
+    2-10 second HTTP connect timeouts during every agent/subagent init.
+    """
+    endpoint = _loopback_ip_endpoint_key(base_url)
+    if endpoint is None:
+        return True
+
+    normalized, host, port = endpoint
+    now = time.time()
+    cached = _local_endpoint_reachability_cache.get(normalized)
+    if cached is not None and now - cached[0] < _LOCAL_ENDPOINT_REACHABILITY_TTL:
+        return cached[1]
+
+    try:
+        with socket.create_connection((host, port), timeout=_LOCAL_ENDPOINT_REACHABILITY_TIMEOUT):
+            reachable = True
+    except OSError:
+        reachable = False
+
+    _local_endpoint_reachability_cache[normalized] = (now, reachable)
+    return reachable
 
 # Provider names that can appear as a "provider:" prefix before a model ID.
 # Only these are stripped — Ollama-style "model:tag" colons (e.g. "qwen3.5:27b")
@@ -104,9 +162,11 @@ def _strip_provider_prefix(model: str) -> str:
 
 _model_metadata_cache: Dict[str, Dict[str, Any]] = {}
 _model_metadata_cache_time: float = 0
+_MODEL_METADATA_DISK_CACHE_VERSION = 1
 _novita_metadata_cache: Dict[str, Dict[str, Any]] = {}
 _novita_metadata_cache_time: float = 0
 _MODEL_CACHE_TTL = 3600
+_openrouter_metadata_cache_config: Optional[Dict[str, Any]] = None
 _endpoint_model_metadata_cache: Dict[str, Dict[str, Dict[str, Any]]] = {}
 _endpoint_model_metadata_cache_time: Dict[str, float] = {}
 _ENDPOINT_MODEL_CACHE_TTL = 300
@@ -209,7 +269,6 @@ DEFAULT_CONTEXT_LENGTHS = {
     # via a custom provider. Values sourced from models.dev (2026-04).
     # Keys use substring matching (longest-first), so e.g. "grok-4.20"
     # matches "grok-4.20-0309-reasoning" / "-non-reasoning" / "-multi-agent-0309".
-    "grok-build": 256000,       # grok-build-0.1
     "grok-code-fast": 256000,   # grok-code-fast-1
     "grok-4-1-fast": 2000000,   # grok-4-1-fast-(non-)reasoning
     "grok-2-vision": 8192,      # grok-2-vision, -1212, -latest
@@ -476,6 +535,9 @@ def detect_local_server_type(base_url: str, api_key: str = "") -> Optional[str]:
     if server_url.endswith("/v1"):
         server_url = server_url[:-3]
 
+    if not _local_endpoint_reachable(normalized):
+        return None
+
     headers = _auth_headers(api_key)
 
     try:
@@ -609,12 +671,130 @@ def _add_model_aliases(cache: Dict[str, Dict[str, Any]], model_id: str, entry: D
         cache.setdefault(bare_model, entry)
 
 
+def _parse_bool_env(value: Optional[str]) -> Optional[bool]:
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return None
+
+
+def _read_openrouter_metadata_cache_config() -> Dict[str, Any]:
+    """Read only the OpenRouter cache keys without importing full CLI config."""
+    global _openrouter_metadata_cache_config
+    if _openrouter_metadata_cache_config is not None:
+        return _openrouter_metadata_cache_config
+
+    path = get_hermes_home() / "config.yaml"
+    try:
+        payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        if not isinstance(payload, dict):
+            payload = {}
+        openrouter_cfg = payload.get("openrouter", {})
+        if not isinstance(openrouter_cfg, dict):
+            openrouter_cfg = {}
+        _openrouter_metadata_cache_config = openrouter_cfg
+    except Exception:
+        _openrouter_metadata_cache_config = {}
+    return _openrouter_metadata_cache_config
+
+
+def _openrouter_metadata_disk_cache_enabled() -> bool:
+    env_value = _parse_bool_env(os.getenv("HERMES_OPENROUTER_METADATA_DISK_CACHE"))
+    if env_value is not None:
+        return env_value
+    value = _read_openrouter_metadata_cache_config().get("model_metadata_disk_cache", True)
+    if isinstance(value, str):
+        parsed = _parse_bool_env(value)
+        return True if parsed is None else parsed
+    return bool(value)
+
+
+def _openrouter_metadata_cache_ttl() -> float:
+    env_value = os.getenv("HERMES_OPENROUTER_METADATA_CACHE_TTL")
+    if env_value:
+        try:
+            return max(0.0, float(env_value))
+        except ValueError:
+            pass
+
+    value = _read_openrouter_metadata_cache_config().get("model_metadata_cache_ttl", _MODEL_CACHE_TTL)
+    try:
+        return max(0.0, float(value))
+    except Exception:
+        return float(_MODEL_CACHE_TTL)
+
+
+def _openrouter_model_metadata_cache_path() -> Path:
+    return get_hermes_home() / "cache" / "openrouter_model_metadata.json"
+
+
+def _read_openrouter_model_metadata_disk_cache(
+    *,
+    max_age_seconds: Optional[float] = None,
+) -> Optional[tuple[Dict[str, Dict[str, Any]], float]]:
+    if not _openrouter_metadata_disk_cache_enabled():
+        return None
+
+    path = _openrouter_model_metadata_cache_path()
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None
+    except Exception as exc:
+        logger.debug("Ignoring unreadable OpenRouter metadata cache %s: %s", path, exc)
+        return None
+
+    if not isinstance(payload, dict) or payload.get("version") != _MODEL_METADATA_DISK_CACHE_VERSION:
+        return None
+    models = payload.get("models")
+    fetched_at = payload.get("fetched_at")
+    if not isinstance(models, dict) or not isinstance(fetched_at, (int, float)):
+        return None
+    age = time.time() - float(fetched_at)
+    if max_age_seconds is not None and age > max_age_seconds:
+        return None
+    return models, float(fetched_at)
+
+
+def _write_openrouter_model_metadata_disk_cache(
+    cache: Dict[str, Dict[str, Any]],
+    fetched_at: float,
+) -> None:
+    if not cache or not _openrouter_metadata_disk_cache_enabled():
+        return
+
+    path = _openrouter_model_metadata_cache_path()
+    payload = {
+        "version": _MODEL_METADATA_DISK_CACHE_VERSION,
+        "source_url": OPENROUTER_MODELS_URL,
+        "fetched_at": fetched_at,
+        "models": cache,
+    }
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+    except Exception as exc:
+        logger.debug("Failed to write OpenRouter metadata cache %s: %s", path, exc)
+
+
 def fetch_model_metadata(force_refresh: bool = False) -> Dict[str, Dict[str, Any]]:
-    """Fetch model metadata from OpenRouter (cached for 1 hour)."""
+    """Fetch model metadata from OpenRouter with memory and disk caching."""
     global _model_metadata_cache, _model_metadata_cache_time
 
-    if not force_refresh and _model_metadata_cache and (time.time() - _model_metadata_cache_time) < _MODEL_CACHE_TTL:
+    cache_ttl = _openrouter_metadata_cache_ttl()
+    if not force_refresh and _model_metadata_cache and (time.time() - _model_metadata_cache_time) < cache_ttl:
         return _model_metadata_cache
+
+    if not force_refresh:
+        disk_cached = _read_openrouter_model_metadata_disk_cache(max_age_seconds=cache_ttl)
+        if disk_cached is not None:
+            _model_metadata_cache, _model_metadata_cache_time = disk_cached
+            logger.debug("Loaded metadata for %s models from OpenRouter disk cache", len(_model_metadata_cache))
+            return _model_metadata_cache
 
     try:
         response = requests.get(OPENROUTER_MODELS_URL, timeout=10, verify=_resolve_requests_verify())
@@ -637,11 +817,20 @@ def fetch_model_metadata(force_refresh: bool = False) -> Dict[str, Dict[str, Any
 
         _model_metadata_cache = cache
         _model_metadata_cache_time = time.time()
+        _write_openrouter_model_metadata_disk_cache(cache, _model_metadata_cache_time)
         logger.debug("Fetched metadata for %s models from OpenRouter", len(cache))
         return cache
 
     except Exception as e:
-        logger.warning(f"Failed to fetch model metadata from OpenRouter: {e}")
+        disk_cached = _read_openrouter_model_metadata_disk_cache()
+        if disk_cached is not None:
+            _model_metadata_cache, _model_metadata_cache_time = disk_cached
+            logger.debug(
+                "Using stale OpenRouter metadata disk cache after fetch failure: %s",
+                e,
+            )
+            return _model_metadata_cache
+        logging.warning(f"Failed to fetch model metadata from OpenRouter: {e}")
         return _model_metadata_cache or {}
 
 
@@ -664,6 +853,11 @@ def fetch_endpoint_model_metadata(
         cached_at = _endpoint_model_metadata_cache_time.get(normalized, 0)
         if cached is not None and (time.time() - cached_at) < _ENDPOINT_MODEL_CACHE_TTL:
             return cached
+
+    if not _local_endpoint_reachable(normalized):
+        _endpoint_model_metadata_cache[normalized] = {}
+        _endpoint_model_metadata_cache_time[normalized] = time.time()
+        return {}
 
     candidates = [normalized]
     if normalized.endswith("/v1"):
@@ -991,6 +1185,9 @@ def query_ollama_num_ctx(model: str, base_url: str, api_key: str = "") -> Option
     if server_url.endswith("/v1"):
         server_url = server_url[:-3]
 
+    if not _local_endpoint_reachable(base_url):
+        return None
+
     try:
         server_type = detect_local_server_type(base_url, api_key=api_key)
     except Exception:
@@ -1054,6 +1251,9 @@ def _query_ollama_api_show(model: str, base_url: str, api_key: str = "") -> Opti
     if server_url.endswith("/v1"):
         server_url = server_url[:-3]
 
+    if not _local_endpoint_reachable(base_url):
+        return None
+
     headers = _auth_headers(api_key)
 
     try:
@@ -1114,6 +1314,9 @@ def _query_local_context_length(model: str, base_url: str, api_key: str = "") ->
     server_url = base_url.rstrip("/")
     if server_url.endswith("/v1"):
         server_url = server_url[:-3]
+
+    if not _local_endpoint_reachable(base_url):
+        return None
 
     headers = _auth_headers(api_key)
 
@@ -1462,6 +1665,9 @@ def get_model_context_length(
     # 0. Explicit config override — user knows best
     if config_context_length is not None and isinstance(config_context_length, int) and config_context_length > 0:
         return config_context_length
+
+    if not model:
+        return DEFAULT_FALLBACK_CONTEXT
 
     # 0b. custom_providers per-model override — check before any probe.
     # This closes the gap where /model switch and display paths used to fall

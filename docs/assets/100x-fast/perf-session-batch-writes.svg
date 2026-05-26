@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">SQLite batch write performance comparison</title>
+  <desc id="desc">Bar chart comparing per-message SQLite append loop with append_messages batch insert.</desc>
+  <rect width="1200" height="675" fill="#101820"/>
+  <text x="60" y="78" fill="#f8fafc" font-family="Arial, sans-serif" font-size="34" font-weight="700">Session DB: loop writes vs append_messages</text>
+  <text x="60" y="116" fill="#b8c4d5" font-family="Arial, sans-serif" font-size="18">Microbenchmark: 180 messages with user, assistant tool calls, and tool results.</text>
+  <text x="90" y="218" fill="#fca5a5" font-family="Arial, sans-serif" font-size="24" font-weight="700">loop</text>
+  <rect x="240" y="185" width="680" height="58" rx="6" fill="#ef4444"/>
+  <text x="945" y="223" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24">0.6329s</text>
+  <text x="90" y="338" fill="#fdba74" font-family="Arial, sans-serif" font-size="24" font-weight="700">batch</text>
+  <rect x="240" y="305" width="26" height="58" rx="6" fill="#f97316"/>
+  <text x="290" y="343" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24">0.0240s</text>
+  <rect x="90" y="445" width="1015" height="100" rx="10" fill="#1f2937" stroke="#fb923c" stroke-width="2"/>
+  <text x="120" y="485" fill="#ffedd5" font-family="Arial, sans-serif" font-size="24" font-weight="700">Measured speedup: 24.21x</text>
+  <text x="120" y="520" fill="#b8c4d5" font-family="Arial, sans-serif" font-size="18">One transaction and one counter update replace repeated write amplification.</text>
+</svg>

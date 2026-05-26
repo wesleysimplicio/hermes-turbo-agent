@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Phase 4 SQLite batch writes</title>
+  <desc id="desc">Before and after diagram showing per-message SQLite writes replaced by one transaction per flushed turn.</desc>
+  <rect width="1200" height="675" fill="#111820"/>
+  <text x="60" y="78" fill="#f8fafc" font-family="Arial, sans-serif" font-size="34" font-weight="700">Phase 4 - Batch session persistence</text>
+  <text x="60" y="116" fill="#b9c5d6" font-family="Arial, sans-serif" font-size="18">Inspired by US4 continuous batching: coalesce repeated work when correctness does not require separate commits.</text>
+  <rect x="65" y="165" width="500" height="385" rx="10" fill="#3a2630" stroke="#ff7a7a" stroke-width="3"/>
+  <text x="95" y="215" fill="#ffb6b6" font-family="Arial, sans-serif" font-size="26" font-weight="700">Before</text>
+  <text x="95" y="275" fill="#fff" font-family="Consolas, monospace" font-size="22">append_message()</text>
+  <text x="290" y="275" fill="#fff" font-family="Arial, sans-serif" font-size="22">x N</text>
+  <text x="95" y="325" fill="#fff" font-family="Arial, sans-serif" font-size="22">N transactions</text>
+  <text x="95" y="370" fill="#fff" font-family="Arial, sans-serif" font-size="22">N counter updates</text>
+  <text x="95" y="415" fill="#fff" font-family="Arial, sans-serif" font-size="22">N FTS-trigger batches</text>
+  <text x="95" y="485" fill="#ffd5d5" font-family="Arial, sans-serif" font-size="19">Microbenchmark loop: ~0.344s for 180 messages.</text>
+  <rect x="635" y="165" width="500" height="385" rx="10" fill="#21362e" stroke="#40d98a" stroke-width="3"/>
+  <text x="665" y="215" fill="#a7f3c9" font-family="Arial, sans-serif" font-size="26" font-weight="700">After</text>
+  <text x="665" y="275" fill="#fff" font-family="Consolas, monospace" font-size="22">append_messages()</text>
+  <text x="882" y="275" fill="#fff" font-family="Arial, sans-serif" font-size="22">once</text>
+  <text x="665" y="325" fill="#fff" font-family="Arial, sans-serif" font-size="22">1 transaction</text>
+  <text x="665" y="370" fill="#fff" font-family="Arial, sans-serif" font-size="22">1 counter update</text>
+  <text x="665" y="415" fill="#fff" font-family="Arial, sans-serif" font-size="22">ordered inserts preserved</text>
+  <text x="665" y="485" fill="#d1fae5" font-family="Arial, sans-serif" font-size="19">Microbenchmark batch: ~0.013s for 180 messages, ~25x faster.</text>
+  <path d="M575 358 C598 358 612 358 625 358" stroke="#f8fafc" stroke-width="4" fill="none"/>
+  <path d="M615 346 L633 358 L615 370" stroke="#f8fafc" stroke-width="4" fill="none"/>
+  <text x="60" y="610" fill="#d6dee9" font-family="Arial, sans-serif" font-size="20">Files: hermes_state.py, run_agent.py, tests/test_hermes_state.py</text>
+</svg>

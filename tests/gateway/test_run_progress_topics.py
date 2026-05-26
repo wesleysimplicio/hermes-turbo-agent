@@ -241,6 +241,7 @@ def _make_runner(adapter):
         thread_sessions_per_user=False,
         group_sessions_per_user=False,
         stt_enabled=False,
+        streaming=StreamingConfig(enabled=False),
     )
     return runner
 

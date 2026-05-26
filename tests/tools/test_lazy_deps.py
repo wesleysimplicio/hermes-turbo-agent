@@ -207,6 +207,76 @@ class TestEnsure:
         with pytest.raises(ld.FeatureUnavailable, match="still not importable"):
             ld.ensure("test.cache", prompt=False)
 
+    def test_installed_compromised_dependency_raises_before_noop(self, monkeypatch):
+        monkeypatch.setitem(ld.LAZY_DEPS, "test.compromised", ("zzzfake==1.0.0",))
+        monkeypatch.setattr(ld, "_is_satisfied", lambda spec: True)
+
+        class _Advisory:
+            id = "fake-2026-01"
+
+        class _Hit:
+            advisory = _Advisory()
+            package = "zzzfake"
+            installed_version = "1.0.0"
+
+        monkeypatch.setattr(ld, "_installed_advisory_hits_for_specs", lambda specs: [_Hit()])
+        monkeypatch.setattr(
+            ld, "_venv_pip_install",
+            lambda *a, **kw: pytest.fail("pip should not be called"),
+        )
+
+        with pytest.raises(ld.FeatureUnavailable, match="security advisory active"):
+            ld.ensure("test.compromised", prompt=False)
+
+    def test_compromised_candidate_spec_is_rejected_before_install(self, monkeypatch):
+        monkeypatch.setitem(ld.LAZY_DEPS, "test.bad-spec", ("zzzfake==1.0.0",))
+        monkeypatch.setattr(ld, "_is_satisfied", lambda spec: False)
+        monkeypatch.setattr(ld, "_allow_lazy_installs", lambda: True)
+        monkeypatch.setattr(ld, "_installed_advisory_hits_for_specs", lambda specs: [])
+        monkeypatch.setattr(
+            ld,
+            "_advisory_conflicts_for_specs",
+            lambda specs: ["zzzfake==1.0.0 matches advisory fake-2026-01 (1.0.0)"],
+        )
+        monkeypatch.setattr(
+            ld, "_venv_pip_install",
+            lambda *a, **kw: pytest.fail("pip should not be called"),
+        )
+
+        with pytest.raises(ld.FeatureUnavailable, match="security advisory blocks lazy install"):
+            ld.ensure("test.bad-spec", prompt=False)
+
+    def test_post_install_compromised_dependency_raises(self, monkeypatch):
+        monkeypatch.setitem(ld.LAZY_DEPS, "test.post-install", ("zzzfake==1.0.0",))
+        call_count = {"n": 0}
+
+        def fake_satisfied(spec):
+            call_count["n"] += 1
+            return call_count["n"] > 1
+
+        class _Advisory:
+            id = "fake-2026-01"
+
+        class _Hit:
+            advisory = _Advisory()
+            package = "zzzfake"
+            installed_version = "1.0.0"
+
+        def fake_hits(specs):
+            return [] if call_count["n"] == 0 else [_Hit()]
+
+        monkeypatch.setattr(ld, "_is_satisfied", fake_satisfied)
+        monkeypatch.setattr(ld, "_allow_lazy_installs", lambda: True)
+        monkeypatch.setattr(ld, "_advisory_conflicts_for_specs", lambda specs: [])
+        monkeypatch.setattr(ld, "_installed_advisory_hits_for_specs", fake_hits)
+        monkeypatch.setattr(
+            ld, "_venv_pip_install",
+            lambda specs, **kw: ld._InstallResult(True, "ok", ""),
+        )
+
+        with pytest.raises(ld.FeatureUnavailable, match="security advisory active after lazy install"):
+            ld.ensure("test.post-install", prompt=False)
+
 
 # ---------------------------------------------------------------------------
 # is_available
@@ -326,6 +396,46 @@ class TestActiveFeatures:
             lambda spec: ld._pkg_name_from_spec(spec) == "slack-bolt",
         )
         assert "platform.slack" in ld.active_features()
+
+
+class TestAdvisoryHelpers:
+    def test_advisory_conflicts_detect_bad_exact_pin(self, monkeypatch):
+        import hermes_cli.security_advisories as adv
+
+        advisory = adv.Advisory(
+            id="fake-2026-01",
+            title="Fake advisory",
+            summary="Compromised version.",
+            url="https://example.com/advisory",
+            compromised=(("zzzfake", frozenset({"1.0.0"})),),
+            remediation=("Do not install it.",),
+        )
+        monkeypatch.setattr(adv, "ADVISORIES", (advisory,))
+
+        conflicts = ld._advisory_conflicts_for_specs(("zzzfake==1.0.0",))
+
+        assert conflicts == [
+            "zzzfake==1.0.0 matches advisory fake-2026-01 (1.0.0)"
+        ]
+
+    def test_installed_advisory_hits_filters_to_relevant_specs(self, monkeypatch):
+        class _Advisory:
+            id = "fake-2026-01"
+
+        class _Hit:
+            def __init__(self, package: str):
+                self.advisory = _Advisory()
+                self.package = package
+                self.installed_version = "1.0.0"
+
+        monkeypatch.setattr(
+            "hermes_cli.security_advisories.detect_compromised",
+            lambda: [_Hit("zzzfake"), _Hit("otherpkg")],
+        )
+
+        hits = ld._installed_advisory_hits_for_specs(("zzzfake==1.0.0",))
+
+        assert [hit.package for hit in hits] == ["zzzfake"]
 
 
 class TestRefreshActiveFeatures:

@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import os
 import signal
+import shutil
 import subprocess
 import sys
 import time
@@ -168,9 +169,16 @@ def snapshot_shutdown_context(received_signal: Any = None) -> Dict[str, Any]:
     # _PLANNED_STOP_MARKER_FILENAME); we use string literals here so the
     # signal-handler path stays import-light.
     try:
-        hermes_home_str = os.environ.get("HERMES_HOME")
+        # Resolution order: HERMES_TURBO_HOME → HERMES_HOME (legacy) → no marker.
+        # Env values are stripped so a blank/whitespace setting doesn't probe
+        # an unintended relative directory (closes Copilot review on PR #61).
+        # String literals kept so the signal-handler path stays import-light.
+        hermes_home_str = (
+            (os.environ.get("HERMES_TURBO_HOME") or "").strip()
+            or (os.environ.get("HERMES_HOME") or "").strip()
+        )
         if hermes_home_str:
-            takeover_path = Path(hermes_home_str) / ".gateway-takeover.json"
+            takeover_path = Path(os.path.expanduser(hermes_home_str)) / ".gateway-takeover.json"
             if takeover_path.exists():
                 try:
                     raw = takeover_path.read_text(encoding="utf-8")
@@ -254,8 +262,13 @@ def spawn_async_diagnostic(
         # would also reap us anyway, but defense in depth).  Without
         # start_new_session, a SIGKILL on our cgroup takes the diag down
         # before it can flush.
+        cmd = (
+            ["timeout", f"{timeout_seconds:.0f}", "bash", "-c", script]
+            if shutil.which("timeout")
+            else ["bash", "-c", script]
+        )
         proc = subprocess.Popen(
-            ["timeout", f"{timeout_seconds:.0f}", "bash", "-c", script],
+            cmd,
             stdout=fd,
             stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL,

@@ -1,0 +1,40 @@
+name: Benchmark Refresh After Sync
+
+on:
+  push:
+    branches:
+      - "codex/hermes-turbo-hermes-daily-*"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package and report dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[all,dev,fast]"
+          python -m pip install reportlab cairosvg
+
+      - name: Refresh benchmark artifacts
+        run: python scripts/refresh_sync_benchmarks.py --python python
+
+      - name: Upload benchmark refresh artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-refresh
+          path: |
+            docs/hermes-turbo-benchmark-hermes-0.14.0.json
+            docs/hermes-turbo-benchmark-hermes-0.14.0.md
+            docs/benchmark-refresh-status.json
+            docs/benchmark-refresh-status.md
+            docs/assets/hermes-turbo-benchmark/battles
+            hermes_turbo_agent_benchmark_report.pdf

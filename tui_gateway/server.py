@@ -678,6 +678,17 @@ def _load_cfg() -> dict:
     return {}
 
 
+def _mcp_config_fingerprint() -> str:
+    cfg = _load_cfg()
+    mcp_servers = cfg.get("mcp_servers") if isinstance(cfg, dict) else None
+    if not isinstance(mcp_servers, dict):
+        mcp_servers = {}
+    try:
+        return json.dumps(mcp_servers, sort_keys=True, separators=(",", ":"), default=str)
+    except Exception:
+        return "{}"
+
+
 def _save_cfg(cfg: dict):
     global _cfg_cache, _cfg_mtime, _cfg_path
     import yaml
@@ -4399,10 +4410,14 @@ def _(rid, params: dict) -> dict:
         cfg_path = _hermes_home / "config.yaml"
         try:
             return _ok(
-                rid, {"mtime": cfg_path.stat().st_mtime if cfg_path.exists() else 0}
+                rid,
+                {
+                    "mtime": cfg_path.stat().st_mtime if cfg_path.exists() else 0,
+                    "mcp_fingerprint": _mcp_config_fingerprint(),
+                },
             )
         except Exception:
-            return _ok(rid, {"mtime": 0})
+            return _ok(rid, {"mtime": 0, "mcp_fingerprint": _mcp_config_fingerprint()})
     return _err(rid, 4002, f"unknown config key: {key}")
 
 

@@ -257,6 +257,12 @@ def recommended_update_command_for_method(method: str) -> str:
         if uv:
             return "uv pip install --upgrade hermes-agent"
         return "pip install --upgrade hermes-agent"
+    invoked = Path(sys.argv[0]).name
+    if invoked in {"hermes", "hermes2", "hermes-turbo"}:
+        return f"{invoked} update"
+    hermes_home_name = Path(os.getenv("HERMES_HOME", "")).name.lower()
+    if hermes_home_name in {".hermes2", "hermes2"}:
+        return "hermes2 update"
     return "hermes update"
 
 
@@ -509,7 +515,7 @@ DEFAULT_CONFIG = {
     "credential_pool_strategies": {},
     "toolsets": ["hermes-cli"],
     "agent": {
-        "max_turns": 90,
+        "max_turns": 200,
         # Inactivity timeout for gateway agent execution (seconds).
         # The agent can run indefinitely as long as it's actively calling
         # tools or receiving API responses.  Only fires when the agent has
@@ -796,10 +802,10 @@ DEFAULT_CONFIG = {
 
     "compression": {
         "enabled": True,
-        "threshold": 0.50,            # compress when context usage exceeds this ratio
-        "target_ratio": 0.20,         # fraction of threshold to preserve as recent tail
-        "protect_last_n": 20,         # minimum recent messages to keep uncompressed
-        "hygiene_hard_message_limit": 400,  # gateway session-hygiene force-compress threshold by message count
+        "threshold": 0.85,            # compress when context usage exceeds this ratio
+        "target_ratio": 0.30,         # fraction of threshold to preserve as recent tail
+        "protect_last_n": 60,         # minimum recent messages to keep uncompressed
+        "hygiene_hard_message_limit": 800,  # gateway session-hygiene force-compress threshold by message count
         "protect_first_n": 3,         # non-system head messages always preserved
                                       # verbatim, in ADDITION to the system prompt
                                       # (which is always implicitly protected). Set to
@@ -832,6 +838,12 @@ DEFAULT_CONFIG = {
     #   See: https://openrouter.ai/docs/guides/features/response-caching
     # response_cache_ttl: how long cached responses remain valid, in seconds (1-86400).
     #   Default 300 (5 minutes). Only used when response_cache is enabled.
+    # model_metadata_disk_cache: persist model/context/pricing metadata so fresh
+    #   Hermes processes avoid a cold OpenRouter /models request and can keep
+    #   working from stale metadata when offline.
+    # model_metadata_cache_ttl: freshness window for the memory/disk metadata
+    #   cache in seconds. Set HERMES_OPENROUTER_METADATA_CACHE_TTL to override
+    #   this for a process without editing config.yaml.
     # min_coding_score: knob for the openrouter/pareto-code router (0.0-1.0).
     #   Only applied when model.model is "openrouter/pareto-code". Higher
     #   values route to stronger (more expensive) coders; lower values open
@@ -843,6 +855,8 @@ DEFAULT_CONFIG = {
     "openrouter": {
         "response_cache": True,
         "response_cache_ttl": 300,
+        "model_metadata_disk_cache": True,
+        "model_metadata_cache_ttl": 3600,
         "min_coding_score": 0.65,
     },
 
@@ -1207,8 +1221,8 @@ DEFAULT_CONFIG = {
     "memory": {
         "memory_enabled": True,
         "user_profile_enabled": True,
-        "memory_char_limit": 2200,   # ~800 tokens at 2.75 chars/token
-        "user_char_limit": 1375,     # ~500 tokens at 2.75 chars/token
+        "memory_char_limit": 8000,   # ~2900 tokens at 2.75 chars/token
+        "user_char_limit": 4000,     # ~1450 tokens at 2.75 chars/token
         # External memory provider plugin (empty = built-in only).
         # Set to a provider name to activate: "openviking", "mem0",
         # "hindsight", "holographic", "retaindb", "byterover".
@@ -1286,6 +1300,9 @@ DEFAULT_CONFIG = {
     # always goes to ~/.hermes/skills/.
     "skills": {
         "external_dirs": [],   # e.g. ["~/.agents/skills", "/shared/team-skills"]
+        # Skills to preload into every CLI/TUI session. CLI --skills is
+        # additive; --ignore-rules skips this config-driven preload.
+        "preload": [],
         # Substitute ${HERMES_SKILL_DIR} and ${HERMES_SESSION_ID} in SKILL.md
         # content with the absolute skill directory and the active session id
         # before the agent sees it.  Lets skill authors reference bundled

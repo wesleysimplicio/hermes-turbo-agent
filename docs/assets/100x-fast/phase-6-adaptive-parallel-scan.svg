@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Phase 6 adaptive parallel scan</title>
+  <desc id="desc">Diagram showing adaptive parallelism for large tool source scans while keeping small scans sequential.</desc>
+  <rect width="1200" height="675" fill="#101620"/>
+  <text x="60" y="78" fill="#f8fafc" font-family="Arial, sans-serif" font-size="34" font-weight="700">Phase 6 - Adaptive parallelism</text>
+  <text x="60" y="116" fill="#b8c4d5" font-family="Arial, sans-serif" font-size="18">Parallelism is useful only when the work is large enough to pay for worker startup.</text>
+  <rect x="70" y="170" width="470" height="360" rx="10" fill="#26303a" stroke="#94a3b8" stroke-width="3"/>
+  <text x="100" y="220" fill="#d7e1ef" font-family="Arial, sans-serif" font-size="26" font-weight="700">Small / current Hermes tools</text>
+  <text x="100" y="285" fill="#fff" font-family="Arial, sans-serif" font-size="22">~70 files, ~2.17 MB source</text>
+  <text x="100" y="338" fill="#fff" font-family="Arial, sans-serif" font-size="22">Thread overhead beats the scan</text>
+  <text x="100" y="391" fill="#fff" font-family="Arial, sans-serif" font-size="22">Use sequential scan + persistent cache</text>
+  <text x="100" y="465" fill="#dbeafe" font-family="Arial, sans-serif" font-size="19">Local benchmark: adaptive guard keeps parallel disabled.</text>
+  <rect x="660" y="170" width="470" height="360" rx="10" fill="#24384a" stroke="#60a5fa" stroke-width="3"/>
+  <text x="690" y="220" fill="#bfdbfe" font-family="Arial, sans-serif" font-size="26" font-weight="700">Large future tool directories</text>
+  <text x="690" y="285" fill="#fff" font-family="Arial, sans-serif" font-size="22">Many files or large source payload</text>
+  <text x="690" y="338" fill="#fff" font-family="Arial, sans-serif" font-size="22">ThreadPool scans source in parallel</text>
+  <text x="690" y="391" fill="#fff" font-family="Arial, sans-serif" font-size="22">Import phase stays ordered and serial</text>
+  <text x="690" y="465" fill="#dbeafe" font-family="Arial, sans-serif" font-size="19">Safe extension point when cache miss gets heavy.</text>
+  <path d="M550 350 C588 350 620 350 650 350" stroke="#f8fafc" stroke-width="4" fill="none"/>
+  <path d="M640 338 L658 350 L640 362" stroke="#f8fafc" stroke-width="4" fill="none"/>
+  <text x="60" y="610" fill="#d6dee9" font-family="Arial, sans-serif" font-size="20">Files: tools/registry.py, tests/tools/test_registry.py, scripts/benchmark_startup_perf.py</text>
+</svg>

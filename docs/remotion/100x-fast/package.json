@@ -1,0 +1,23 @@
+{
+  "name": "hermes-100x-fast-video",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "audio": "python scripts/make_soundtrack.py",
+    "voiceover": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/make_voiceover.ps1",
+    "render": "remotion render src/index.ts Hermes100xFast ../../assets/100x-fast/video/hermes-100x-fast-launch.mp4 --codec h264 --audio-codec aac",
+    "still": "remotion still src/index.ts Hermes100xFast ../../assets/100x-fast/video/hermes-100x-fast-poster.png --frame 120"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.374",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.374"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "typescript": "^5.6.3"
+  }
+}

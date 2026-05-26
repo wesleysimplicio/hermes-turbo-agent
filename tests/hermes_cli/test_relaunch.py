@@ -148,6 +148,7 @@ class TestRelaunch:
 
         monkeypatch.setattr(relaunch_mod.os, "execvp", fake_execvp)
         monkeypatch.setattr(relaunch_mod, "resolve_hermes_bin", lambda: "/usr/bin/hermes")
+        monkeypatch.setattr(relaunch_mod.sys, "platform", "linux")
 
         with pytest.raises(SystemExit):
             relaunch_mod.relaunch(["--resume", "abc"])

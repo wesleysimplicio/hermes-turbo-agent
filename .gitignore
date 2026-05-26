@@ -52,6 +52,7 @@ cli-config.yaml
 skills/.hub/
 ignored/
 .worktrees/
+.claude/worktrees/
 environments/benchmarks/evals/
 
 # Web UI build output
@@ -75,3 +76,12 @@ models-dev-upstream/
 hermes_cli/tui_dist/*
 hermes_cli/scripts/
 docs/superpowers/*
+
+# yool/HAMT catalog (issue #102): build artifacts.
+.catalog/hamt.json
+.catalog/receipts/*
+!.catalog/receipts/.gitkeep
+
+# Content-addressed receipts (P7) and upstream-sync working dirs
+.receipts/
+.upstream-sync/

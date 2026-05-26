@@ -3803,10 +3803,15 @@ class DiscordAdapter(BasePlatformAdapter):
             collected.reverse()
             return "[Recent channel messages]\n" + "\n".join(collected)
 
-        except discord.Forbidden:
-            logger.debug("[%s] Missing permissions to fetch channel history", self.name)
-            return ""
         except Exception as e:
+            forbidden_exc = getattr(discord, "Forbidden", None)
+            if (
+                isinstance(forbidden_exc, type)
+                and issubclass(forbidden_exc, BaseException)
+                and isinstance(e, forbidden_exc)
+            ):
+                logger.debug("[%s] Missing permissions to fetch channel history", self.name)
+                return ""
             logger.warning("[%s] Failed to fetch channel history: %s", self.name, e)
             return ""
 

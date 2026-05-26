@@ -828,7 +828,12 @@ def _read_claude_code_credentials_from_keychain() -> Optional[Dict[str, Any]]:
         logger.debug("Keychain: no entry found for 'Claude Code-credentials'")
         return None
 
-    raw = result.stdout.strip()
+    raw = result.stdout
+    if not isinstance(raw, str):
+        logger.debug("Keychain: credentials payload is not a string")
+        return None
+
+    raw = raw.strip()
     if not raw:
         return None
 
@@ -866,12 +871,13 @@ def read_claude_code_credentials() -> Optional[Dict[str, Any]]:
 
     Returns dict with {accessToken, refreshToken?, expiresAt?} or None.
     """
-    # Try macOS Keychain first (covers Claude Code >=2.1.114)
     kc_creds = _read_claude_code_credentials_from_keychain()
     if kc_creds:
         return kc_creds
 
-    # Fall back to JSON file
+    # Fall back to the home-scoped credentials file. This keeps alternate
+    # home directories deterministic while still supporting the canonical
+    # Claude Code file source.
     cred_path = Path.home() / ".claude" / ".credentials.json"
     if cred_path.exists():
         try:

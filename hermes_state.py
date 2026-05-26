@@ -16,6 +16,7 @@ Key design decisions:
 
 import json
 import logging
+import os
 import random
 import re
 import sqlite3
@@ -23,6 +24,7 @@ import threading
 import time
 from pathlib import Path
 
+from agent._fastjson import dumps as _fast_json_dumps, loads as _fast_json_loads
 from agent.memory_manager import sanitize_context
 from hermes_constants import get_hermes_home
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
@@ -34,6 +36,32 @@ T = TypeVar("T")
 DEFAULT_DB_PATH = get_hermes_home() / "state.db"
 
 SCHEMA_VERSION = 13
+
+_FAST_STATE_ENV = "HERMES_TURBO_FAST_STATE"
+_FAST_STATE_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def _fast_state_enabled() -> bool:
+    """Return whether fast JSON is enabled for state payloads.
+
+    Default remains OFF so SQLite persistence semantics stay unchanged unless
+    the caller explicitly opts in via ``HERMES_TURBO_FAST_STATE=1``.
+    """
+    return os.getenv(_FAST_STATE_ENV, "").strip().lower() in _FAST_STATE_TRUTHY
+
+
+def _json_dumps(value: Any) -> str:
+    if _fast_state_enabled():
+        return _fast_json_dumps(value)
+    import json
+    return json.dumps(value)
+
+
+def _json_loads(value: Any) -> Any:
+    if _fast_state_enabled():
+        return _fast_json_loads(value)
+    import json
+    return json.loads(value)
 
 # ---------------------------------------------------------------------------
 # WAL-compatibility fallback
@@ -717,7 +745,7 @@ class SessionDB:
                     source,
                     user_id,
                     model,
-                    json.dumps(model_config) if model_config else None,
+                    _json_dumps(model_config) if model_config else None,
                     system_prompt,
                     parent_session_id,
                     time.time(),
@@ -1426,7 +1454,7 @@ class SessionDB:
         if content is None or isinstance(content, (str, bytes, int, float)):
             return content
         try:
-            return cls._CONTENT_JSON_PREFIX + json.dumps(content)
+            return cls._CONTENT_JSON_PREFIX + _json_dumps(content)
         except (TypeError, ValueError):
             # Last-resort fallback: stringify so persistence never fails.
             return str(content)
@@ -1436,8 +1464,8 @@ class SessionDB:
         """Reverse :meth:`_encode_content`; returns scalars unchanged."""
         if isinstance(content, str) and content.startswith(cls._CONTENT_JSON_PREFIX):
             try:
-                return json.loads(content[len(cls._CONTENT_JSON_PREFIX):])
-            except (json.JSONDecodeError, TypeError):
+                return _json_loads(content[len(cls._CONTENT_JSON_PREFIX):])
+            except (ValueError, TypeError):
                 logger.warning(
                     "Failed to decode JSON-encoded message content; "
                     "returning raw string"
@@ -1477,18 +1505,18 @@ class SessionDB:
         """
         # Serialize structured fields to JSON before entering the write txn
         reasoning_details_json = (
-            json.dumps(reasoning_details)
+            _json_dumps(reasoning_details)
             if reasoning_details else None
         )
         codex_items_json = (
-            json.dumps(codex_reasoning_items)
+            _json_dumps(codex_reasoning_items)
             if codex_reasoning_items else None
         )
         codex_message_items_json = (
-            json.dumps(codex_message_items)
+            _json_dumps(codex_message_items)
             if codex_message_items else None
         )
-        tool_calls_json = json.dumps(tool_calls) if tool_calls else None
+        tool_calls_json = _json_dumps(tool_calls) if tool_calls else None
         # Multimodal content (list of parts) must be JSON-encoded: sqlite3
         # cannot bind list/dict parameters directly.
         stored_content = self._encode_content(content)
@@ -1542,6 +1570,88 @@ class SessionDB:
 
         return self._execute_write(_do)
 
+    def append_messages(self, session_id: str, messages: List[Dict[str, Any]]) -> List[int]:
+        """Append multiple messages in one SQLite transaction.
+
+        Each item accepts the same keys as :meth:`append_message` except
+        ``session_id``. Returns inserted row IDs in order.
+        """
+        prepared: List[tuple] = []
+        total_tool_calls = 0
+        now_ts = time.time()
+
+        for index, msg in enumerate(messages):
+            role = msg.get("role", "unknown")
+            content = msg.get("content")
+            tool_calls = msg.get("tool_calls")
+            reasoning_details = msg.get("reasoning_details")
+            codex_reasoning_items = msg.get("codex_reasoning_items")
+            codex_message_items = msg.get("codex_message_items")
+            tool_calls_json = _json_dumps(tool_calls) if tool_calls else None
+            reasoning_details_json = (
+                _json_dumps(reasoning_details) if reasoning_details else None
+            )
+            codex_items_json = (
+                _json_dumps(codex_reasoning_items)
+                if codex_reasoning_items else None
+            )
+            codex_message_items_json = (
+                _json_dumps(codex_message_items)
+                if codex_message_items else None
+            )
+            if tool_calls is not None:
+                total_tool_calls += len(tool_calls) if isinstance(tool_calls, list) else 1
+
+            prepared.append(
+                (
+                    session_id,
+                    role,
+                    self._encode_content(content),
+                    msg.get("tool_call_id"),
+                    tool_calls_json,
+                    msg.get("tool_name"),
+                    now_ts + (index * 1e-6),
+                    msg.get("token_count"),
+                    msg.get("finish_reason"),
+                    msg.get("reasoning"),
+                    msg.get("reasoning_content"),
+                    reasoning_details_json,
+                    codex_items_json,
+                    codex_message_items_json,
+                )
+            )
+
+        if not prepared:
+            return []
+
+        def _do(conn):
+            ids: List[int] = []
+            for row in prepared:
+                cursor = conn.execute(
+                    """INSERT INTO messages (session_id, role, content, tool_call_id,
+                       tool_calls, tool_name, timestamp, token_count, finish_reason,
+                       reasoning, reasoning_content, reasoning_details,
+                       codex_reasoning_items, codex_message_items)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    row,
+                )
+                ids.append(cursor.lastrowid)
+
+            if total_tool_calls > 0:
+                conn.execute(
+                    """UPDATE sessions SET message_count = message_count + ?,
+                       tool_call_count = tool_call_count + ? WHERE id = ?""",
+                    (len(prepared), total_tool_calls, session_id),
+                )
+            else:
+                conn.execute(
+                    "UPDATE sessions SET message_count = message_count + ? WHERE id = ?",
+                    (len(prepared), session_id),
+                )
+            return ids
+
+        return self._execute_write(_do)
+
     def replace_messages(self, session_id: str, messages: List[Dict[str, Any]]) -> None:
         """Atomically replace every message for a session.
 
@@ -1574,15 +1684,15 @@ class SessionDB:
                 )
 
                 reasoning_details_json = (
-                    json.dumps(reasoning_details) if reasoning_details else None
+                    _json_dumps(reasoning_details) if reasoning_details else None
                 )
                 codex_items_json = (
-                    json.dumps(codex_reasoning_items) if codex_reasoning_items else None
+                    _json_dumps(codex_reasoning_items) if codex_reasoning_items else None
                 )
                 codex_message_items_json = (
-                    json.dumps(codex_message_items) if codex_message_items else None
+                    _json_dumps(codex_message_items) if codex_message_items else None
                 )
-                tool_calls_json = json.dumps(tool_calls) if tool_calls else None
+                tool_calls_json = _json_dumps(tool_calls) if tool_calls else None
                 # Accept either `platform_message_id` (new explicit name) or
                 # `message_id` (yuanbao's existing convention on message dicts).
                 platform_msg_id = (
@@ -1643,8 +1753,8 @@ class SessionDB:
                 msg["content"] = self._decode_content(msg["content"])
             if msg.get("tool_calls"):
                 try:
-                    msg["tool_calls"] = json.loads(msg["tool_calls"])
-                except (json.JSONDecodeError, TypeError):
+                    msg["tool_calls"] = _json_loads(msg["tool_calls"])
+                except (ValueError, TypeError):
                     logger.warning("Failed to deserialize tool_calls in get_messages, falling back to []")
                     msg["tool_calls"] = []
             result.append(msg)
@@ -1946,8 +2056,8 @@ class SessionDB:
                 msg["tool_name"] = row["tool_name"]
             if row["tool_calls"]:
                 try:
-                    msg["tool_calls"] = json.loads(row["tool_calls"])
-                except (json.JSONDecodeError, TypeError):
+                    msg["tool_calls"] = _json_loads(row["tool_calls"])
+                except (ValueError, TypeError):
                     logger.warning("Failed to deserialize tool_calls in conversation replay, falling back to []")
                     msg["tool_calls"] = []
             # Surface the platform-side message id (e.g. yuanbao msg_id,
@@ -1971,20 +2081,20 @@ class SessionDB:
                     msg["reasoning_content"] = row["reasoning_content"]
                 if row["reasoning_details"]:
                     try:
-                        msg["reasoning_details"] = json.loads(row["reasoning_details"])
-                    except (json.JSONDecodeError, TypeError):
+                        msg["reasoning_details"] = _json_loads(row["reasoning_details"])
+                    except (ValueError, TypeError):
                         logger.warning("Failed to deserialize reasoning_details, falling back to None")
                         msg["reasoning_details"] = None
                 if row["codex_reasoning_items"]:
                     try:
-                        msg["codex_reasoning_items"] = json.loads(row["codex_reasoning_items"])
-                    except (json.JSONDecodeError, TypeError):
+                        msg["codex_reasoning_items"] = _json_loads(row["codex_reasoning_items"])
+                    except (ValueError, TypeError):
                         logger.warning("Failed to deserialize codex_reasoning_items, falling back to None")
                         msg["codex_reasoning_items"] = None
                 if row["codex_message_items"]:
                     try:
-                        msg["codex_message_items"] = json.loads(row["codex_message_items"])
-                    except (json.JSONDecodeError, TypeError):
+                        msg["codex_message_items"] = _json_loads(row["codex_message_items"])
+                    except (ValueError, TypeError):
                         logger.warning("Failed to deserialize codex_message_items, falling back to None")
                         msg["codex_message_items"] = None
             if include_ancestors and self._is_duplicate_replayed_user_message(messages, msg):
@@ -3276,4 +3386,3 @@ class SessionDB:
                 (error[:500], session_id),
             )
         self._execute_write(_do)
-

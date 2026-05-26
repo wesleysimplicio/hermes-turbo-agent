@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 import signal
+import shutil
 import subprocess
 
 import pytest
@@ -206,6 +207,8 @@ def test_subprocess_killall_hermes_blocked():
 
 def test_systemctl_status_passes_through():
     """Read-only systemctl probes (status/show/list-units) are fine."""
+    if shutil.which("systemctl") is None:
+        pytest.skip("systemctl is not available on this platform")
     # Run with check=False so we don't fail on the gateway's exit code.
     r = subprocess.run(
         ["systemctl", "--user", "status", "hermes-gateway", "--no-pager"],
@@ -217,6 +220,8 @@ def test_systemctl_status_passes_through():
 
 
 def test_systemctl_show_passes_through():
+    if shutil.which("systemctl") is None:
+        pytest.skip("systemctl is not available on this platform")
     r = subprocess.run(
         ["systemctl", "--user", "show", "hermes-gateway", "--no-pager"],
         capture_output=True,
@@ -227,6 +232,8 @@ def test_systemctl_show_passes_through():
 
 
 def test_systemctl_list_units_passes_through():
+    if shutil.which("systemctl") is None:
+        pytest.skip("systemctl is not available on this platform")
     r = subprocess.run(
         ["systemctl", "--user", "list-units", "fake-not-real-unit*", "--no-pager"],
         capture_output=True,
@@ -238,6 +245,8 @@ def test_systemctl_list_units_passes_through():
 
 def test_systemctl_unrelated_unit_passes_through():
     """systemctl restart of a non-hermes unit is allowed (we only protect hermes)."""
+    if shutil.which("systemctl") is None:
+        pytest.skip("systemctl is not available on this platform")
     # Use --dry-run so we don't actually try to restart anything; just
     # verify the guard doesn't block the call. systemctl supports
     # --dry-run via the privileged API; on user scope it usually fails

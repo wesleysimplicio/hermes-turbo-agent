@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Research principles mapped to Hermes optimizations</title>
+  <desc id="desc">A diagram mapping official Hermes documentation and research papers to concrete performance changes.</desc>
+  <defs>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#172033"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="arrow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="#0b1016"/>
+  <text x="64" y="72" fill="#f8fafc" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="40" font-weight="800">Research Logic Applied to Hermes</text>
+  <text x="64" y="112" fill="#cbd5e1" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18">Official architecture plus efficient LLM systems papers produced concrete code changes and benchmark coverage.</text>
+
+  <g transform="translate(64,158)" font-family="Inter, Segoe UI, Arial, sans-serif">
+    <rect width="340" height="430" rx="18" fill="url(#panel)" stroke="#334155"/>
+    <text x="26" y="48" fill="#fef3c7" font-size="26" font-weight="800">Sources</text>
+    <text x="26" y="94" fill="#e2e8f0" font-size="17">Hermes Agent Loop</text>
+    <text x="26" y="128" fill="#e2e8f0" font-size="17">Hermes Tools Runtime</text>
+    <text x="26" y="162" fill="#e2e8f0" font-size="17">Delegation Patterns</text>
+    <text x="26" y="196" fill="#e2e8f0" font-size="17">Context Compression</text>
+    <text x="26" y="250" fill="#bae6fd" font-size="17">FrugalGPT: route cheaper first</text>
+    <text x="26" y="284" fill="#bae6fd" font-size="17">LLMLingua: compress prompts</text>
+    <text x="26" y="318" fill="#bae6fd" font-size="17">vLLM: manage scarce memory</text>
+    <text x="26" y="352" fill="#bae6fd" font-size="17">SGLang: reuse repeated prefixes</text>
+  </g>
+
+  <g transform="translate(470,158)" font-family="Inter, Segoe UI, Arial, sans-serif">
+    <rect width="340" height="430" rx="18" fill="url(#panel)" stroke="#334155"/>
+    <text x="26" y="48" fill="#dcfce7" font-size="26" font-weight="800">Principles</text>
+    <text x="26" y="96" fill="#e2e8f0" font-size="18" font-weight="700">1. Spend only after signal</text>
+    <text x="26" y="132" fill="#e2e8f0" font-size="18" font-weight="700">2. Cache stable facts</text>
+    <text x="26" y="168" fill="#e2e8f0" font-size="18" font-weight="700">3. Batch tiny writes</text>
+    <text x="26" y="204" fill="#e2e8f0" font-size="18" font-weight="700">4. Keep hot paths narrow</text>
+    <text x="26" y="240" fill="#e2e8f0" font-size="18" font-weight="700">5. Parallelize independent work</text>
+    <text x="26" y="298" fill="#94a3b8" font-size="15">The code does not copy serving-engine</text>
+    <text x="26" y="322" fill="#94a3b8" font-size="15">internals. It translates the system</text>
+    <text x="26" y="346" fill="#94a3b8" font-size="15">lesson into Hermes runtime overhead.</text>
+  </g>
+
+  <g transform="translate(876,158)" font-family="Inter, Segoe UI, Arial, sans-serif">
+    <rect width="340" height="430" rx="18" fill="url(#panel)" stroke="#334155"/>
+    <text x="26" y="48" fill="#cffafe" font-size="26" font-weight="800">Code Changes</text>
+    <text x="26" y="96" fill="#e2e8f0" font-size="17">Dead endpoint TCP preflight</text>
+    <text x="26" y="130" fill="#e2e8f0" font-size="17">Persistent tool discovery cache</text>
+    <text x="26" y="164" fill="#e2e8f0" font-size="17">Toolset resolution memoization</text>
+    <text x="26" y="198" fill="#e2e8f0" font-size="17">SQLite append_messages batch</text>
+    <text x="26" y="232" fill="#e2e8f0" font-size="17">MCP config fingerprint reloads</text>
+    <text x="26" y="266" fill="#e2e8f0" font-size="17">Adaptive source-scan parallelism</text>
+    <text x="26" y="322" fill="#86efac" font-size="20" font-weight="800">Runtime target hit:</text>
+    <text x="26" y="356" fill="#86efac" font-size="20" font-weight="800">10.34x faster dead endpoint init</text>
+  </g>
+
+  <g fill="none" stroke="url(#arrow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M416 372 L454 372"/>
+    <path d="M442 354 L462 372 L442 390"/>
+    <path d="M822 372 L860 372"/>
+    <path d="M848 354 L868 372 L848 390"/>
+  </g>
+</svg>

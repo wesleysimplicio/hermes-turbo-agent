@@ -1,0 +1,167 @@
+# Upstream Sync Policy (declarative, root-level)
+#
+# Companion to docs/hermes-turbo-sync-policy.json. This YAML file is the
+# human-edited entry point for the policy that governs how Hermes Turbo
+# absorbs upstream Hermes Agent refreshes.
+#
+# Strategies:
+#   keep-turbo       - Fork wins. Upstream changes ignored unless rule is updated.
+#   prefer-upstream  - Upstream wins. Override only via narrower rule.
+#   merge            - Combine: upstream behavior layered onto fork-owned surface.
+#   regenerate       - Derived artifact. Rebuild from source after sync.
+#   manual-review    - No auto-merge. Human compares against latest runtime.
+#
+# Format docs and update workflow: docs/upstream-sync/policy.md
+# Validator: scripts/validate_sync_policy.py
+version: 1
+updated_for_issue: 86
+owner: wesleysimplicio/hermes-turbo-agent
+
+update_process:
+  - "When a new fork-owned area is introduced, add a rule here before the next upstream sync."
+  - "Run `python scripts/validate_sync_policy.py` in CI and before merging sync automation changes."
+  - "Prefer the narrowest rule that explains ownership; use `manual-review` until a stable strategy is proven."
+
+rules:
+  - name: brand-and-launch-assets
+    strategy: keep-turbo
+    reason: >-
+      Fork identity, README positioning, launch site, and brand image assets
+      must survive upstream refreshes unchanged unless the fork intentionally
+      rebrands again.
+    paths:
+      - README.md
+      - hermes-turbo-agent.html
+      - docs/assets/hermes-turbo-brand/**
+      - docs/hermes-turbo-social-storyboard.md
+      - docs/hermes-turbo-identity-customization.md
+
+  - name: fork-home-aliases-and-entrypoints
+    strategy: merge
+    reason: >-
+      CLI aliases, HERMES_TURBO_HOME environment variables, and startup
+      wrappers must absorb upstream behavior while retaining Hermes Turbo/Hermes-Turbo
+      entrypoints.
+    paths:
+      - hermes
+      - hermes_constants.py
+      - hermes_cli/main.py
+      - run_agent.py
+      - AGENTS.md
+
+  - name: profile-distribution-and-warmup-surface
+    strategy: merge
+    reason: >-
+      Desktop and car profile logic is fork-owned behavior layered on top of
+      upstream CLI/runtime changes.
+    paths:
+      - hermes_cli/profiles.py
+      - hermes_cli/profile_distribution.py
+      - gateway/status.py
+      - gateway/run.py
+
+  - name: llm-project-mapper-core-onboarding
+    strategy: keep-turbo
+    reason: >-
+      Project mapping is a fork policy and should not be dropped by an
+      upstream sync.
+    paths:
+      - agent/auto_mapper.py
+      - agent/prompt_builder.py
+      - skills/software-development/llm-project-mapper/**
+      - tests/test_auto_mapper.py
+      - tests/test_map_project_skill.py
+
+  - name: upstream-owned-core-and-site
+    strategy: prefer-upstream
+    reason: >-
+      General upstream surfaces default to Hermes unless another narrower
+      rule overrides them.
+    paths:
+      - website/**
+      - gateway/platforms/**
+      - plugins/**
+      - tests/**
+    allow_empty_globs:
+      - gateway/platforms/**
+
+  - name: benchmark-measurements-and-derived-assets
+    strategy: regenerate
+    reason: >-
+      Benchmark JSON is the source of truth; markdown, battle cards, PDFs,
+      and stale markers must be regenerated only from measured output after
+      sync.
+    paths:
+      - docs/hermes-turbo-benchmark-hermes-0.14.0.json
+      - docs/hermes-turbo-benchmark-hermes-0.14.0.md
+      - docs/assets/hermes-turbo-benchmark/battles/**
+      - hermes_turbo_agent_benchmark_report.pdf
+      - docs/benchmark-refresh-status.json
+      - docs/benchmark-refresh-status.md
+    allow_missing_paths:
+      - docs/benchmark-refresh-status.json
+      - docs/benchmark-refresh-status.md
+    allow_empty_globs:
+      - docs/assets/hermes-turbo-benchmark/battles/**
+
+  - name: performance-patches-and-budgets
+    strategy: manual-review
+    reason: >-
+      Fast-path patches and performance budgets are intentionally divergent;
+      every upstream sync must review them against the latest measured
+      runtime behavior.
+    paths:
+      - agent/_fastjson.py
+      - agent/_hermes_fast.py
+      - agent/uvloop_utils.py
+      - scripts/benchmark_runtime_usage.py
+      - scripts/benchmark_startup_perf.py
+      - scripts/perf_budgets.py
+      - scripts/perf_budgets.json
+      - .github/workflows/perf-budgets.yml
+
+  - name: token-economy-and-telemetry-optimizations
+    strategy: keep-turbo
+    reason: >-
+      The token-economy, runtime-telemetry, and Turbo-Score stack (issues
+      #81-#103 and #136-#139) is fork-owned optimization work. Upstream Hermes
+      does not ship these surfaces, so they must survive syncs unchanged and
+      keep evolving on the fork side.
+    paths:
+      - agent/token_saver/**
+      - agent/telemetry/**
+      - agent/governor/**
+      - agent/router/**
+      - agent/context/**
+      - agent/registry/**
+      - agent/contracts/**
+      - agent/distributed/**
+      - scripts/turbo_score.py
+      - scripts/generate_perf_report_pdf.py
+      - scripts/generate_three_way_pdf.py
+      - docs/turbo-score-baselines.json
+      - hermes_cli/web_perf.py
+      - hermes_cli/migrate_openclaw.py
+      - .github/workflows/daily-turbo-score.yml
+    allow_empty_globs:
+      - agent/governor/**
+      - agent/router/**
+      - agent/context/**
+      - agent/registry/**
+      - agent/contracts/**
+      - agent/distributed/**
+
+  - name: auto-update-and-sync-automation
+    strategy: keep-turbo
+    reason: >-
+      Fork-owned update detection: `hermes update --check-main` and the
+      scheduled upstream-drift checker that keeps the fork current with both
+      upstream Hermes and the fork's own default branch. Must not be dropped
+      by an upstream sync.
+    paths:
+      - hermes_cli/update_check.py
+      - scripts/check_upstream_updates.py
+      - scripts/hermes_turbo_daily_update.py
+      - scripts/install_hermes_turbo_daily_update_launchd.py
+      - scripts/upstream-sync/**
+      - .github/workflows/auto-update-check.yml

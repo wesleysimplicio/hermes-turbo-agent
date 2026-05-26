@@ -7,7 +7,8 @@ import {
   normalizeBusyInputMode,
   normalizeIndicatorStyle,
   normalizeMouseTracking,
-  normalizeStatusBar
+  normalizeStatusBar,
+  shouldReloadMcpForConfigChange
 } from '../app/useConfigSync.js'
 import type { ParsedVoiceRecordKey } from '../lib/platform.js'
 
@@ -456,5 +457,17 @@ describe('hydrateFullConfig', () => {
     // display flags (round-2 / round-8 invariant).
     await expect(hydrateFullConfig(gw, setBell)).resolves.toBeTruthy()
     expect(setBell).toHaveBeenCalledWith(true)
+  })
+})
+
+describe('shouldReloadMcpForConfigChange', () => {
+  it('skips MCP reload when only non-MCP config changed', () => {
+    expect(shouldReloadMcpForConfigChange('{"fs":{}}', '{"fs":{}}')).toBe(false)
+  })
+
+  it('reloads MCP when the fingerprint changes or is unavailable', () => {
+    expect(shouldReloadMcpForConfigChange('{"fs":{}}', '{"github":{}}')).toBe(true)
+    expect(shouldReloadMcpForConfigChange(null, '{"fs":{}}')).toBe(true)
+    expect(shouldReloadMcpForConfigChange('{"fs":{}}', null)).toBe(true)
   })
 })

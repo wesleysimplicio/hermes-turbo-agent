@@ -124,6 +124,12 @@ export const normalizeMouseTracking = (display: {
 
 const MTIME_POLL_MS = 5000
 
+export const shouldReloadMcpForConfigChange = (
+  previousFingerprint: null | string,
+  nextFingerprint: null | string
+): boolean =>
+  previousFingerprint === null || nextFingerprint === null || previousFingerprint !== nextFingerprint
+
 const quietRpc = async <T extends Record<string, any> = Record<string, any>>(
   gw: GatewayClient,
   method: string,
@@ -216,6 +222,7 @@ export function useConfigSync({
   sid
 }: UseConfigSyncOptions) {
   const mtimeRef = useRef(0)
+  const mcpFingerprintRef = useRef<null | string>(null)
 
   useEffect(() => {
     if (!sid) {
@@ -229,6 +236,7 @@ export function useConfigSync({
     setVoiceEnabled(process.env.HERMES_VOICE === '1')
     quietRpc<ConfigMtimeResponse>(gw, 'config.get', { key: 'mtime' }).then(r => {
       mtimeRef.current = Number(r?.mtime ?? 0)
+      mcpFingerprintRef.current = typeof r?.mcp_fingerprint === 'string' ? r.mcp_fingerprint : null
     })
     void hydrateFullConfig(gw, setBellOnComplete, setVoiceRecordKey)
   }, [gw, setBellOnComplete, setVoiceEnabled, setVoiceRecordKey, sid])
@@ -255,10 +263,14 @@ export function useConfigSync({
         }
 
         mtimeRef.current = next
+        const nextMcpFingerprint = typeof r?.mcp_fingerprint === 'string' ? r.mcp_fingerprint : null
 
-        quietRpc<ReloadMcpResponse>(gw, 'reload.mcp', { session_id: sid, confirm: true }).then(
-          r => r && turnController.pushActivity('MCP reloaded after config change')
-        )
+        if (shouldReloadMcpForConfigChange(mcpFingerprintRef.current, nextMcpFingerprint)) {
+          quietRpc<ReloadMcpResponse>(gw, 'reload.mcp', { session_id: sid, confirm: true }).then(
+            r => r && turnController.pushActivity('MCP reloaded after config change')
+          )
+        }
+        mcpFingerprintRef.current = nextMcpFingerprint
         void hydrateFullConfig(gw, setBellOnComplete, setVoiceRecordKey)
       })
     }, MTIME_POLL_MS)

@@ -448,6 +448,50 @@ class TestDetectLocalServerTypeAuth:
         }
 
 
+class TestDeadLoopbackEndpointFastPath:
+    def test_detect_local_server_type_skips_httpx_when_loopback_port_is_closed(self):
+        import agent.model_metadata as mm
+
+        mm._local_endpoint_reachability_cache.clear()
+        with patch("agent.model_metadata.socket.create_connection", side_effect=OSError("closed")), \
+             patch("httpx.Client") as mock_client:
+            result = mm.detect_local_server_type("http://127.0.0.1:9/v1")
+
+        assert result is None
+        mock_client.assert_not_called()
+
+    def test_fetch_endpoint_metadata_skips_requests_when_loopback_port_is_closed(self):
+        import agent.model_metadata as mm
+
+        mm._local_endpoint_reachability_cache.clear()
+        with patch("agent.model_metadata.socket.create_connection", side_effect=OSError("closed")), \
+             patch("agent.model_metadata.requests.get") as mock_get:
+            result = mm.fetch_endpoint_model_metadata(
+                "http://127.0.0.1:9/v1",
+                force_refresh=True,
+            )
+
+        assert result == {}
+        mock_get.assert_not_called()
+
+    def test_get_context_length_dead_loopback_falls_back_without_http_probes(self):
+        import agent.model_metadata as mm
+
+        mm._local_endpoint_reachability_cache.clear()
+        with patch("agent.model_metadata.socket.create_connection", side_effect=OSError("closed")), \
+             patch("agent.model_metadata.requests.get") as mock_requests_get, \
+             patch("httpx.Client") as mock_httpx_client:
+            result = mm.get_model_context_length(
+                "bench-model",
+                base_url="http://127.0.0.1:9/v1",
+                provider="custom",
+            )
+
+        assert result == mm.DEFAULT_FALLBACK_CONTEXT
+        mock_requests_get.assert_not_called()
+        mock_httpx_client.assert_not_called()
+
+
 class TestFetchEndpointModelMetadataLmStudio:
     """fetch_endpoint_model_metadata should use LM Studio's native models endpoint."""
 

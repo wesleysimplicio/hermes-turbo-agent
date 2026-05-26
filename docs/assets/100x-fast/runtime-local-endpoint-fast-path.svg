@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Runtime local endpoint fast path benchmark</title>
+  <desc id="desc">Comparison of Hermes runtime agent initialization before and after dead loopback endpoint preflight.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101418"/>
+      <stop offset="1" stop-color="#17202a"/>
+    </linearGradient>
+    <linearGradient id="before" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff6b6b"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="after" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22c55e"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <text x="64" y="78" fill="#f8fafc" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="42" font-weight="800">Runtime Fast Path: Dead Local Endpoint</text>
+  <text x="64" y="118" fill="#cbd5e1" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19">When a custom loopback endpoint is down, Hermes now checks TCP reachability before expensive HTTP metadata probes.</text>
+
+  <g transform="translate(64,168)" filter="url(#softShadow)">
+    <rect x="0" y="0" width="540" height="410" rx="18" fill="#1f2937"/>
+    <text x="32" y="54" fill="#fecaca" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="800">Before</text>
+    <text x="32" y="88" fill="#d1d5db" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">Multiple HTTP probes wait on connect timeouts.</text>
+    <rect x="32" y="132" width="436" height="42" rx="12" fill="url(#before)"/>
+    <text x="486" y="161" fill="#f8fafc" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="800">51.42s</text>
+    <g fill="none" stroke="#fb7185" stroke-width="4" stroke-linecap="round">
+      <path d="M84 252 C150 206, 222 292, 288 246 S422 222, 462 282"/>
+      <path d="M84 304 C150 258, 222 344, 288 298 S422 274, 462 334"/>
+    </g>
+    <g fill="#fb7185">
+      <circle cx="84" cy="252" r="10"/>
+      <circle cx="288" cy="246" r="10"/>
+      <circle cx="462" cy="282" r="10"/>
+      <circle cx="84" cy="304" r="10"/>
+      <circle cx="288" cy="298" r="10"/>
+      <circle cx="462" cy="334" r="10"/>
+    </g>
+    <text x="32" y="378" fill="#cbd5e1" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15">Observed before patch in benchmark_runtime_usage.py: agent_init_file_terminal.</text>
+  </g>
+
+  <g transform="translate(676,168)" filter="url(#softShadow)">
+    <rect x="0" y="0" width="540" height="410" rx="18" fill="#1f2937"/>
+    <text x="32" y="54" fill="#bbf7d0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="800">After</text>
+    <text x="32" y="88" fill="#d1d5db" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">A short socket preflight skips doomed metadata probes.</text>
+    <rect x="32" y="132" width="42" height="42" rx="12" fill="url(#after)"/>
+    <text x="92" y="161" fill="#f8fafc" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="800">4.97s</text>
+    <g fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M74 280 L164 280 L164 226 L264 226 L264 280 L462 280"/>
+      <path d="M412 252 L462 280 L412 308"/>
+    </g>
+    <g fill="#06b6d4">
+      <rect x="76" y="346" width="80" height="18" rx="9"/>
+      <rect x="176" y="346" width="80" height="18" rx="9"/>
+      <rect x="276" y="346" width="80" height="18" rx="9"/>
+    </g>
+    <text x="32" y="378" fill="#cbd5e1" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15">Median after patch: 10.34x faster for this dead-loopback runtime path.</text>
+  </g>
+
+  <g transform="translate(64,630)">
+    <rect x="0" y="-34" width="1152" height="56" rx="16" fill="#0f172a" stroke="#334155"/>
+    <text x="24" y="2" fill="#e2e8f0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">Principle: fail cheap, cache negative reachability, avoid repeated I/O that cannot produce signal.</text>
+  </g>
+</svg>

@@ -10,33 +10,64 @@ import hermes_constants
 from hermes_constants import (
     VALID_REASONING_EFFORTS,
     get_default_hermes_root,
+    get_hermes_home,
     is_container,
     parse_reasoning_effort,
     secure_parent_dir,
 )
 
 
+class TestGetHermesHome:
+    """Tests for the fork-specific home directory resolution."""
+
+    def test_default_home_uses_hermes_turbo_dir(self, tmp_path, monkeypatch):
+        """When no home env var is set, new Hermes Turbo installs use ~/.hermes_turbo."""
+        monkeypatch.delenv("TOTA_HOME", raising=False)
+        monkeypatch.delenv("HERMES_HOME", raising=False)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        assert get_hermes_home() == tmp_path / ".hermes_turbo"
+
+    def test_hermes_turbo_home_override_wins(self, tmp_path, monkeypatch):
+        """TOTA_HOME is the fork-native override and wins over legacy HERMES_HOME."""
+        hermes_turbo_home = tmp_path / "hermes-turbo-data"
+        hermes_home = tmp_path / "hermes-data"
+        monkeypatch.setenv("TOTA_HOME", str(hermes_turbo_home))
+        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+
+        assert get_hermes_home() == hermes_turbo_home
+
+    def test_legacy_hermes_home_override_still_works(self, tmp_path, monkeypatch):
+        """Existing hermes2 wrappers can keep using HERMES_HOME explicitly."""
+        hermes_home = tmp_path / ".hermes2"
+        monkeypatch.delenv("HERMES_TURBO_HOME", raising=False)
+        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+
+        assert get_hermes_home() == hermes_home
+
+
 class TestGetDefaultHermesRoot:
     """Tests for get_default_hermes_root() — Docker/custom deployment awareness."""
 
     def test_no_hermes_home_returns_native(self, tmp_path, monkeypatch):
-        """When HERMES_HOME is not set, returns ~/.hermes."""
+        """When HERMES_HOME is not set, returns ~/.hermes_turbo."""
+        monkeypatch.delenv("TOTA_HOME", raising=False)
         monkeypatch.delenv("HERMES_HOME", raising=False)
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-        assert get_default_hermes_root() == tmp_path / ".hermes"
+        assert get_default_hermes_root() == tmp_path / ".hermes_turbo"
 
     def test_hermes_home_is_native(self, tmp_path, monkeypatch):
-        """When HERMES_HOME = ~/.hermes, returns ~/.hermes."""
-        native = tmp_path / ".hermes"
+        """When HERMES_HOME = ~/.hermes_turbo, returns ~/.hermes_turbo."""
+        native = tmp_path / ".hermes_turbo"
         native.mkdir()
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
         monkeypatch.setenv("HERMES_HOME", str(native))
         assert get_default_hermes_root() == native
 
     def test_hermes_home_is_profile(self, tmp_path, monkeypatch):
-        """When HERMES_HOME is a profile under ~/.hermes, returns ~/.hermes."""
-        native = tmp_path / ".hermes"
+        """When HERMES_HOME is a profile under ~/.hermes_turbo, returns ~/.hermes_turbo."""
+        native = tmp_path / ".hermes_turbo"
         profile = native / "profiles" / "coder"
         profile.mkdir(parents=True)
         monkeypatch.setattr(Path, "home", lambda: tmp_path)

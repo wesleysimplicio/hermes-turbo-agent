@@ -1,0 +1,40 @@
+{
+  "score": 62.78,
+  "families": [
+    {
+      "name": "latency",
+      "weight": 30,
+      "raw_score": 0.1049,
+      "weighted": 3.1466,
+      "metric_count": 3,
+      "notes": ""
+    },
+    {
+      "name": "throughput",
+      "weight": 20,
+      "raw_score": 1.0,
+      "weighted": 20.0,
+      "metric_count": 1,
+      "notes": ""
+    },
+    {
+      "name": "cold_start",
+      "weight": 15,
+      "raw_score": 0.8051,
+      "weighted": 12.0765,
+      "metric_count": 1,
+      "notes": ""
+    },
+    {
+      "name": "memory",
+      "weight": 15,
+      "raw_score": 1.0,
+      "weighted": 15.0,
+      "metric_count": 1,
+      "notes": "stock=60MB local=30MB"
+    }
+  ],
+  "missing_families": [
+    "token_savings"
+  ]
+}

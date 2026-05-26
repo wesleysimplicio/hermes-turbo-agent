@@ -86,6 +86,7 @@ export interface ConfigFullResponse {
 }
 
 export interface ConfigMtimeResponse {
+  mcp_fingerprint?: string
   mtime?: number
 }
 

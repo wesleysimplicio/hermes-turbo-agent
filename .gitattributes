@@ -1,2 +1,13 @@
 # Auto-generated files — collapse diffs and exclude from language stats
 web/package-lock.json linguist-generated=true
+
+# Hermes2 custom files — never overwrite on upstream merge.
+# Activate the driver locally with: git config merge.ours.driver true
+hermes_cli/default_soul.py merge=ours
+hermes_cli/config.py merge=ours
+PERFORMANCE_ROADMAP.md merge=ours
+scripts/sync-upstream.sh merge=ours
+scripts/apply-to-hermes2.sh merge=ours
+.gitattributes merge=ours
+pyproject.toml merge=ours
+agent/_fastjson.py merge=ours

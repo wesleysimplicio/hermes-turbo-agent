@@ -33,6 +33,10 @@ from agent.transports import get_transport
 # Auth helpers
 # ---------------------------------------------------------------------------
 
+@pytest.fixture(autouse=True)
+def _disable_real_claude_keychain(monkeypatch):
+    monkeypatch.setenv("HERMES_DISABLE_CLAUDE_KEYCHAIN", "1")
+
 
 class TestIsOAuthToken:
     def test_setup_token(self):

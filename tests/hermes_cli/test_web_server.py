@@ -17,6 +17,29 @@ from hermes_cli.config import (
 )
 
 
+def test_resolve_chat_argv_exports_config_preloaded_skills(monkeypatch):
+    pytest.importorskip("fastapi")
+
+    import hermes_cli.main as main_mod
+    import hermes_cli.web_server as web_server
+
+    monkeypatch.setattr(
+        main_mod,
+        "_make_tui_argv",
+        lambda tui_dir, tui_dev: (["node", "dist/entry.js"], Path(".")),
+    )
+    monkeypatch.setattr(
+        main_mod,
+        "_config_preloaded_tui_skills",
+        lambda: ["cavecrew", "everything-code"],
+    )
+    monkeypatch.setenv("HERMES_TUI_SKILLS", "github-auth,cavecrew")
+
+    _argv, _cwd, env = web_server._resolve_chat_argv()
+
+    assert env["HERMES_TUI_SKILLS"] == "cavecrew,everything-code,github-auth"
+
+
 # ---------------------------------------------------------------------------
 # reload_env tests
 # ---------------------------------------------------------------------------
@@ -2308,29 +2331,19 @@ class TestPtyWebSocket:
     def test_pub_broadcasts_to_events_subscribers(self, monkeypatch):
         """Frame written to /api/pub is rebroadcast verbatim to every
         /api/events subscriber on the same channel."""
-        import time
         from urllib.parse import urlencode
         from hermes_cli import web_server as ws_mod
 
-        qs = urlencode({"token": self.token, "channel": "broadcast-test"})
+        qs = urlencode(
+            {"token": self.token, "channel": "broadcast-test", "ready": "1"}
+        )
         pub_path = f"/api/pub?{qs}"
         sub_path = f"/api/events?{qs}"
 
         with self.client.websocket_connect(sub_path) as sub:
-            # Wait for the subscriber to be registered on the server side.
-            # websocket_connect returns when ws.accept() completes, but the
-            # server adds us to ``_event_channels`` in a follow-up await,
-            # so a publish immediately after connect can race ahead of the
-            # subscriber registration and the message is dropped.
-            deadline = time.monotonic() + 5.0
-            while time.monotonic() < deadline:
-                if ws_mod._event_channels.get("broadcast-test"):
-                    break
-                time.sleep(0.01)
-            else:
-                raise AssertionError(
-                    "subscriber did not register on channel within 5s"
-                )
+            ready = sub.receive_text()
+            assert "events.ready" in ready
+            assert ws_mod._event_channels.get("broadcast-test")
 
             with self.client.websocket_connect(pub_path) as pub:
                 pub.send_text('{"type":"tool.start","payload":{"tool_id":"t1"}}')

@@ -170,6 +170,13 @@ def _require_tty(command_name: str) -> None:
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT))
 
+try:
+    from agent.uvloop_utils import install_uvloop_policy
+
+    install_uvloop_policy()
+except Exception:
+    pass
+
 
 # ---------------------------------------------------------------------------
 # Profile override — MUST happen before any hermes module import.
@@ -178,7 +185,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # We intercept --profile/-p from sys.argv here and set the env var so that
 # every subsequent ``os.getenv("HERMES_HOME", ...)`` resolves correctly.
 # The flag is stripped from sys.argv so argparse never sees it.
-# Falls back to ~/.hermes/active_profile for sticky default.
+# Falls back to the configured home active_profile for sticky default.
 # ---------------------------------------------------------------------------
 def _apply_profile_override() -> None:
     """Pre-parse --profile/-p and set HERMES_HOME before module imports."""
@@ -208,16 +215,16 @@ def _apply_profile_override() -> None:
             profile_name = None
             consume = 0
 
-    # 1.5 If HERMES_HOME is already set and no explicit flag was given, trust it
+    # 1.5 If HERMES_TURBO_HOME/HERMES_HOME is already set and no explicit flag was given, trust it
     # only when it already points to a specific profile directory.  The
     # distinguishing heuristic: a profile path has "profiles" as its immediate
-    # parent directory name (e.g. ~/.hermes/profiles/coder or
+    # parent directory name (e.g. ~/.hermes_turbo/profiles/coder or
     # /opt/data/profiles/coder).  If HERMES_HOME points to the hermes root
-    # instead (e.g. systemd hardcodes HERMES_HOME=/root/.hermes), we must
+    # instead (e.g. systemd hardcodes HERMES_HOME=/root/.hermes_turbo), we must
     # still read active_profile — the user may have switched profiles via
     # `hermes profile use` and the gateway should honour that choice.
     # See issue #22502.
-    hermes_home_env = os.environ.get("HERMES_HOME", "")
+    hermes_home_env = os.environ.get("HERMES_TURBO_HOME", "") or os.environ.get("HERMES_HOME", "")
     if profile_name is None and hermes_home_env:
         if Path(hermes_home_env).parent.name == "profiles":
             return
@@ -268,7 +275,7 @@ def _apply_profile_override() -> None:
 
 _apply_profile_override()
 
-# Load .env from ~/.hermes/.env first, then project root as dev fallback.
+# Load .env from the configured home .env first, then project root as dev fallback.
 # User-managed env files should override stale shell exports on restart.
 from hermes_cli.config import get_hermes_home
 from hermes_cli.env_loader import load_hermes_dotenv
@@ -314,6 +321,93 @@ try:
     _setup_logging(mode="cli")
 except Exception:
     pass  # best-effort — don't crash the CLI if logging setup fails
+
+# Seed the runtime $TOTA_HOME with the fork's opinionated defaults shipped
+# under the repo's .hermes_turbo/ tree (HERMES_BASE, version, memories/MEMORY.md,
+# mapped_projects.json). Idempotent and non-destructive — existing operator
+# files are never overwritten.
+#
+# Gating: only run the bootstrap and the auto-mapper for subcommands that
+# actually start an interactive agent session. Cheap utility subcommands
+# (`hermes --help`, `hermes --version`, `hermes config`, `hermes status`,
+# `hermes doctor`, `hermes logout`, `hermes update`, etc.) should stay
+# side-effect-free — no filesystem writes, no `npx` spawn. Closes Copilot
+# review on PR #61.
+_AGENT_SUBCOMMANDS = frozenset({
+    "chat",  # default interactive chat
+    "gateway",  # platform gateway
+    "cron",  # scheduled agent runs
+    "acp",  # editor integration agent
+    "kanban",  # multi-agent board
+    "send",  # one-shot send
+    "honcho",  # memory mode
+    "tui",  # ink TUI
+    "proxy",  # local OpenAI-compatible proxy
+})
+
+
+def _should_run_agent_side_effects() -> bool:
+    """Return True when the CLI invocation is going to start an agent.
+
+    Bootstrap + auto-mapper are gated behind this so `hermes --help` and
+    other cheap-utility paths don't trigger filesystem writes or npx spawns.
+    Default: True (run them) unless we can clearly identify a cheap path.
+    Hermes Turbo-set ``TOTA_SKIP_STARTUP_HOOKS=1`` forces a skip.
+    """
+    if (os.environ.get("HERMES_TURBO_SKIP_STARTUP_HOOKS") or "").strip() in {"1", "true", "yes", "on"}:
+        return False
+    if len(sys.argv) <= 1:
+        return True  # bare `hermes` → interactive chat
+    first = sys.argv[1].lstrip("-").lower()
+    if first in {"help", "version", "h", "v"}:
+        return False
+    if first in _AGENT_SUBCOMMANDS:
+        return True
+    # Unknown / cheap subcommands (config, status, doctor, logout, update,
+    # tools, skills, profile, model, debug, dump, plugins, version, etc.)
+    # default to "no side effects" — these don't run an agent.
+    _CHEAP_SUBCOMMANDS = frozenset({
+        "config", "status", "doctor", "logout", "update", "uninstall",
+        "tools", "skills", "profile", "model", "debug", "dump",
+        "plugins", "version", "logs", "curator", "webhook",
+    })
+    if first in _CHEAP_SUBCOMMANDS:
+        return False
+    # Default to True for unrecognised inputs — better to run the hooks
+    # than to silently skip them on a new subcommand.
+    return True
+
+
+if _should_run_agent_side_effects():
+    try:
+        from agent.hermes_turbo_home_bootstrap import bootstrap_hermes_turbo_home as _bootstrap_hermes_turbo_home
+
+        _bootstrap_hermes_turbo_home()
+    except Exception:
+        pass  # best-effort — agent works fine without seed files
+
+    # Hermes Turbo-core directive: auto-invoke llm-project-mapper on first turn in
+    # any code project. Idempotent across sessions (the mapper itself
+    # dedups via $HERMES_TURBO_HOME/mapped_projects.json) and within a session
+    # (auto_mapper dedups per process). Disabled by HERMES_TURBO_AUTO_MAP=0 or by
+    # a sentinel file in $HERMES_TURBO_HOME/.disable_auto_mapper.
+    try:
+        from agent.auto_mapper import maybe_map_project as _maybe_map_project
+
+        _maybe_map_project()
+    except Exception:
+        pass  # best-effort — agent works fine without the mapper
+
+    # Installed users should see Hermes Turbo releases the same way modern CLIs do:
+    # when a newer release exists, ask once per day whether to update.
+    try:
+        from hermes_cli.hermes_turbo_update_prompt import maybe_prompt_for_hermes_turbo_update as _maybe_prompt_for_hermes_turbo_update
+
+        _maybe_prompt_for_hermes_turbo_update()
+    except SystemExit:
+        raise
+    except Exception:
+        pass  # best-effort — never block the agent over release checks
 
 # Apply IPv4 preference early, before any HTTP clients are created.
 # We already determined whether to force IPv4 from the raw yaml read above —
@@ -1262,7 +1356,7 @@ def _ensure_tui_node() -> None:
     if not helper.is_file():
         return
 
-    hermes_home = os.environ.get("HERMES_HOME") or str(Path.home() / ".hermes")
+    hermes_home = str(get_hermes_home())
     try:
         # Helper writes logs to stderr; we ask bash to print `command -v node`
         # on stdout once ensure_node succeeds. Subshell PATH edits don't leak
@@ -1454,6 +1548,41 @@ def _normalize_tui_toolsets(toolsets: object) -> list[str]:
         return [item for item in normalized if item]
 
 
+def _normalize_tui_skills(skills: object) -> list[str]:
+    if not skills:
+        return []
+    if isinstance(skills, str):
+        raw_items = [skills]
+    elif isinstance(skills, (list, tuple)):
+        raw_items = list(skills)
+    else:
+        raw_items = [skills]
+
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in raw_items:
+        for part in str(item).split(","):
+            skill = part.strip()
+            if not skill or skill in seen:
+                continue
+            seen.add(skill)
+            normalized.append(skill)
+    return normalized
+
+
+def _config_preloaded_tui_skills() -> list[str]:
+    if os.environ.get("HERMES_IGNORE_RULES", "").strip():
+        return []
+    try:
+        from hermes_cli.config import load_config
+
+        config = load_config()
+    except Exception:
+        return []
+    skills_config = config.get("skills", {}) if isinstance(config, dict) else {}
+    return _normalize_tui_skills(skills_config.get("preload"))
+
+
 def _launch_tui(
     resume_session_id: Optional[str] = None,
     tui_dev: bool = False,
@@ -1520,19 +1649,18 @@ def _launch_tui(
     tui_toolsets = _normalize_tui_toolsets(toolsets)
     if tui_toolsets:
         env["HERMES_TUI_TOOLSETS"] = ",".join(tui_toolsets)
-    if skills:
-        if isinstance(skills, (list, tuple)):
-            flattened = []
-            for item in skills:
-                flattened.extend(
-                    part.strip() for part in str(item).split(",") if part.strip()
-                )
-            if flattened:
-                env["HERMES_TUI_SKILLS"] = ",".join(flattened)
-        else:
-            value = str(skills).strip()
-            if value:
-                env["HERMES_TUI_SKILLS"] = value
+    tui_skills = []
+    tui_skills.extend(_config_preloaded_tui_skills())
+    tui_skills.extend(_normalize_tui_skills(skills))
+    if tui_skills:
+        deduped = []
+        seen = set()
+        for skill in tui_skills:
+            if skill in seen:
+                continue
+            seen.add(skill)
+            deduped.append(skill)
+        env["HERMES_TUI_SKILLS"] = ",".join(deduped)
     if query:
         env["HERMES_TUI_QUERY"] = query
     if image:
@@ -7414,6 +7542,91 @@ def _count_commits_between(git_cmd: list[str], cwd: Path, base: str, head: str) 
     return -1
 
 
+def _get_tracking_ref(git_cmd: list[str], cwd: Path) -> Optional[str]:
+    """Return the configured upstream ref for the current branch."""
+    try:
+        result = subprocess.run(
+            git_cmd + ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+        )
+        ref = result.stdout.strip()
+        if result.returncode == 0 and "/" in ref:
+            return ref
+    except Exception:
+        pass
+    return None
+
+
+def _remote_ref_exists(git_cmd: list[str], cwd: Path, ref: str) -> bool:
+    """Return True when refs/remotes/<ref> exists locally."""
+    try:
+        result = subprocess.run(
+            git_cmd + ["rev-parse", "--verify", f"refs/remotes/{ref}"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+def _get_origin_default_ref(git_cmd: list[str], cwd: Path) -> str:
+    """Resolve origin's default remote ref, falling back to origin/main."""
+    try:
+        result = subprocess.run(
+            git_cmd + ["symbolic-ref", "refs/remotes/origin/HEAD"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+        )
+        prefix = "refs/remotes/origin/"
+        ref = result.stdout.strip()
+        if result.returncode == 0 and ref.startswith(prefix):
+            branch = ref[len(prefix):]
+            if branch:
+                return f"origin/{branch}"
+    except Exception:
+        pass
+
+    try:
+        result = subprocess.run(
+            git_cmd + ["remote", "show", "origin"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            for line in result.stdout.splitlines():
+                line = line.strip()
+                if line.startswith("HEAD branch:"):
+                    branch = line.split(":", 1)[1].strip()
+                    if branch:
+                        return f"origin/{branch}"
+    except Exception:
+        pass
+
+    return "origin/main"
+
+
+def _resolve_update_ref(
+    git_cmd: list[str], cwd: Path, current_branch: str, *, is_fork: bool
+) -> str:
+    """Resolve the remote ref ``hermes update`` should fast-forward from."""
+    if is_fork and current_branch != "HEAD":
+        tracking = _get_tracking_ref(git_cmd, cwd)
+        if tracking and tracking.startswith("origin/"):
+            return tracking
+
+        candidate = f"origin/{current_branch}"
+        if _remote_ref_exists(git_cmd, cwd, candidate):
+            return candidate
+
+    return _get_origin_default_ref(git_cmd, cwd) if is_fork else "origin/main"
+
+
 def _should_skip_upstream_prompt() -> bool:
     """Check if user previously declined to add upstream."""
     from hermes_constants import get_hermes_home
@@ -7431,135 +7644,124 @@ def _mark_skip_upstream_prompt():
         pass
 
 
-def _sync_fork_with_upstream(git_cmd: list[str], cwd: Path) -> bool:
-    """Attempt to push updated main to origin (sync fork).
-
-    Returns True if push succeeded, False otherwise.
-    """
-    try:
-        result = subprocess.run(
-            git_cmd + ["push", "origin", "main", "--force-with-lease"],
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-        )
-        return result.returncode == 0
-    except Exception:
-        return False
-
-
-def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
+def _sync_with_upstream_if_needed(
+    git_cmd: list[str], cwd: Path, *, target_branch: str = "main"
+) -> Optional[bool]:
     """Check if fork is behind upstream and sync if safe.
 
-    This implements the fork upstream sync logic:
-    - If upstream remote doesn't exist, ask user if they want to add it
-    - Compare origin/main with upstream/main
-    - If origin/main is strictly behind upstream/main, pull from upstream
-    - Try to sync fork back to origin if possible
+    Returns True when upstream/main was merged, False when there was nothing
+    to merge, and None when the merge could not be completed safely.
     """
     has_upstream = _has_upstream_remote(git_cmd, cwd)
 
     if not has_upstream:
-        # Check if user previously declined
-        if _should_skip_upstream_prompt():
-            return
-
-        # Ask user if they want to add upstream
         print()
-        print("ℹ Your fork is not tracking the official Hermes repository.")
-        print("  This means you may miss updates from NousResearch/hermes-agent.")
-        print()
-        try:
-            response = (
-                input("Add official repo as 'upstream' remote? [Y/n]: ").strip().lower()
-            )
-        except (EOFError, KeyboardInterrupt):
-            print()
-            response = "n"
-
-        if response in {"", "y", "yes"}:
-            print("→ Adding upstream remote...")
-            if _add_upstream_remote(git_cmd, cwd):
-                print(
-                    "  ✓ Added upstream: https://github.com/NousResearch/hermes-agent.git"
-                )
-                has_upstream = True
-            else:
-                print("  ✗ Failed to add upstream remote. Skipping upstream sync.")
-                return
-        else:
+        print("→ Adding official Hermes upstream remote...")
+        if _add_upstream_remote(git_cmd, cwd):
             print(
-                "  Skipped. Run 'git remote add upstream https://github.com/NousResearch/hermes-agent.git' to add later."
+                "  ✓ Added upstream: https://github.com/NousResearch/hermes-agent.git"
             )
-            _mark_skip_upstream_prompt()
-            return
+            has_upstream = True
+        else:
+            print("  ✗ Failed to add upstream remote. Skipping upstream sync.")
+            return None
 
     # Fetch upstream
     print()
     print("→ Fetching upstream...")
     try:
         subprocess.run(
-            git_cmd + ["fetch", "upstream", "--quiet"],
+            git_cmd + ["fetch", "upstream", "main", "--quiet"],
             cwd=cwd,
             capture_output=True,
             check=True,
         )
     except subprocess.CalledProcessError:
         print("  ✗ Failed to fetch upstream. Skipping upstream sync.")
-        return
+        return None
 
-    # Compare origin/main with upstream/main
-    origin_ahead = _count_commits_between(git_cmd, cwd, "upstream/main", "origin/main")
-    upstream_ahead = _count_commits_between(
-        git_cmd, cwd, "origin/main", "upstream/main"
+    fork_ahead = _count_commits_between(git_cmd, cwd, "upstream/main", "HEAD")
+    upstream_ahead = _count_commits_between(git_cmd, cwd, "HEAD", "upstream/main")
+
+    if fork_ahead < 0 or upstream_ahead < 0:
+        print("  ✗ Could not compare branches. Skipping upstream sync.")
+        return None
+
+    if upstream_ahead == 0:
+        print("  ✓ Fork branch already contains upstream/main")
+        return False
+
+    print()
+    if fork_ahead:
+        print(f"ℹ Fork branch has {fork_ahead} custom commit(s) not on upstream.")
+    print(
+        f"→ Merging {upstream_ahead} upstream commit(s) into {target_branch} "
+        "while preserving fork changes..."
     )
 
-    if origin_ahead < 0 or upstream_ahead < 0:
-        print("  ✗ Could not compare branches. Skipping upstream sync.")
-        return
-
-    # If origin/main has commits not on upstream, don't trample
-    if origin_ahead > 0:
-        print()
-        print(f"ℹ Your fork has {origin_ahead} commit(s) not on upstream.")
-        print("  Skipping upstream sync to preserve your changes.")
-        print("  If you want to merge upstream changes, run:")
-        print("    git pull upstream main")
-        return
-
-    # If upstream is not ahead, fork is up to date
-    if upstream_ahead == 0:
-        print("  ✓ Fork is up to date with upstream")
-        return
-
-    # origin/main is strictly behind upstream/main (can fast-forward)
-    print()
-    print(f"→ Fork is {upstream_ahead} commit(s) behind upstream")
-    print("→ Pulling from upstream...")
-
-    try:
-        subprocess.run(
-            git_cmd + ["pull", "--ff-only", "upstream", "main"],
+    merge_result = subprocess.run(
+        git_cmd + ["merge", "--no-edit", "-X", "ours", "upstream/main"],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
+    if merge_result.returncode != 0:
+        conflicts = subprocess.run(
+            git_cmd + ["diff", "--name-only", "--diff-filter=U"],
             cwd=cwd,
-            check=True,
+            capture_output=True,
+            text=True,
         )
-    except subprocess.CalledProcessError:
-        print(
-            "  ✗ Failed to pull from upstream. You may need to resolve conflicts manually."
+        conflict_files = [
+            line.strip() for line in conflicts.stdout.splitlines() if line.strip()
+        ]
+        if conflict_files:
+            print(
+                "  ⚠ Upstream merge had conflicts; keeping fork versions for "
+                "conflicted files."
+            )
+            checkout_ours = subprocess.run(
+                git_cmd + ["checkout", "--ours", "--", *conflict_files],
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+            )
+            add_ours = subprocess.run(
+                git_cmd + ["add", "--", *conflict_files],
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+            )
+            commit_merge = subprocess.run(
+                git_cmd + ["commit", "--no-edit"],
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+            )
+            if (
+                checkout_ours.returncode == 0
+                and add_ours.returncode == 0
+                and commit_merge.returncode == 0
+            ):
+                print("  ✓ Upstream merged; conflicted files kept from fork")
+                return True
+
+        subprocess.run(
+            git_cmd + ["merge", "--abort"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
         )
-        return
+        print("  ✗ Upstream merge has conflicts; aborted to preserve this fork.")
+        if conflict_files:
+            print("  Conflicts:")
+            for path in conflict_files:
+                print(f"    {path}")
+        print("  Resolve with: git fetch upstream && git merge upstream/main")
+        return None
 
     print("  ✓ Updated from upstream")
-
-    # Try to sync fork back to origin
-    print("→ Syncing fork...")
-    if _sync_fork_with_upstream(git_cmd, cwd):
-        print("  ✓ Fork synced with upstream")
-    else:
-        print(
-            "  ℹ Got updates from upstream but couldn't push to fork (no write access?)"
-        )
-        print("    Your local repo is updated, but your fork on GitHub may be behind.")
+    return True
 
 
 def _invalidate_update_cache():
@@ -8398,10 +8600,12 @@ def _finalize_update_output(state):
 def _cmd_update_check():
     """Implement ``hermes update --check``: fetch and report without installing."""
     from hermes_cli.config import detect_install_method
+
     method = detect_install_method(PROJECT_ROOT)
     if method == "pip":
         from hermes_cli.config import recommended_update_command
         from hermes_cli.banner import check_via_pypi
+
         result = check_via_pypi()
         if result is None:
             print("✗ Could not reach PyPI to check for updates.")
@@ -8422,30 +8626,7 @@ def _cmd_update_check():
     if sys.platform == "win32":
         git_cmd = ["git", "-c", "windows.appendAtomically=false"]
 
-    # Fetch both origin and upstream; prefer upstream as the canonical reference
-    print("→ Fetching from upstream...")
-    fetch_result = subprocess.run(
-        git_cmd + ["fetch", "upstream"],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        text=True,
-    )
-    if fetch_result.returncode != 0:
-        # Fallback to origin if upstream doesn't exist
-        print("→ Fetching from origin...")
-        fetch_result = subprocess.run(
-            git_cmd + ["fetch", "origin"],
-            cwd=PROJECT_ROOT,
-            capture_output=True,
-            text=True,
-        )
-        upstream_exists = False
-        compare_branch = "origin/main"
-    else:
-        upstream_exists = True
-        compare_branch = "upstream/main"
-
-    if fetch_result.returncode != 0:
+    def _exit_fetch_error(fetch_result) -> None:
         stderr = fetch_result.stderr.strip()
         if "Could not resolve host" in stderr or "unable to access" in stderr:
             print("✗ Network error — cannot reach the remote repository.")
@@ -8457,23 +8638,79 @@ def _cmd_update_check():
                 print(f"  {stderr.splitlines()[0]}")
         sys.exit(1)
 
-    rev_result = subprocess.run(
-        git_cmd + ["rev-list", f"HEAD..{compare_branch}", "--count"],
+    print("→ Fetching from origin...")
+    fetch_result = subprocess.run(
+        git_cmd + ["fetch", "origin"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if fetch_result.returncode != 0:
+        _exit_fetch_error(fetch_result)
+
+    branch_result = subprocess.run(
+        git_cmd + ["rev-parse", "--abbrev-ref", "HEAD"],
         cwd=PROJECT_ROOT,
         capture_output=True,
         text=True,
         check=True,
     )
-    behind = int(rev_result.stdout.strip())
+    current_branch = branch_result.stdout.strip()
+    origin_url = _get_origin_url(git_cmd, PROJECT_ROOT)
+    is_fork = _is_fork(origin_url)
+    update_ref = _resolve_update_ref(
+        git_cmd, PROJECT_ROOT, current_branch, is_fork=is_fork
+    )
 
-    if behind == 0:
+    origin_behind = _count_commits_between(git_cmd, PROJECT_ROOT, "HEAD", update_ref)
+    if origin_behind < 0:
+        print(f"✗ Could not compare local checkout with {update_ref}.")
+        sys.exit(1)
+
+    upstream_behind = 0
+    if is_fork:
+        if not _has_upstream_remote(git_cmd, PROJECT_ROOT):
+            print("→ Adding official Hermes upstream remote...")
+            if not _add_upstream_remote(git_cmd, PROJECT_ROOT):
+                print("✗ Could not add upstream remote for official Hermes.")
+                sys.exit(1)
+        print("→ Fetching from upstream...")
+        fetch_result = subprocess.run(
+            git_cmd + ["fetch", "upstream", "main", "--quiet"],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if fetch_result.returncode != 0:
+            _exit_fetch_error(fetch_result)
+        upstream_behind = _count_commits_between(
+            git_cmd, PROJECT_ROOT, "HEAD", "upstream/main"
+        )
+        if upstream_behind < 0:
+            print("✗ Could not compare local checkout with upstream/main.")
+            sys.exit(1)
+
+    if origin_behind == 0 and upstream_behind == 0:
         print("✓ Already up to date.")
-    else:
-        commits_word = "commit" if behind == 1 else "commits"
-        print(f"⚕ Update available: {behind} {commits_word} behind {compare_branch}.")
-        from hermes_cli.config import recommended_update_command
+        return
 
-        print(f"  Run '{recommended_update_command()}' to install.")
+    if origin_behind:
+        commits_word = "commit" if origin_behind == 1 else "commits"
+        label = "Fork update available" if is_fork else "Update available"
+        print(f"⚕ {label}: {origin_behind} {commits_word} behind {update_ref}.")
+    else:
+        print(f"✓ Fork branch is up to date with {update_ref}.")
+
+    if upstream_behind:
+        commits_word = "commit" if upstream_behind == 1 else "commits"
+        print(
+            f"⚕ Official Hermes update available: {upstream_behind} "
+            f"{commits_word} behind upstream/main."
+        )
+
+    from hermes_cli.config import recommended_update_command
+
+    print(f"  Run '{recommended_update_command()}' to install.")
 
 
 def _ensure_fhs_path_guard() -> None:
@@ -8674,6 +8911,11 @@ def cmd_update(args):
         managed_error("update Hermes Agent")
         return
 
+    if getattr(args, "check_main", False):
+        from hermes_cli.update_check import run_check_main
+        rc = run_check_main(PROJECT_ROOT, apply=getattr(args, "apply", False))
+        sys.exit(rc)
+
     if getattr(args, "check", False):
         _cmd_update_check()
         return
@@ -8835,11 +9077,19 @@ def _cmd_update_impl(args, gateway_mode: bool):
         )
         current_branch = result.stdout.strip()
 
-        # Always update against main
-        branch = "main"
+        if is_fork:
+            update_ref = _resolve_update_ref(
+                git_cmd, PROJECT_ROOT, current_branch, is_fork=True
+            )
+            branch = update_ref.removeprefix("origin/")
+            print(f"→ Updating fork branch from {update_ref}")
+            auto_stash_ref = _stash_local_changes_if_needed(git_cmd, PROJECT_ROOT)
+        else:
+            update_ref = "origin/main"
+            branch = "main"
 
-        # If user is on a non-main branch or detached HEAD, switch to main
-        if current_branch != "main":
+        # Official installs keep the historical main-branch update path.
+        if not is_fork and current_branch != "main":
             label = (
                 "detached HEAD"
                 if current_branch == "HEAD"
@@ -8855,7 +9105,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 text=True,
                 check=True,
             )
-        else:
+        elif not is_fork:
             auto_stash_ref = _stash_local_changes_if_needed(git_cmd, PROJECT_ROOT)
 
         prompt_for_restore = (
@@ -8866,7 +9116,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
 
         # Check if there are updates
         result = subprocess.run(
-            git_cmd + ["rev-list", f"HEAD..origin/{branch}", "--count"],
+            git_cmd + ["rev-list", f"HEAD..{update_ref}", "--count"],
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
@@ -8875,28 +9125,9 @@ def _cmd_update_impl(args, gateway_mode: bool):
         commit_count = int(result.stdout.strip())
 
         if commit_count == 0:
-            _invalidate_update_cache()
-            # Restore stash and switch back to original branch if we moved
-            if auto_stash_ref is not None:
-                _restore_stashed_changes(
-                    git_cmd,
-                    PROJECT_ROOT,
-                    auto_stash_ref,
-                    prompt_user=prompt_for_restore,
-                    input_fn=gw_input_fn,
-                )
-            if current_branch not in {"main", "HEAD"}:
-                subprocess.run(
-                    git_cmd + ["checkout", current_branch],
-                    cwd=PROJECT_ROOT,
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-            print("✓ Already up to date!")
-            return
-
-        print(f"→ Found {commit_count} new commit(s)")
+            print(f"✓ Already up to date with {update_ref}.")
+        else:
+            print(f"→ Found {commit_count} new commit(s) from {update_ref}")
 
         # Snapshot critical state (state.db, config, pairing JSONs, etc.)
         # before pulling so a user can recover if something goes wrong.
@@ -8914,6 +9145,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             # Never let a snapshot failure block an update.
             logger.debug("Pre-update snapshot failed: %s", exc)
 
+        upstream_result: Optional[bool] = False
         print("→ Pulling updates...")
         update_succeeded = False
         # Capture the pre-pull SHA so we can auto-roll-back if the new code
@@ -8923,32 +9155,20 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # the bad commit and the fix landing).
         pre_pull_sha = _capture_head_sha(git_cmd, PROJECT_ROOT)
         try:
-            pull_result = subprocess.run(
-                git_cmd + ["pull", "--ff-only", "origin", branch],
-                cwd=PROJECT_ROOT,
-                capture_output=True,
-                text=True,
-            )
-            if pull_result.returncode != 0:
-                # ff-only failed — local and remote have diverged (e.g. upstream
-                # force-pushed or rebase).  Since local changes are already
-                # stashed, reset to match the remote exactly.
-                print(
-                    "  ⚠ Fast-forward not possible (history diverged), resetting to match remote..."
-                )
-                reset_result = subprocess.run(
-                    git_cmd + ["reset", "--hard", f"origin/{branch}"],
+            if commit_count:
+                pull_result = subprocess.run(
+                    git_cmd + ["merge", "--ff-only", update_ref],
                     cwd=PROJECT_ROOT,
                     capture_output=True,
                     text=True,
                 )
-                if reset_result.returncode != 0:
-                    print(f"✗ Failed to reset to origin/{branch}.")
-                    if reset_result.stderr.strip():
-                        print(f"  {reset_result.stderr.strip()}")
+                if pull_result.returncode != 0:
                     print(
-                        "  Try manually: git fetch origin && git reset --hard origin/main"
+                        "  ✗ Fast-forward not possible. Your local branch is preserved."
                     )
+                    if pull_result.stderr.strip():
+                        print(f"  {pull_result.stderr.strip().splitlines()[0]}")
+                    print(f"  Resolve manually with: git fetch origin && git merge {update_ref}")
                     sys.exit(1)
 
             # Post-pull syntax guard: validate critical-path files actually
@@ -8992,6 +9212,44 @@ def _cmd_update_impl(args, gateway_mode: bool):
                     print(f"    cd {PROJECT_ROOT} && git reflog && git reset --hard <prev-sha>")
                 sys.exit(1)
 
+            if is_fork:
+                upstream_result = _sync_with_upstream_if_needed(
+                    git_cmd, PROJECT_ROOT, target_branch=branch
+                )
+                if upstream_result is None:
+                    if auto_stash_ref is not None:
+                        _restore_stashed_changes(
+                            git_cmd,
+                            PROJECT_ROOT,
+                            auto_stash_ref,
+                            prompt_user=prompt_for_restore,
+                            input_fn=gw_input_fn,
+                        )
+                        auto_stash_ref = None
+                    sys.exit(1)
+
+            if commit_count == 0 and upstream_result is False:
+                update_succeeded = True
+                _invalidate_update_cache()
+                if auto_stash_ref is not None:
+                    _restore_stashed_changes(
+                        git_cmd,
+                        PROJECT_ROOT,
+                        auto_stash_ref,
+                        prompt_user=prompt_for_restore,
+                        input_fn=gw_input_fn,
+                    )
+                    auto_stash_ref = None
+                if not is_fork and current_branch not in {"main", "HEAD"}:
+                    subprocess.run(
+                        git_cmd + ["checkout", current_branch],
+                        cwd=PROJECT_ROOT,
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                print("✓ Already up to date!")
+                return
             update_succeeded = True
         finally:
             if auto_stash_ref is not None:
@@ -9021,10 +9279,6 @@ def _cmd_update_impl(args, gateway_mode: bool):
             print(
                 f"  ✓ Cleared {removed} stale __pycache__ director{'y' if removed == 1 else 'ies'}"
             )
-
-        # Fork upstream sync logic (only for main branch on forks)
-        if is_fork and branch == "main":
-            _sync_with_upstream_if_needed(git_cmd, PROJECT_ROOT)
 
         # Reinstall Python dependencies. Prefer .[all], but if one optional extra
         # breaks on this machine, keep base deps and reinstall the remaining extras
@@ -10047,7 +10301,9 @@ def cmd_profile(args):
         try:
             set_active_profile(name)
             if name == "default":
-                print(f"Switched to: default (~/.hermes)")
+                from hermes_constants import display_hermes_home
+
+                print(f"Switched to: default ({display_hermes_home()})")
             else:
                 print(f"Switched to: {name}")
         except (ValueError, FileNotFoundError) as e:
@@ -10760,9 +11016,10 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "computer-use",
         "config", "cron", "curator", "dashboard", "debug", "doctor",
         "dump", "fallback", "gateway", "hooks", "import", "insights",
-        "kanban", "login", "logout", "logs", "lsp", "mcp", "memory", "migrate",
+        "kanban", "login", "logout", "logs", "lsp", "mcp", "memory",
+        "migrate", "migrate-from-openclaw",
         "model", "pairing", "plugins", "portal", "postinstall", "profile", "proxy",
-        "send", "sessions", "setup",
+        "report", "send", "sessions", "setup",
         "skills", "slack", "status", "tools", "uninstall", "update",
         "version", "webhook", "whatsapp", "chat", "secrets", "security",
         # Help-ish invocations — plugin commands not being listed in
@@ -11038,6 +11295,14 @@ def main():
     try:
         from hermes_cli.stdio import configure_windows_stdio
         configure_windows_stdio()
+    except Exception:
+        pass
+
+    # One-time migration of a pre-rebrand ``~/.tota`` home to ``~/.hermes_turbo``.
+    # Best-effort and silent; runs before anything reads/writes the home dir.
+    try:
+        from hermes_constants import migrate_legacy_home
+        migrate_legacy_home()
     except Exception:
         pass
 
@@ -13387,6 +13652,134 @@ Examples:
     claw_parser.set_defaults(func=cmd_claw)
 
     # =========================================================================
+    # migrate-from-openclaw alias (issue #139)
+    # =========================================================================
+    # Thin alias around ``hermes claw migrate`` so the marketed command
+    # ``hermes migrate-from-openclaw --benchmark`` works directly. The
+    # ``--benchmark`` flag adds a side-by-side performance report after
+    # migration (or in --dry-run mode, without touching anything).
+    migrate_oc_parser = subparsers.add_parser(
+        "migrate-from-openclaw",
+        help="Migrate from OpenClaw to Hermes Turbo, optionally with benchmark",
+        description=(
+            "Alias of `hermes claw migrate` that adds a `--benchmark` flag "
+            "running a side-by-side performance comparison after migration."
+        ),
+    )
+    migrate_oc_parser.add_argument(
+        "--source", help="Path to OpenClaw directory (default: ~/.openclaw)"
+    )
+    migrate_oc_parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Preview only — stop after showing what would be migrated",
+    )
+    migrate_oc_parser.add_argument(
+        "--preset", choices=["user-data", "full"], default="full",
+        help="Migration preset (default: full).",
+    )
+    migrate_oc_parser.add_argument(
+        "--overwrite", action="store_true",
+        help="Overwrite existing files (default: refuse when conflicts exist)",
+    )
+    migrate_oc_parser.add_argument(
+        "--migrate-secrets", action="store_true",
+        help="Include allowlisted secrets (API keys, tokens, etc.)",
+    )
+    migrate_oc_parser.add_argument(
+        "--no-backup", action="store_true",
+        help="Skip the pre-migration backup snapshot of ~/.hermes/",
+    )
+    migrate_oc_parser.add_argument(
+        "--workspace-target",
+        help="Absolute path to copy workspace instructions into",
+    )
+    migrate_oc_parser.add_argument(
+        "--skill-conflict", choices=["skip", "overwrite", "rename"],
+        default="skip", help="How to handle skill name conflicts (default: skip)",
+    )
+    migrate_oc_parser.add_argument(
+        "--yes", "-y", action="store_true",
+        help="Skip confirmation prompts",
+    )
+    migrate_oc_parser.add_argument(
+        "--benchmark", action="store_true",
+        help="Run a side-by-side OpenClaw vs Hermes Turbo benchmark "
+             "and print/save a comparison report.",
+    )
+    migrate_oc_parser.add_argument(
+        "--benchmark-out", type=Path, default=None,
+        help="Where to save the benchmark Markdown report (default: stdout)",
+    )
+
+    def cmd_migrate_from_openclaw(args):
+        from hermes_cli.migrate_openclaw import migrate_from_openclaw_command
+        return migrate_from_openclaw_command(args)
+
+    migrate_oc_parser.set_defaults(func=cmd_migrate_from_openclaw)
+
+    # =========================================================================
+    # report command (issue #138)
+    # =========================================================================
+    report_parser = subparsers.add_parser(
+        "report",
+        help="Generate Hermes Turbo reports (savings, perf, etc.)",
+        description="Produce reports from Hermes telemetry logs.",
+    )
+    report_subparsers = report_parser.add_subparsers(dest="report_kind")
+
+    report_savings = report_subparsers.add_parser(
+        "savings",
+        help="Token Savings Report (weekly by default)",
+        description="Aggregate the token-savings telemetry log and print "
+                    "a weekly report. Use --since to change the window, "
+                    "--markdown for Slack/email-ready output.",
+    )
+    report_savings.add_argument(
+        "--log", type=Path, default=None,
+        help="Path to the JSONL savings log",
+    )
+    report_savings.add_argument(
+        "--since", default="7d",
+        help="Time window (e.g. 7d, 24h, 4w). Default: 7d",
+    )
+    report_savings.add_argument(
+        "--prices", type=Path, default=None,
+        help="JSON file overriding USD/1M-token prices per adapter",
+    )
+    report_savings.add_argument("--json", action="store_true",
+                                help="Emit JSON")
+    report_savings.add_argument("--markdown", action="store_true",
+                                help="Emit Markdown (Slack/email-ready)")
+    report_savings.add_argument("--out", type=Path, default=None,
+                                help="Write report to file instead of stdout")
+
+    def cmd_report(args):
+        kind = getattr(args, "report_kind", None)
+        if kind == "savings":
+            from agent.telemetry.savings_report import main as _savings_main
+            argv: list[str] = []
+            if args.log:
+                argv += ["--log", str(args.log)]
+            if args.since:
+                argv += ["--since", args.since]
+            if args.prices:
+                argv += ["--prices", str(args.prices)]
+            if args.json:
+                argv += ["--json"]
+            if args.markdown:
+                argv += ["--markdown"]
+            if args.out:
+                argv += ["--out", str(args.out)]
+            return _savings_main(argv)
+        print("Usage: hermes report <kind> [options]")
+        print()
+        print("Available kinds:")
+        print("  savings   Token Savings Report")
+        return 0
+
+    report_parser.set_defaults(func=cmd_report)
+
+    # =========================================================================
     # version command
     # =========================================================================
     version_parser = subparsers.add_parser("version", help="Show version information")
@@ -13411,6 +13804,20 @@ Examples:
         action="store_true",
         default=False,
         help="Check whether an update is available without installing anything",
+    )
+    update_parser.add_argument(
+        "--check-main",
+        action="store_true",
+        default=False,
+        help="Check whether this fork's own default branch (origin) has new "
+             "commits beyond the local checkout. Add --apply to fast-forward.",
+    )
+    update_parser.add_argument(
+        "--apply",
+        action="store_true",
+        default=False,
+        help="With --check-main: fast-forward the local checkout to the remote "
+             "tip when a clean fast-forward is possible.",
     )
     update_parser.add_argument(
         "--no-backup",

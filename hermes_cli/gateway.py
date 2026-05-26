@@ -1277,7 +1277,18 @@ def _windows_gateway_should_absorb_console_controls() -> bool:
 # =============================================================================
 
 _SERVICE_BASE = "hermes-gateway"
+_LAUNCHD_LABEL_BASE = "ai.hermes.gateway"
 SERVICE_DESCRIPTION = "Hermes Agent Gateway - Messaging Platform Integration"
+
+
+def _service_base() -> str:
+    """Return the system service base name, allowing fork wrappers to isolate."""
+    return os.getenv("HERMES_GATEWAY_SERVICE_BASE", _SERVICE_BASE).strip() or _SERVICE_BASE
+
+
+def _launchd_label_base() -> str:
+    """Return the launchd label base, allowing fork wrappers to isolate."""
+    return os.getenv("HERMES_LAUNCHD_LABEL_BASE", _LAUNCHD_LABEL_BASE).strip() or _LAUNCHD_LABEL_BASE
 
 
 def _profile_suffix() -> str:
@@ -1343,9 +1354,10 @@ def get_service_name() -> str:
     Any other HERMES_HOME appends a short hash for uniqueness.
     """
     suffix = _profile_suffix()
+    base = _service_base()
     if not suffix:
-        return _SERVICE_BASE
-    return f"{_SERVICE_BASE}-{suffix}"
+        return base
+    return f"{base}-{suffix}"
 
 
 
@@ -1972,7 +1984,8 @@ def get_launchd_plist_path() -> Path:
     Profile ``~/.hermes/profiles/coder`` → ``ai.hermes.gateway-coder.plist``.
     """
     suffix = _profile_suffix()
-    name = f"ai.hermes.gateway-{suffix}" if suffix else "ai.hermes.gateway"
+    base = _launchd_label_base()
+    name = f"{base}-{suffix}" if suffix else base
     return _launchd_user_home() / "Library" / "LaunchAgents" / f"{name}.plist"
 
 def _detect_venv_dir() -> Path | None:
@@ -2106,19 +2119,29 @@ def _hermes_home_for_target_user(target_home_dir: str) -> str:
 
     When installing a system service via sudo, get_hermes_home() resolves to
     root's home.  This translates it to the target user's equivalent path:
-      /root/.hermes                    → /home/alice/.hermes
+      /root/.hermes_turbo                      → /home/alice/.hermes_turbo
+      /root/.hermes_turbo/profiles/coder       → /home/alice/.hermes_turbo/profiles/coder
       /root/.hermes/profiles/coder     → /home/alice/.hermes/profiles/coder
       /opt/custom-hermes               → /opt/custom-hermes  (kept as-is)
     """
-    current_hermes = get_hermes_home().resolve()
-    current_default = (Path.home() / ".hermes").resolve()
-    target_default = Path(target_home_dir) / ".hermes"
+    explicit_home = os.environ.get("HERMES_HOME", "").strip()
+    current_home = Path.home()
+    target_home = Path(target_home_dir)
 
-    # Default ~/.hermes → remap to target user's default
+    if explicit_home:
+        current_hermes = Path(explicit_home).expanduser().resolve()
+        current_default = (current_home / ".hermes").resolve()
+        target_default = target_home / ".hermes"
+    else:
+        current_hermes = get_hermes_home().resolve()
+        current_default = (current_home / ".hermes-turbo").resolve()
+        target_default = target_home / ".hermes-turbo"
+
+    # Default home → remap to the target user's equivalent default.
     if current_hermes == current_default:
         return str(target_default)
 
-    # Profile or subdir of ~/.hermes → preserve the relative structure
+    # Profile or subdir of the configured default → preserve the relative structure.
     try:
         relative = current_hermes.relative_to(current_default)
         return str(target_default / relative)
@@ -2795,7 +2818,8 @@ def systemd_status(deep: bool = False, system: bool = False, full: bool = False)
 def get_launchd_label() -> str:
     """Return the launchd service label, scoped per profile."""
     suffix = _profile_suffix()
-    return f"ai.hermes.gateway-{suffix}" if suffix else "ai.hermes.gateway"
+    base = _launchd_label_base()
+    return f"{base}-{suffix}" if suffix else base
 
 
 def _launchd_domain() -> str:
@@ -2844,6 +2868,16 @@ def generate_launchd_plist() -> str:
         "<string>--replace</string>",
     ])
     prog_args_xml = "\n        ".join(prog_args)
+    from xml.sax.saxutils import escape as _xml_escape
+
+    extra_env = []
+    for key in ("HERMES_TURBO_HOME", "HERMES_TURBO_HOME", "HERMES_GATEWAY_SERVICE_BASE", "HERMES_LAUNCHD_LABEL_BASE"):
+        value = os.environ.get(key, "").strip()
+        if value:
+            extra_env.append(f"<key>{key}</key>\n        <string>{_xml_escape(value)}</string>")
+    extra_env_xml = "\n        ".join(extra_env)
+    if extra_env_xml:
+        extra_env_xml = "\n        " + extra_env_xml
 
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -2867,7 +2901,7 @@ def generate_launchd_plist() -> str:
         <key>VIRTUAL_ENV</key>
         <string>{venv_dir}</string>
         <key>HERMES_HOME</key>
-        <string>{hermes_home}</string>
+        <string>{hermes_home}</string>{extra_env_xml}
     </dict>
     
     <key>RunAtLoad</key>

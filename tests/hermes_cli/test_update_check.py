@@ -55,7 +55,44 @@ def test_check_for_updates_expired_cache(tmp_path, monkeypatch):
         result = check_for_updates()
 
     assert result == 5
-    assert mock_run.call_count == 2  # git fetch + git rev-list
+    calls = [call.args[0] for call in mock_run.call_args_list]
+    assert ["git", "fetch", "origin", "--quiet"] in calls
+    assert any(cmd[:3] == ["git", "rev-list", "--count"] for cmd in calls)
+
+
+def test_local_git_update_check_uses_origin_head_not_origin_main(tmp_path):
+    """Fork installs should not report false drift from origin/main."""
+    import hermes_cli.banner as banner
+
+    repo_dir = tmp_path / "hermes-agent"
+    repo_dir.mkdir()
+    (repo_dir / ".git").mkdir()
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        if cmd[:3] == ["git", "symbolic-ref", "refs/remotes/origin/HEAD"]:
+            return MagicMock(
+                returncode=0,
+                stdout="refs/remotes/origin/codex/hermes-agent-100x-fast\n",
+            )
+        if cmd[:4] == ["git", "rev-list", "--count", "HEAD..origin/main"]:
+            return MagicMock(returncode=0, stdout="410\n")
+        if cmd[:4] == [
+            "git",
+            "rev-list",
+            "--count",
+            "HEAD..origin/codex/hermes-agent-100x-fast",
+        ]:
+            return MagicMock(returncode=0, stdout="0\n")
+        return MagicMock(returncode=0, stdout="")
+
+    with patch("hermes_cli.banner.subprocess.run", side_effect=fake_run):
+        assert banner._check_via_local_git(repo_dir) == 0
+
+    joined = [" ".join(cmd) for cmd in calls]
+    assert any("HEAD..origin/codex/hermes-agent-100x-fast" in cmd for cmd in joined)
+    assert not any("HEAD..origin/main" in cmd for cmd in joined)
 
 
 def test_check_for_updates_no_git_dir(tmp_path, monkeypatch):

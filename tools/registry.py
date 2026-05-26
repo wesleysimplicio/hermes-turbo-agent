@@ -14,29 +14,24 @@ Import chain (circular-import safe):
     run_agent.py, cli.py, batch_runner.py, etc.
 """
 
-import ast
 import importlib
 import json
 import logging
+import re
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
 
-def _is_registry_register_call(node: ast.AST) -> bool:
-    """Return True when *node* is a ``registry.register(...)`` call expression."""
-    if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
-        return False
-    func = node.value.func
-    return (
-        isinstance(func, ast.Attribute)
-        and func.attr == "register"
-        and isinstance(func.value, ast.Name)
-        and func.value.id == "registry"
-    )
+_TOP_LEVEL_REGISTER_RE = re.compile(r"(?m)^registry\.register\s*\(")
+_BUILTIN_TOOL_DISCOVERY_CACHE_VERSION = 1
+_TOOL_DISCOVERY_PARALLEL_THRESHOLD = 8
+_TOOL_DISCOVERY_MAX_WORKERS = 8
+_TOOL_DISCOVERY_PARALLEL_MIN_BYTES = 5_000_000
 
 
 def _module_registers_tools(module_path: Path) -> bool:
@@ -47,22 +42,131 @@ def _module_registers_tools(module_path: Path) -> bool:
     """
     try:
         source = module_path.read_text(encoding="utf-8")
-        tree = ast.parse(source, filename=str(module_path))
-    except (OSError, SyntaxError):
+    except OSError:
         return False
 
-    return any(_is_registry_register_call(stmt) for stmt in tree.body)
+    return _TOP_LEVEL_REGISTER_RE.search(source) is not None
+
+
+def _candidate_tool_paths(tools_path: Path) -> List[Path]:
+    try:
+        candidates = sorted(tools_path.glob("*.py"))
+    except OSError:
+        return []
+    return [
+        path
+        for path in candidates
+        if path.name not in {"__init__.py", "registry.py", "mcp_tool.py"}
+    ]
+
+
+def _should_parallel_scan_tool_sources(candidates: List[Path]) -> bool:
+    if len(candidates) < _TOOL_DISCOVERY_PARALLEL_THRESHOLD:
+        return False
+    total_bytes = 0
+    for path in candidates:
+        try:
+            total_bytes += path.stat().st_size
+        except OSError:
+            return False
+    return total_bytes >= _TOOL_DISCOVERY_PARALLEL_MIN_BYTES
+
+
+def _discover_registering_tool_modules(tools_path: Path) -> List[str]:
+    candidates = _candidate_tool_paths(tools_path)
+
+    def scan(path: Path) -> tuple[Path, bool]:
+        return path, _module_registers_tools(path)
+
+    if _should_parallel_scan_tool_sources(candidates):
+        max_workers = min(_TOOL_DISCOVERY_MAX_WORKERS, len(candidates))
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            scanned = list(pool.map(scan, candidates))
+    else:
+        scanned = [scan(path) for path in candidates]
+
+    return [f"tools.{path.stem}" for path, registers in scanned if registers]
+
+
+def _builtin_tool_cache_path() -> Optional[Path]:
+    try:
+        from hermes_constants import get_hermes_home
+
+        path = get_hermes_home() / "cache" / "builtin_tool_discovery.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
+    except Exception:
+        return None
+
+
+def _tool_discovery_fingerprint(tools_path: Path) -> Optional[List[list]]:
+    fingerprint: List[list] = []
+    for path in _candidate_tool_paths(tools_path):
+        try:
+            stat = path.stat()
+        except OSError:
+            return None
+        fingerprint.append([path.name, stat.st_mtime_ns, stat.st_size])
+    return fingerprint
+
+
+def _read_tool_discovery_cache(
+    tools_path: Path,
+    fingerprint: List[list],
+) -> Optional[List[str]]:
+    cache_path = _builtin_tool_cache_path()
+    if cache_path is None or not cache_path.exists():
+        return None
+    try:
+        payload = json.loads(cache_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if payload.get("version") != _BUILTIN_TOOL_DISCOVERY_CACHE_VERSION:
+        return None
+    if payload.get("tools_path") != str(tools_path):
+        return None
+    if payload.get("fingerprint") != fingerprint:
+        return None
+    modules = payload.get("modules")
+    if not isinstance(modules, list) or not all(isinstance(m, str) for m in modules):
+        return None
+    return modules
+
+
+def _write_tool_discovery_cache(
+    tools_path: Path,
+    fingerprint: List[list],
+    module_names: List[str],
+) -> None:
+    cache_path = _builtin_tool_cache_path()
+    if cache_path is None:
+        return
+    payload = {
+        "version": _BUILTIN_TOOL_DISCOVERY_CACHE_VERSION,
+        "tools_path": str(tools_path),
+        "fingerprint": fingerprint,
+        "modules": module_names,
+    }
+    try:
+        cache_path.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+    except Exception:
+        logger.debug("Could not write built-in tool discovery cache", exc_info=True)
 
 
 def discover_builtin_tools(tools_dir: Optional[Path] = None) -> List[str]:
     """Import built-in self-registering tool modules and return their module names."""
     tools_path = Path(tools_dir) if tools_dir is not None else Path(__file__).resolve().parent
-    module_names = [
-        f"tools.{path.stem}"
-        for path in sorted(tools_path.glob("*.py"))
-        if path.name not in {"__init__.py", "registry.py", "mcp_tool.py"}
-        and _module_registers_tools(path)
-    ]
+    use_cache = tools_dir is None
+    fingerprint = _tool_discovery_fingerprint(tools_path) if use_cache else None
+    module_names = (
+        _read_tool_discovery_cache(tools_path, fingerprint)
+        if use_cache and fingerprint is not None
+        else None
+    )
+    if module_names is None:
+        module_names = _discover_registering_tool_modules(tools_path)
+        if use_cache and fingerprint is not None:
+            _write_tool_discovery_cache(tools_path, fingerprint, module_names)
 
     imported: List[str] = []
     for mod_name in module_names:

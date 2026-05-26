@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pytest
 
+from hermes_constants import DEFAULT_HOME_DIRNAME
+
 
 def _run_apply_profile_override(
     tmp_path, monkeypatch, *, hermes_home: str | None, active_profile: str | None,
@@ -27,7 +29,7 @@ def _run_apply_profile_override(
     Returns the value of os.environ["HERMES_HOME"] after the call,
     or None if unset.
     """
-    hermes_root = tmp_path / ".hermes"
+    hermes_root = tmp_path / DEFAULT_HOME_DIRNAME
     hermes_root.mkdir(parents=True, exist_ok=True)
 
     if active_profile is not None:
@@ -68,7 +70,7 @@ class TestApplyProfileOverrideHermesHomeGuard:
         and the user switches to a profile via `hermes profile use`.
         Before the fix, the guard returned early and active_profile was ignored.
         """
-        hermes_root = tmp_path / ".hermes"
+        hermes_root = tmp_path / DEFAULT_HOME_DIRNAME
         hermes_root.mkdir(parents=True, exist_ok=True)
 
         result = _run_apply_profile_override(
@@ -94,7 +96,7 @@ class TestApplyProfileOverrideHermesHomeGuard:
         with HERMES_HOME already set to a specific profile must stay in that
         profile.
         """
-        hermes_root = tmp_path / ".hermes"
+        hermes_root = tmp_path / DEFAULT_HOME_DIRNAME
         profile_dir = hermes_root / "profiles" / "coder"
         profile_dir.mkdir(parents=True, exist_ok=True)
 
@@ -127,7 +129,7 @@ class TestApplyProfileOverrideHermesHomeGuard:
 
     def test_hermes_home_unset_default_profile_no_redirect(self, tmp_path, monkeypatch):
         """active_profile=default must not redirect HERMES_HOME."""
-        hermes_root = tmp_path / ".hermes"
+        hermes_root = tmp_path / DEFAULT_HOME_DIRNAME
         hermes_root.mkdir(parents=True, exist_ok=True)
 
         monkeypatch.setattr(Path, "home", lambda: tmp_path)

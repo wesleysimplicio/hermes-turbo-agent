@@ -127,6 +127,11 @@ def _ra():
     return run_agent
 
 
+def _jittered_backoff(*args, **kwargs):
+    """Resolve through run_agent so legacy tests/patches still affect retries."""
+    return getattr(_ra(), "jittered_backoff", jittered_backoff)(*args, **kwargs)
+
+
 def _restore_or_build_system_prompt(agent, system_message, conversation_history):
     """Restore the cached system prompt from the session DB or build it fresh.
 
@@ -1377,7 +1382,7 @@ def run_conversation(
                         }
                     
                     # Backoff before retry — jittered exponential: 5s base, 120s cap
-                    wait_time = jittered_backoff(retry_count, base_delay=5.0, max_delay=120.0)
+                    wait_time = _jittered_backoff(retry_count, base_delay=5.0, max_delay=120.0)
                     agent._vprint(f"{agent.log_prefix}⏳ Retrying in {wait_time:.1f}s ({_failure_hint})...", force=True)
                     logger.warning(f"Invalid API response (retry {retry_count}/{max_retries}): {', '.join(error_details)} | Provider: {provider_name}")
                     
@@ -3034,7 +3039,7 @@ def run_conversation(
                                 _retry_after = min(float(_ra_raw), 120)  # Cap at 2 minutes
                             except (TypeError, ValueError):
                                 pass
-                wait_time = _retry_after if _retry_after else jittered_backoff(retry_count, base_delay=2.0, max_delay=60.0)
+                wait_time = _retry_after if _retry_after else _jittered_backoff(retry_count, base_delay=2.0, max_delay=60.0)
                 if is_rate_limited:
                     agent._emit_status(f"⏱️ Rate limited. Waiting {wait_time:.1f}s (attempt {retry_count + 1}/{max_retries})...")
                 else:
