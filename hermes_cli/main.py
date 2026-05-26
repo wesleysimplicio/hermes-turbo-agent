@@ -11019,7 +11019,7 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "kanban", "login", "logout", "logs", "lsp", "mcp", "memory",
         "migrate", "migrate-from-openclaw",
         "model", "pairing", "plugins", "portal", "postinstall", "profile", "proxy",
-        "report", "send", "sessions", "setup",
+        "report", "send", "sessions", "setup", "simplicio",
         "skills", "slack", "status", "tools", "uninstall", "update",
         "version", "webhook", "whatsapp", "chat", "secrets", "security",
         # Help-ish invocations — plugin commands not being listed in
@@ -13716,6 +13716,35 @@ Examples:
         return migrate_from_openclaw_command(args)
 
     migrate_oc_parser.set_defaults(func=cmd_migrate_from_openclaw)
+
+    # =========================================================================
+    # simplicio — vendored 6-layer task→code contract
+    # =========================================================================
+    # Passthrough to the in-tree ``simplicio`` package (mapper → precedent →
+    # skill-router → contract → test → verify). Everything after ``simplicio``
+    # is forwarded verbatim to ``simplicio.cli`` via argparse.REMAINDER, so
+    # ``hermes simplicio task "..." --target a.html`` matches the standalone
+    # ``simplicio`` console script exactly.
+    simplicio_parser = subparsers.add_parser(
+        "simplicio",
+        help="Run the simplicio 6-layer task→code contract (index|task|bench|smoke)",
+        add_help=False,
+        description=(
+            "Wrap a one-line task in the simplicio 6-layer contract and run it "
+            "through any LLM. Args after `simplicio` are forwarded verbatim; "
+            "use `hermes simplicio -h` for the full subcommand help."
+        ),
+    )
+    simplicio_parser.add_argument(
+        "simplicio_args", nargs=argparse.REMAINDER,
+        help="Subcommand and flags forwarded to simplicio (index|task|bench|smoke)",
+    )
+
+    def cmd_simplicio(args):
+        from hermes_cli.simplicio_cmd import run_simplicio
+        return run_simplicio(list(getattr(args, "simplicio_args", []) or []))
+
+    simplicio_parser.set_defaults(func=cmd_simplicio)
 
     # =========================================================================
     # report command (issue #138)

@@ -170,6 +170,16 @@ LAZY_DEPS: dict[str, tuple[str, ...]] = {
         "fastapi==0.133.1",
         "uvicorn[standard]==0.41.0",
     ),
+
+    # ─── simplicio 6-layer contract ────────────────────────────────────────
+    # The vendored `simplicio` package (`hermes simplicio` / `simplicio`) only
+    # needs the embedding stack for the `index`/`task`/`bench` precedent
+    # ranking. `smoke` and pure prompt building work without it. Ranges mirror
+    # the upstream simplicio-cli pins so resolution stays portable.
+    "simplicio.embeddings": (
+        "sentence-transformers>=2.2",
+        "numpy>=1.23",
+    ),
 }
 
 

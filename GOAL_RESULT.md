@@ -1,5 +1,66 @@
 # Goal Result
 
+## Latest cycle — vendor the simplicio 6-layer contract (branch `claude/simplicio-cli-setup-cOdQx`)
+
+### Task
+
+> Implement [simplicio-cli](https://github.com/wesleysimplicio/simplicio-cli)
+> in this repo — mandatory whenever coding this CLI.
+
+### Outcome — DONE
+
+The standalone `simplicio-cli` (the task→code 6-layer contract: mapper →
+precedent → skill-router → contract → test → verify) is now vendored in-tree
+and reachable both as a standalone `simplicio` command and as `hermes
+simplicio …`.
+
+**New / changed files**
+
+- `simplicio/` — vendored package from the PyPI sdist v0.2.3 (MIT):
+  `__init__.py`, `cli.py`, `providers.py`, `prompt.py`, `pipeline.py`,
+  `bench.py`, `precedent.py`, `skill_router.py`, `cache.py`,
+  `templates/simplicio_prompt.md`. `numpy`/`sentence-transformers` are lazy
+  imports so the tree imports without the embedding stack; vendored `open()`
+  calls carry `encoding="utf-8"` for the ruff PLW1514 + windows-footguns gates.
+- `hermes_cli/simplicio_cmd.py` — `hermes simplicio` passthrough; lazy-ensures
+  the embedding stack for `index|task|bench` and forwards args verbatim.
+- `hermes_cli/main.py` — `simplicio` subparser (`argparse.REMAINDER`) +
+  `_BUILTIN_SUBCOMMANDS` entry.
+- `hermes_cli/commands.py` — `simplicio` CommandDef.
+- `tools/lazy_deps.py` — `simplicio.embeddings` lazy-install feature
+  (`sentence-transformers>=2.2`, `numpy>=1.23`).
+- `pyproject.toml` — `simplicio` console script, `packages.find` include,
+  `templates/*.md` package-data. No dependency-resolution change, so
+  `uv lock --check` is unaffected.
+- `tests/simplicio/` — 26 network-free unit tests.
+
+**Validation** (pytest 9.0.3 + numpy 2.4.6 in an ephemeral uv venv; the host
+container ships neither the ML stack nor pytest):
+
+- `pytest tests/simplicio/ -o addopts=""` → **26 passed**.
+- `ruff check simplicio/ hermes_cli/simplicio_cmd.py` → clean.
+- `python scripts/check-windows-footguns.py --all` → 0 footguns / 576 files.
+- `python -m simplicio.cli --help` lists `index|task|bench|smoke`;
+  `hermes simplicio smoke` exits 1 with provider info when no key is set.
+
+**Usage**
+
+```bash
+hermes simplicio smoke                         # verify provider config
+hermes simplicio index --stack angular         # cache repo precedent
+hermes simplicio task "hide Delete for non-admins" \
+  --stack angular --target src/app/x.component.html \
+  --criteria "- admin: present\n- non-admin: absent" \
+  --constraints "- build passes"
+# or the standalone console script:
+simplicio task "..." --target ...
+```
+
+Configure a provider via `SIMPLICIO_MODEL` + `SIMPLICIO_API_KEY`
+(+ optional `SIMPLICIO_BASE_URL` for any OpenAI-compatible endpoint).
+
+---
+
 ## Summary
 
 Closed all four open feature issues on `wesleysimplicio/hermes-turbo-agent`:

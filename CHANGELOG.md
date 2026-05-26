@@ -6,6 +6,23 @@ All notable changes to Hermes Turbo Agent are recorded here. Format follows
 
 ## [Unreleased]
 
+### Added (simplicio 6-layer task→code contract)
+
+- **Vendored `simplicio` package** (`simplicio/`): the task-to-code 6-layer
+  contract from [simplicio-cli](https://github.com/wesleysimplicio/simplicio-cli)
+  v0.2.3 (mapper → precedent → skill-router → contract → test → verify),
+  brought in-tree so the contract is available without a network install.
+  `numpy`/`sentence-transformers` are lazy imports, so the package imports
+  cleanly without the embedding stack and the no-precedent prompt path is
+  dependency-free.
+- **`simplicio` console script** and **`hermes simplicio …`** subcommand
+  (`hermes_cli/simplicio_cmd.py`): forward `index|task|bench|smoke` verbatim
+  to the vendored CLI. The embedding stack is lazy-installed on demand via the
+  new `simplicio.embeddings` feature in `tools/lazy_deps.py`.
+- Targeted unit tests under `tests/simplicio/` covering prompt stacking,
+  provider config, skill routing, the content-hash embedding cache, and the
+  `hermes simplicio` passthrough (26 tests, network-free).
+
 ### Fixed
 
 - `hermes update` on Hermes Turbo fork installs now updates from the current
