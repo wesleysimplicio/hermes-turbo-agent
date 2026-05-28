@@ -302,6 +302,23 @@ class TestRedirectHandlerSshHint:
         err = capsys.readouterr().err
         assert "ssh -N -L" not in err
 
+    def test_noninteractive_local_session_does_not_open_browser(self, monkeypatch, capsys):
+        """Gateway/cron startup must not pop a browser just because macOS can."""
+        import tools.mcp_oauth as mco
+        opened_urls = []
+        monkeypatch.setattr(mco, "_oauth_port", 49203)
+        monkeypatch.delenv("SSH_CLIENT", raising=False)
+        monkeypatch.delenv("SSH_TTY", raising=False)
+        monkeypatch.setattr(mco, "_can_open_browser", lambda: True)
+        monkeypatch.setattr(mco, "_is_interactive", lambda: False)
+        monkeypatch.setattr("webbrowser.open", lambda url, **kw: opened_urls.append(url) or True)
+
+        self._run(_redirect_handler("https://example.com/auth"))
+
+        assert opened_urls == []
+        err = capsys.readouterr().err
+        assert "non-interactive" in err.lower()
+
 
 # ---------------------------------------------------------------------------
 # Path traversal protection
@@ -754,6 +771,18 @@ class TestWaitForCallbackPasteIntegration:
                     asyncio.run(_wait_for_callback())
         err = capsys.readouterr().err
         assert "paste the redirect URL" not in err
+
+    def test_noninteractive_callback_fails_fast_without_polling(self, monkeypatch):
+        """Headless OAuth must fail immediately instead of waiting for timeout."""
+        import tools.mcp_oauth as mod
+        mod._oauth_port = _find_free_port()
+        monkeypatch.setattr(mod, "_is_interactive", lambda: False)
+
+        with patch.object(mod.asyncio, "sleep", new_callable=AsyncMock) as mock_sleep:
+            with pytest.raises(OAuthNonInteractiveError, match="non-interactive"):
+                asyncio.run(_wait_for_callback())
+
+        assert mock_sleep.await_count == 0
 
 
 class TestPasteCallbackSkipToken:
