@@ -8,6 +8,10 @@ All notable changes to Hermes Turbo Agent are recorded here. Format follows
 
 ### Fixed
 
+- MCP OAuth no longer auto-opens browser authorization pages, or waits for
+  loopback callbacks, from non-interactive contexts such as the gateway/cron
+  startup path; operators should use `hermes mcp login <server>` from an
+  interactive terminal when re-authentication is required.
 - `hermes update` on Hermes Turbo fork installs now updates from the current
   origin tracking branch instead of assuming `origin/main`, then fetches and
   merges official Hermes (`upstream/main`) with fork changes preserved on top,

@@ -478,12 +478,17 @@ class TestIsInteractive:
 class TestWaitForCallbackNoBlocking:
     """_wait_for_callback() must never call input() — it raises instead."""
 
-    def test_raises_on_timeout_instead_of_input(self):
+    def test_raises_on_timeout_instead_of_input(self, monkeypatch):
         """When no auth code arrives, raises OAuthNonInteractiveError."""
         import tools.mcp_oauth as mod
         import asyncio
 
         mod._oauth_port = _find_free_port()
+        monkeypatch.setattr(mod, "_is_interactive", lambda: True)
+        monkeypatch.setattr(
+            "sys.stdin",
+            MagicMock(readline=lambda: __import__("threading").Event().wait()),
+        )
 
         async def instant_sleep(_seconds):
             pass

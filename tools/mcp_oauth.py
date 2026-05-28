@@ -435,7 +435,14 @@ async def _redirect_handler(authorization_url: str) -> None:
             file=sys.stderr,
         )
 
-    if _can_open_browser():
+    if not _is_interactive():
+        print(
+            "  (Non-interactive environment detected — not opening a browser. "
+            "Run `hermes mcp login <server>` from an interactive terminal to "
+            "authorize, or disable this MCP server in config.yaml.)\n",
+            file=sys.stderr,
+        )
+    elif _can_open_browser():
         try:
             opened = webbrowser.open(authorization_url)
             if opened:
@@ -472,6 +479,13 @@ async def _wait_for_callback() -> tuple[str, str | None]:
         raise RuntimeError(
             "OAuth callback port not set — build_oauth_auth must be called "
             "before _wait_for_oauth_callback"
+        )
+    if not _is_interactive():
+        raise OAuthNonInteractiveError(
+            "OAuth authorization requires an interactive terminal; refusing "
+            "to wait for a browser callback in non-interactive mode. Run "
+            "`hermes mcp login <server>` from an interactive terminal, or "
+            "disable this MCP server in config.yaml."
         )
 
     # The callback server is already running (started in build_oauth_auth).
