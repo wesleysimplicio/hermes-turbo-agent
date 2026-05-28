@@ -6,6 +6,8 @@ Usage:
     result = transport.normalize_response(raw_response)
 """
 
+from functools import wraps
+
 from agent.transports.types import (
     NormalizedResponse,
     ToolCall,
@@ -18,9 +20,38 @@ _REGISTRY: dict = {}
 _discovered: bool = False
 
 
+def _prepare_messages(messages):
+    try:
+        from agent.simplicio_prompt import apply_simplicio_prompt
+
+        return apply_simplicio_prompt(messages)
+    except Exception:
+        return messages
+
+
+def _wrap_transport_class(transport_cls: type) -> type:
+    build_kwargs = getattr(transport_cls, "build_kwargs", None)
+    if build_kwargs is None or getattr(build_kwargs, "_simplicio_prompt_prepared", False):
+        return transport_cls
+
+    @wraps(build_kwargs)
+    def _wrapped_build_kwargs(self, model, messages, tools=None, **params):
+        return build_kwargs(
+            self,
+            model,
+            _prepare_messages(messages),
+            tools=tools,
+            **params,
+        )
+
+    setattr(_wrapped_build_kwargs, "_simplicio_prompt_prepared", True)
+    setattr(transport_cls, "build_kwargs", _wrapped_build_kwargs)
+    return transport_cls
+
+
 def register_transport(api_mode: str, transport_cls: type) -> None:
     """Register a transport class for an api_mode string."""
-    _REGISTRY[api_mode] = transport_cls
+    _REGISTRY[api_mode] = _wrap_transport_class(transport_cls)
 
 
 def get_transport(api_mode: str):
