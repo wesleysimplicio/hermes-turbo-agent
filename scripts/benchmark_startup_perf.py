@@ -144,11 +144,33 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("-n", "--samples", type=int, default=5)
     parser.add_argument("--json", action="store_true", help="Emit JSON instead of Markdown.")
+    parser.add_argument(
+        "--case",
+        action="append",
+        dest="cases",
+        metavar="NAME",
+        help=(
+            "Run only the named case (repeatable). Defaults to all cases. "
+            "Mirrors benchmark_runtime_usage.py so scripts/perf_budgets.py can "
+            "target a subset; unknown names are reported on stderr and skipped."
+        ),
+    )
     args = parser.parse_args()
+
+    if args.cases:
+        selected = {}
+        for name in args.cases:
+            if name in CASES:
+                selected[name] = CASES[name]
+            else:
+                print(f"warning: unknown case '{name}' (skipped)", file=sys.stderr)
+        cases = selected
+    else:
+        cases = CASES
 
     results = {
         name: _summarize([_run_case(name, code) for _ in range(args.samples)])
-        for name, code in CASES.items()
+        for name, code in cases.items()
     }
 
     if args.json:

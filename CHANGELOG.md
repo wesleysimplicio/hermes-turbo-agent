@@ -6,7 +6,32 @@ All notable changes to Hermes Turbo Agent are recorded here. Format follows
 
 ## [Unreleased]
 
+### Performance
+
+- Corrected the optional Rust hot-path dispatch in `agent/_hermes_fast.py`.
+  Benchmarks showed the `hermes_fast` bridge is a net *loss* for token
+  estimation/truncation (the JSON-serialize + FFI boundary swamps the trivial
+  `(len+3)//4` math) and only wins for `parse_tool_call_delta` (~3×). The
+  wrapper now reserves Rust for delta parsing and keeps estimation/truncation
+  on the faster pure-Python path even when the extension is built; set
+  `HERMES_RUST_ESTIMATES=1` to force the Rust path for estimates.
+- `SessionDB` now uses a `TRUNCATE` WAL checkpoint (was `PASSIVE`) in
+  `_try_wal_checkpoint()` and `close()`, so `state.db-wal` is shrunk instead of
+  only flushed — prevents unbounded WAL growth (ported from upstream Hermes
+  `46b2afc56`, #24034; aligns with the fork's disk-GC guardrail).
+
 ### Fixed
+
+- Restored the four token-economy telemetry modules (`token_savings`,
+  `gain_analytics`, `stage_timer`, `dashboard`) that a prior cleanup removed
+  while leaving their shipped #136–#139 consumers in place; `hermes report
+  savings` and the `/perf` stage-summary view were hard-broken by the missing
+  `agent.telemetry.token_savings` import and now work again.
+- `scripts/benchmark_startup_perf.py` now accepts `--case` (matching the
+  runtime runner), so `scripts/perf_budgets.py` no longer reports the three
+  startup cases as *"benchmark did not produce a result."*
+- `scripts/perf_budgets.py` marks cases from a skipped runner as `skipped`
+  instead of emitting false `error` warnings.
 
 - MCP OAuth no longer auto-opens browser authorization pages, or waits for
   loopback callbacks, from non-interactive contexts such as the gateway/cron

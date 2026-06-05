@@ -1,5 +1,41 @@
 # Goal Result
 
+## Cycle 2026-06-05 — upstream review, operational, speed
+
+**Operator ask:** run the Hermes / Hermes Turbo update, see everything that
+changed, keep our changes, verify whether the upstream update is faster than
+what we built, and do whatever it takes to make the app operational and faster.
+
+**Outcome:**
+
+- **App is operational.** The environment had zero project deps installed (CLI
+  couldn't import). Installed core runtime + `[fast]` extra + built the Rust
+  wheel; `hermes --help`, `hermes report savings`, and
+  `hermes migrate-from-openclaw --benchmark` all run.
+- **Upstream is not faster than us.** All 50 newest upstream commits are
+  bug/stability fixes — none touch performance. The Turbo speed stack stands.
+  Full classification + evidence: `docs/upstream-sync/2026-06-05-review.md`.
+- **Took the single upstream win:** WAL `TRUNCATE` checkpoint (#24034) to stop
+  unbounded `state.db-wal` growth (disk-GC guardrail).
+- **Made it faster / unbroke it (fork work):**
+  - Rust dispatch corrected — Rust was a net loss for token estimation; now
+    reserved for `parse_tool_call_delta` (~3× win) only.
+  - `hermes report savings` + `/perf` un-broken by restoring four deleted
+    token-economy telemetry modules.
+  - Perf-budget tooling fixed (`--case` support; honest `--skip` reporting).
+
+**Validation:** 320 passed / 2 skipped final gate; perf budgets 4/5 under budget
+(the 5th is shared-CPU benchmark noise on a non-blocking alarm).
+
+Changed files: `hermes_state.py`, `agent/_hermes_fast.py`,
+`agent/telemetry/__init__.py` (+restored `token_savings.py`,
+`gain_analytics.py`, `stage_timer.py`, `dashboard.py`),
+`scripts/benchmark_startup_perf.py`, `scripts/perf_budgets.py`,
+`tests/agent/test_hermes_fast.py`, `scripts/upstream-sync/sync-state.json`,
+`docs/upstream-sync/2026-06-05-review.md`, `CHANGELOG.md`, `PROGRESS.md`.
+
+---
+
 ## Summary
 
 Closed all four open feature issues on `wesleysimplicio/hermes-turbo-agent`:

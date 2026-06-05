@@ -174,6 +174,12 @@ def main() -> int:
     startup_cases = [c for c in _STARTUP_CASES if c in case_budgets]
     runtime_cases = [c for c in _RUNTIME_CASES if c in case_budgets]
 
+    skipped: set[str] = set()
+    if args.skip_startup:
+        skipped.update(startup_cases)
+    if args.skip_runtime:
+        skipped.update(runtime_cases)
+
     runner_output: dict = {}
     if startup_cases and not args.skip_startup:
         out = _run_benchmark("benchmark_startup_perf.py", startup_cases, args.samples)
@@ -182,7 +188,20 @@ def main() -> int:
         out = _run_benchmark("benchmark_runtime_usage.py", runtime_cases, args.samples)
         runner_output.update(out if isinstance(out, dict) else {})
 
-    rows = [_evaluate(case, budget, runner_output) for case, budget in case_budgets.items()]
+    rows = []
+    for case, budget in case_budgets.items():
+        if case in skipped:
+            # A runner was explicitly skipped — don't evaluate or warn on its
+            # cases, just record them as skipped so the report stays honest.
+            rows.append({
+                "case": case,
+                "status": "skipped",
+                "budget_seconds": budget,
+                "median_seconds": None,
+                "reason": "runner skipped",
+            })
+        else:
+            rows.append(_evaluate(case, budget, runner_output))
     warnings: list[str] = []
     for row in rows:
         if row["status"] == "over_budget":
