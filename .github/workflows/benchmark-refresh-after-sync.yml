@@ -28,7 +28,7 @@ jobs:
         run: python scripts/refresh_sync_benchmarks.py --python python
 
       - name: Upload benchmark refresh artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-refresh
           path: |
