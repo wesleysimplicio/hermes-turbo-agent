@@ -1,0 +1,5 @@
+name: evolink-provider
+kind: model-provider
+version: 1.0.0
+description: EvoLink unified AI model gateway
+author: Nous Research
