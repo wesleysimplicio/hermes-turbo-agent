@@ -28,9 +28,24 @@ logger = logging.getLogger(__name__)
 
 CDP_DOCS_URL = "https://chromedevtools.github.io/devtools-protocol/"
 
-# ``websockets`` is a transitive dependency of hermes-agent (via fal_client
-# and firecrawl-py) and is already imported by gateway/platforms/feishu.py.
-# Wrap the import so a clean error surfaces if the package is ever absent.
+
+def _redact_cdp_output(value: Any) -> Any:
+    """Redact browser-originated CDP result data before returning it."""
+    from agent.redact import redact_sensitive_text
+
+    if isinstance(value, str):
+        return redact_sensitive_text(value, force=True)
+    if isinstance(value, list):
+        return [_redact_cdp_output(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_redact_cdp_output(item) for item in value)
+    if isinstance(value, dict):
+        return {key: _redact_cdp_output(item) for key, item in value.items()}
+    return value
+
+# ``websockets`` is a direct hermes-agent dependency because the browser CDP
+# supervisor and browser_dialog tool import it during tool discovery. Wrap the
+# import so a clean error surfaces if an environment is stale or incomplete.
 try:
     import websockets
     from websockets.exceptions import WebSocketException
@@ -257,7 +272,6 @@ def _browser_cdp_via_supervisor(
         )
 
     # Dispatch onto the supervisor's loop.
-    import asyncio as _asyncio
     loop = supervisor._loop  # type: ignore[attr-defined]
     if loop is None or not loop.is_running():
         return tool_error(
@@ -413,7 +427,7 @@ def browser_cdp(
     payload: Dict[str, Any] = {
         "success": True,
         "method": method,
-        "result": result,
+        "result": _redact_cdp_output(result),
     }
     if target_id:
         payload["target_id"] = target_id
