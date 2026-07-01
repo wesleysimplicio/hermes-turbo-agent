@@ -1830,8 +1830,8 @@ class SessionDB:
                 msg["content"] = self._decode_content(msg["content"])
             if msg.get("tool_calls"):
                 try:
-                    msg["tool_calls"] = json.loads(msg["tool_calls"])
-                except (json.JSONDecodeError, TypeError):
+                    msg["tool_calls"] = _json_loads(msg["tool_calls"])
+                except (ValueError, TypeError):
                     logger.warning(
                         "Failed to deserialize tool_calls in get_messages_around, falling back to []"
                     )
@@ -1952,8 +1952,8 @@ class SessionDB:
                 msg["content"] = self._decode_content(msg["content"])
             if msg.get("tool_calls"):
                 try:
-                    msg["tool_calls"] = json.loads(msg["tool_calls"])
-                except (json.JSONDecodeError, TypeError):
+                    msg["tool_calls"] = _json_loads(msg["tool_calls"])
+                except (ValueError, TypeError):
                     logger.warning(
                         "Failed to deserialize tool_calls in get_anchored_view, falling back to []"
                     )

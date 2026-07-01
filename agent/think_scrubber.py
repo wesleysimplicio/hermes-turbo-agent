@@ -89,6 +89,13 @@ class StreamingThinkScrubber:
     _OPEN_TAGS: Tuple[str, ...] = tuple(f"<{name}>" for name in _OPEN_TAG_NAMES)
     _CLOSE_TAGS: Tuple[str, ...] = tuple(f"</{name}>" for name in _OPEN_TAG_NAMES)
 
+    # Pre-lowercased tag forms. Every match in the per-delta hot path is
+    # case-insensitive and used to lower() these immutable constants on each
+    # call; precomputing them once removes that per-call allocation. ASCII
+    # case-folding never changes length, so len(tag_lower) == len(tag).
+    _OPEN_TAGS_LOWER: Tuple[str, ...] = tuple(t.lower() for t in _OPEN_TAGS)
+    _CLOSE_TAGS_LOWER: Tuple[str, ...] = tuple(t.lower() for t in _CLOSE_TAGS)
+
     # Pre-compute the longest tag (for partial-tag hold-back bound).
     _MAX_TAG_LEN: int = max(len(tag) for tag in _OPEN_TAGS + _CLOSE_TAGS)
 
@@ -120,12 +127,12 @@ class StreamingThinkScrubber:
             if self._in_block:
                 # Hunt for the earliest close tag.
                 close_idx, close_len = self._find_first_tag(
-                    buf, self._CLOSE_TAGS,
+                    buf, self._CLOSE_TAGS_LOWER,
                 )
                 if close_idx == -1:
                     # No close yet — hold back a potential partial
                     # close-tag prefix; discard everything else.
-                    held = self._max_partial_suffix(buf, self._CLOSE_TAGS)
+                    held = self._max_partial_suffix(buf, self._CLOSE_TAGS_LOWER)
                     self._buf = buf[-held:] if held else ""
                     return "".join(out)
                 # Found close: discard block content + tag, continue.
@@ -179,9 +186,9 @@ class StreamingThinkScrubber:
                 # No resolvable tag structure in buf.  Hold back any
                 # partial-tag prefix at the tail so a split tag
                 # across deltas isn't missed, then emit the rest.
-                held = self._max_partial_suffix(buf, self._OPEN_TAGS)
+                held = self._max_partial_suffix(buf, self._OPEN_TAGS_LOWER)
                 held_close = self._max_partial_suffix(
-                    buf, self._CLOSE_TAGS,
+                    buf, self._CLOSE_TAGS_LOWER,
                 )
                 held = max(held, held_close)
                 if held:
@@ -230,13 +237,14 @@ class StreamingThinkScrubber:
     ) -> Tuple[int, int]:
         """Return (earliest_index, tag_length) over *tags*, or (-1, 0).
 
-        Case-insensitive match.
+        *tags* must already be lowercase (pass ``_OPEN_TAGS_LOWER`` /
+        ``_CLOSE_TAGS_LOWER``); matching is case-insensitive.
         """
         buf_lower = buf.lower()
         best_idx = -1
         best_len = 0
         for tag in tags:
-            idx = buf_lower.find(tag.lower())
+            idx = buf_lower.find(tag)
             if idx != -1 and (best_idx == -1 or idx < best_idx):
                 best_idx = idx
                 best_len = len(tag)
@@ -254,9 +262,7 @@ class StreamingThinkScrubber:
         """
         buf_lower = buf.lower()
         best: "tuple[int, int] | None" = None
-        for open_tag, close_tag in zip(self._OPEN_TAGS, self._CLOSE_TAGS):
-            open_lower = open_tag.lower()
-            close_lower = close_tag.lower()
+        for open_lower, close_lower in zip(self._OPEN_TAGS_LOWER, self._CLOSE_TAGS_LOWER):
             open_idx = buf_lower.find(open_lower)
             if open_idx == -1:
                 continue
@@ -280,8 +286,7 @@ class StreamingThinkScrubber:
         buf_lower = buf.lower()
         best_idx = -1
         best_len = 0
-        for tag in self._OPEN_TAGS:
-            tag_lower = tag.lower()
+        for tag_lower in self._OPEN_TAGS_LOWER:
             search_start = 0
             while True:
                 idx = buf_lower.find(tag_lower, search_start)
@@ -290,7 +295,7 @@ class StreamingThinkScrubber:
                 if self._is_block_boundary(buf, idx, already_emitted):
                     if best_idx == -1 or idx < best_idx:
                         best_idx = idx
-                        best_len = len(tag)
+                        best_len = len(tag_lower)
                     break  # first boundary hit for this tag is enough
                 search_start = idx + 1
         return best_idx, best_len
@@ -346,8 +351,7 @@ class StreamingThinkScrubber:
         max_check = min(len(buf_lower), cls._MAX_TAG_LEN - 1)
         for i in range(max_check, 0, -1):
             suffix = buf_lower[-i:]
-            for tag in tags:
-                tag_lower = tag.lower()
+            for tag_lower in tags:
                 if len(tag_lower) > i and tag_lower.startswith(suffix):
                     return i
         return 0
@@ -368,8 +372,7 @@ class StreamingThinkScrubber:
         while i < len(text):
             matched = False
             if text_lower[i:i + 2] == "</":
-                for tag in cls._CLOSE_TAGS:
-                    tag_lower = tag.lower()
+                for tag_lower in cls._CLOSE_TAGS_LOWER:
                     tag_len = len(tag_lower)
                     if text_lower[i:i + tag_len] == tag_lower:
                         # Skip the tag and any trailing whitespace,

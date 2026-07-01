@@ -8,6 +8,33 @@ All notable changes to Hermes Turbo Agent are recorded here. Format follows
 
 ### Performance
 
+- `agent/prompt_caching.py::apply_anthropic_cache_control` no longer
+  `copy.deepcopy`s the entire transcript on every Anthropic send. It only ever
+  writes `cache_control` into ≤4 messages (system + last 3 non-system), so it
+  now shallow-copies the list and deep-copies just those messages. This drops a
+  per-turn clone of the whole conversation (including large multimodal / base64
+  content blocks) to a copy of ~4 dicts — a win that grows with conversation
+  length. The never-mutate-the-caller contract is preserved and now locked by
+  two new regression tests in `tests/regression/cache_boundary/`.
+- Streaming diagnostics (`_diag["bytes"]`) stopped calling `len(repr(chunk))` /
+  `len(repr(event))` on every stream chunk in `agent/chat_completion_helpers.py`
+  and `run_agent.py` (4 sites). `repr()` on a pydantic `ChatCompletionChunk`
+  recursively renders every nested field into a throwaway string per token; the
+  proxy now sums only the delta text/reasoning/tool-argument lengths — cheaper
+  and a more meaningful "bytes that arrived" measure.
+- Streamed tool-call arguments in `agent/chat_completion_helpers.py` now
+  accumulate into a list joined once at the end, instead of
+  `entry["function"]["arguments"] += fragment`. The `+=` target was a dict
+  subscript, which cannot use CPython's in-place string-concat fast path, giving
+  O(N²) behaviour on large tool-call JSON.
+- `agent/think_scrubber.StreamingThinkScrubber` precomputes lowercased tag
+  tuples (`_OPEN_TAGS_LOWER` / `_CLOSE_TAGS_LOWER`) once, removing the per-delta
+  `tag.lower()` recomputation of immutable tag constants across the five
+  hot-path scan helpers (runs per streamed delta).
+- `hermes_state.py` read paths `get_messages_around` and `get_anchored_view`
+  now deserialize `tool_calls` through the fast-json-aware `_json_loads` helper
+  (matching `get_messages`) instead of bare stdlib `json.loads`, so they honour
+  `HERMES_TURBO_FAST_STATE=1` (orjson) like the sibling readers.
 - Corrected the optional Rust hot-path dispatch in `agent/_hermes_fast.py`.
   Benchmarks showed the `hermes_fast` bridge is a net *loss* for token
   estimation/truncation (the JSON-serialize + FFI boundary swamps the trivial

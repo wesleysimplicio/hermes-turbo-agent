@@ -76,3 +76,41 @@ def test_ttl_is_propagated_to_marker(ttl: str) -> None:
     else:
         # 5m is the default — Anthropic infers it from absence of `ttl`.
         assert "ttl" not in marker
+
+
+def test_input_messages_are_never_mutated() -> None:
+    """The caller's messages (and their content parts) must never be mutated.
+
+    ``apply_anthropic_cache_control`` shallow-copies the list and deep-copies
+    only the <=4 messages it marks (instead of deep-copying the whole
+    transcript). This locks the contract that no cache_control ever leaks
+    into the caller's own message objects.
+    """
+    msgs = _build(5)  # 1 system + 10 non-system
+    ids_before = [id(m) for m in msgs]
+    apply_anthropic_cache_control(msgs, cache_ttl="1h")
+    for m in msgs:
+        assert "cache_control" not in m
+        content = m.get("content")
+        if isinstance(content, list):
+            for part in content:
+                if isinstance(part, dict):
+                    assert "cache_control" not in part
+    # Input list identity/membership preserved (function copied, not mutated).
+    assert [id(m) for m in msgs] == ids_before
+
+
+def test_untouched_messages_are_not_deep_copied() -> None:
+    """Messages that get no breakpoint are shared by reference with output.
+
+    Proves the optimization: only marked messages are copied; the long
+    history tail is not cloned. Marked messages (system + last 3 non-system)
+    are fresh copies; everything between is the same object.
+    """
+    msgs = _build(5)
+    rendered = apply_anthropic_cache_control(msgs, cache_ttl="5m")
+    assert rendered is not msgs
+    assert rendered[0] is not msgs[0]      # system — marked -> copied
+    assert rendered[-1] is not msgs[-1]    # last non-system — marked -> copied
+    assert rendered[1] is msgs[1]          # untouched -> shared reference
+    assert rendered[5] is msgs[5]          # untouched -> shared reference
