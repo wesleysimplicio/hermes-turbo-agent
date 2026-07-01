@@ -138,7 +138,7 @@ def _list_recent_sessions(db, limit: int, current_session_id: str = None) -> str
             if len(results) >= limit:
                 break
 
-        return json.dumps({
+        return fastjson.dumps({
             "success": True,
             "mode": "browse",
             "results": results,
@@ -271,7 +271,7 @@ def _scroll(
     }
     if rebind_warning:
         response["warning"] = rebind_warning
-    return json.dumps(response, ensure_ascii=False)
+    return fastjson.dumps(response, ensure_ascii=False)
 
 
 def _discover(
@@ -299,7 +299,7 @@ def _discover(
         return tool_error(f"Search failed: {e}", success=False)
 
     if not raw_results:
-        return json.dumps({
+        return fastjson.dumps({
             "success": True,
             "mode": "discover",
             "query": query,
@@ -365,7 +365,7 @@ def _discover(
             entry["parent_session_id"] = lineage_root
         results.append(entry)
 
-    return json.dumps({
+    return fastjson.dumps({
         "success": True,
         "mode": "discover",
         "query": query,

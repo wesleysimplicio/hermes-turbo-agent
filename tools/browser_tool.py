@@ -90,6 +90,7 @@ except Exception:
 # shims for callers that import them from this module.
 from agent.browser_provider import BrowserProvider as CloudBrowserProvider  # noqa: F401  (legacy alias)
 from agent.browser_registry import (  # noqa: F401  (test-patchable surface)
+from tools._fastjson import json as fastjson
     get_provider as _registry_get_browser_provider,
 )
 from plugins.browser.browserbase.provider import (  # noqa: F401  (legacy import surface)
@@ -947,7 +948,7 @@ def _run_chrome_fallback_command(
             with open(stdout_path, "r", encoding="utf-8") as f:
                 stdout = f.read().strip()
             if stdout:
-                return json.loads(stdout.split("\n")[-1])
+                return fastjson.loads(stdout.split("\n")[-1])
         except Exception as exc:
             logger.debug("Chrome fallback tmp cmd '%s' error: %s", cmd, exc)
         finally:
@@ -2140,7 +2141,7 @@ def _run_browser_command(
                 result = {"success": False, "error": f"Browser command '{command}' returned no output"}
             elif stdout_text:
                 try:
-                    parsed = json.loads(stdout_text)
+                    parsed = fastjson.loads(stdout_text)
                     # Warn if snapshot came back empty (common sign of daemon/CDP issues)
                     if command == "snapshot" and parsed.get("success"):
                         snap_data = parsed.get("data", {})
@@ -2149,7 +2150,7 @@ def _run_browser_command(
                                            "Possible stale daemon or CDP connection issue. "
                                            "returncode=%s", returncode)
                     result = parsed
-                except json.JSONDecodeError:
+                except fastjson.JSONDecodeError:
                     raw = stdout_text[:2000]
                     logger.warning("browser '%s' returned non-JSON output (rc=%s): %s",
                                    command, returncode, raw[:500])
@@ -2327,7 +2328,7 @@ def browser_navigate(url: str, task_id: Optional[str] = None) -> str:
     from agent.redact import _PREFIX_RE
     url_decoded = urllib.parse.unquote(url)
     if _PREFIX_RE.search(url) or _PREFIX_RE.search(url_decoded):
-        return json.dumps({
+        return fastjson.dumps({
             "success": False,
             "error": "Blocked: URL contains what appears to be an API key or token. "
                      "Secrets must not be sent in URLs.",
@@ -2352,7 +2353,7 @@ def browser_navigate(url: str, task_id: Optional[str] = None) -> str:
     # via a browser, and routing those to a local Chromium sidecar
     # on an EC2/GCP/Azure host exfiltrates IAM credentials (#16234).
     if not _is_local_backend() and _is_always_blocked_url(url):
-        return json.dumps({
+        return fastjson.dumps({
             "success": False,
             "error": "Blocked: URL targets a cloud metadata endpoint",
         })
@@ -2363,7 +2364,7 @@ def browser_navigate(url: str, task_id: Optional[str] = None) -> str:
         and not _allow_private_urls()
         and not _is_safe_url(url)
     ):
-        return json.dumps({
+        return fastjson.dumps({
             "success": False,
             "error": "Blocked: URL targets a private or internal address",
         })
@@ -2371,7 +2372,7 @@ def browser_navigate(url: str, task_id: Optional[str] = None) -> str:
     # Website policy check — block before navigating
     blocked = check_website_access(url)
     if blocked:
-        return json.dumps({
+        return fastjson.dumps({
             "success": False,
             "error": blocked["message"],
             "blocked_by_policy": {"host": blocked["host"], "rule": blocked["rule"], "source": blocked["source"]},
@@ -2429,7 +2430,7 @@ def browser_navigate(url: str, task_id: Optional[str] = None) -> str:
             and _is_always_blocked_url(final_url)
         ):
             _run_browser_command(nav_session_key, "open", ["about:blank"], timeout=10)
-            return json.dumps({
+            return fastjson.dumps({
                 "success": False,
                 "error": "Blocked: redirect landed on a cloud metadata endpoint",
             })
@@ -2442,7 +2443,7 @@ def browser_navigate(url: str, task_id: Optional[str] = None) -> str:
         ):
             # Navigate away to a blank page to prevent snapshot leaks
             _run_browser_command(nav_session_key, "open", ["about:blank"], timeout=10)
-            return json.dumps({
+            return fastjson.dumps({
                 "success": False,
                 "error": "Blocked: redirect landed on a private/internal address",
             })
@@ -2500,9 +2501,9 @@ def browser_navigate(url: str, task_id: Optional[str] = None) -> str:
         except Exception as e:
             logger.debug("Auto-snapshot after navigate failed: %s", e)
 
-        return json.dumps(response, ensure_ascii=False)
+        return fastjson.dumps(response, ensure_ascii=False)
     else:
-        return json.dumps({
+        return fastjson.dumps({
             "success": False,
             "error": result.get("error", "Navigation failed")
         }, ensure_ascii=False)
@@ -2568,13 +2569,13 @@ def browser_snapshot(
         except Exception as _sv_exc:
             logger.debug("supervisor snapshot merge failed: %s", _sv_exc)
 
-        return json.dumps(response, ensure_ascii=False)
+        return fastjson.dumps(response, ensure_ascii=False)
     else:
         response = {
             "success": False,
             "error": result.get("error", "Failed to get snapshot")
         }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+        return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
 def browser_click(ref: str, task_id: Optional[str] = None) -> str:
@@ -2605,13 +2606,13 @@ def browser_click(ref: str, task_id: Optional[str] = None) -> str:
             "success": True,
             "clicked": ref
         }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+        return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
     else:
         response = {
             "success": False,
             "error": result.get("error", f"Failed to click {ref}")
         }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+        return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
 def browser_type(ref: str, text: str, task_id: Optional[str] = None) -> str:
@@ -2645,13 +2646,13 @@ def browser_type(ref: str, text: str, task_id: Optional[str] = None) -> str:
             "typed": text,
             "element": ref
         }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+        return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
     else:
         response = {
             "success": False,
             "error": result.get("error", f"Failed to type into {ref}")
         }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+        return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
 def browser_scroll(direction: str, task_id: Optional[str] = None) -> str:
@@ -2667,7 +2668,7 @@ def browser_scroll(direction: str, task_id: Optional[str] = None) -> str:
     """
     # Validate direction
     if direction not in {"up", "down"}:
-        return json.dumps({
+        return fastjson.dumps({
             "success": False,
             "error": f"Invalid direction '{direction}'. Use 'up' or 'down'."
         }, ensure_ascii=False)
@@ -2694,13 +2695,13 @@ def browser_scroll(direction: str, task_id: Optional[str] = None) -> str:
             "success": False,
             "error": result.get("error", f"Failed to scroll {direction}")
         }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+        return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
     response = {
         "success": True,
         "scrolled": direction
     }
-    return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+    return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
 def browser_back(task_id: Optional[str] = None) -> str:
@@ -2726,13 +2727,13 @@ def browser_back(task_id: Optional[str] = None) -> str:
             "success": True,
             "url": data.get("url", "")
         }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+        return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
     else:
         response = {
             "success": False,
             "error": result.get("error", "Failed to go back")
         }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+        return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
 def browser_press(key: str, task_id: Optional[str] = None) -> str:
@@ -2758,13 +2759,13 @@ def browser_press(key: str, task_id: Optional[str] = None) -> str:
             "success": True,
             "pressed": key
         }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+        return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
     else:
         response = {
             "success": False,
             "error": result.get("error", f"Failed to press {key}")
         }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+        return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
 
@@ -2829,7 +2830,7 @@ def browser_console(clear: bool = False, expression: Optional[str] = None, task_
     _copy_fallback_warning(response, console_result)
     if errors_result.get("fallback_warning") and not response.get("fallback_warning"):
         _copy_fallback_warning(response, errors_result)
-    return json.dumps(response, ensure_ascii=False)
+    return fastjson.dumps(response, ensure_ascii=False)
 
 
 def _browser_eval(expression: str, task_id: Optional[str] = None) -> str:
@@ -2857,8 +2858,8 @@ def _browser_eval(expression: str, task_id: Optional[str] = None) -> str:
                 parsed = raw_result
                 if isinstance(raw_result, str):
                     try:
-                        parsed = json.loads(raw_result)
-                    except (json.JSONDecodeError, ValueError):
+                        parsed = fastjson.loads(raw_result)
+                    except (fastjson.JSONDecodeError, ValueError):
                         pass  # keep as string
                 response = {
                     "success": True,
@@ -2866,14 +2867,14 @@ def _browser_eval(expression: str, task_id: Optional[str] = None) -> str:
                     "result_type": type(parsed).__name__,
                     "method": "cdp_supervisor",
                 }
-                return json.dumps(response, ensure_ascii=False, default=str)
+                return fastjson.dumps(response, ensure_ascii=False, default=str)
             # JS exception is a real failure — surface it instead of falling
             # through to the subprocess path (which would just re-run and
             # produce the same exception, but slower).
             err = sup_result.get("error") or "evaluate_runtime failed"
             if "supervisor" not in err.lower():
                 # Real JS-side error — return it.
-                return json.dumps({"success": False, "error": err}, ensure_ascii=False)
+                return fastjson.dumps({"success": False, "error": err}, ensure_ascii=False)
             # Supervisor-side failure (loop down, no session) — fall through.
             logger.debug(
                 "browser_eval: supervisor path unavailable (%s), falling back to subprocess",
@@ -2895,12 +2896,12 @@ def _browser_eval(expression: str, task_id: Optional[str] = None) -> str:
                 "success": False,
                 "error": f"JavaScript evaluation is not supported by this browser backend. {err}",
             }
-            return json.dumps(_copy_fallback_warning(response, result))
+            return fastjson.dumps(_copy_fallback_warning(response, result))
         response = {
             "success": False,
             "error": err,
         }
-        return json.dumps(_copy_fallback_warning(response, result))
+        return fastjson.dumps(_copy_fallback_warning(response, result))
 
     data = result.get("data", {})
     raw_result = data.get("result")
@@ -2910,8 +2911,8 @@ def _browser_eval(expression: str, task_id: Optional[str] = None) -> str:
     parsed = raw_result
     if isinstance(raw_result, str):
         try:
-            parsed = json.loads(raw_result)
-        except (json.JSONDecodeError, ValueError):
+            parsed = fastjson.loads(raw_result)
+        except (fastjson.JSONDecodeError, ValueError):
             pass  # keep as string
 
     response = {
@@ -2919,7 +2920,7 @@ def _browser_eval(expression: str, task_id: Optional[str] = None) -> str:
         "result": parsed,
         "result_type": type(parsed).__name__,
     }
-    return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False, default=str)
+    return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False, default=str)
 
 
 def _camofox_eval(expression: str, task_id: Optional[str] = None) -> str:
@@ -2935,11 +2936,11 @@ def _camofox_eval(expression: str, task_id: Optional[str] = None) -> str:
         parsed = raw_result
         if isinstance(raw_result, str):
             try:
-                parsed = json.loads(raw_result)
-            except (json.JSONDecodeError, ValueError):
+                parsed = fastjson.loads(raw_result)
+            except (fastjson.JSONDecodeError, ValueError):
                 pass
 
-        return json.dumps({
+        return fastjson.dumps({
             "success": True,
             "result": parsed,
             "result_type": type(parsed).__name__,
@@ -2948,7 +2949,7 @@ def _camofox_eval(expression: str, task_id: Optional[str] = None) -> str:
         error_msg = str(e)
         # Graceful degradation — server may not support eval
         if any(code in error_msg for code in ("404", "405", "501")):
-            return json.dumps({
+            return fastjson.dumps({
                 "success": False,
                 "error": "JavaScript evaluation is not supported by this Camofox server. "
                          "Use browser_snapshot or browser_vision to inspect page state.",
@@ -3040,7 +3041,7 @@ def browser_get_images(task_id: Optional[str] = None) -> str:
         try:
             # Parse the JSON string returned by JavaScript
             if isinstance(raw_result, str):
-                images = json.loads(raw_result)
+                images = fastjson.loads(raw_result)
             else:
                 images = raw_result
 
@@ -3049,21 +3050,21 @@ def browser_get_images(task_id: Optional[str] = None) -> str:
                 "images": images,
                 "count": len(images)
             }
-            return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
-        except json.JSONDecodeError:
+            return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+        except fastjson.JSONDecodeError:
             response = {
                 "success": True,
                 "images": [],
                 "count": 0,
                 "warning": "Could not parse image data"
             }
-            return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+            return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
     else:
         response = {
             "success": False,
             "error": result.get("error", "Failed to get images")
         }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+        return fastjson.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
 def browser_vision(question: str, annotate: bool = False, task_id: Optional[str] = None) -> str:
@@ -3184,7 +3185,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
                 "success": False,
                 "error": f"Failed to take screenshot ({mode} mode): {error_detail}"
             }
-            return json.dumps(_copy_fallback_warning(error_response, result), ensure_ascii=False)
+            return fastjson.dumps(_copy_fallback_warning(error_response, result), ensure_ascii=False)
 
         actual_screenshot_path = result.get("data", {}).get("path")
         if actual_screenshot_path:
@@ -3194,7 +3195,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
         if not screenshot_path.exists():
             _cp = _get_cloud_provider()
             mode = "local" if _cp is None else f"cloud ({_cp.provider_name()})"
-            return json.dumps({
+            return fastjson.dumps({
                 "success": False,
                 "error": (
                     f"Screenshot file was not created at {screenshot_path} ({mode} mode). "
@@ -3293,7 +3294,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
         # Include annotation data if annotated screenshot was taken
         if annotate and result.get("data", {}).get("annotations"):
             response_data["annotations"] = result["data"]["annotations"]
-        return json.dumps(response_data, ensure_ascii=False)
+        return fastjson.dumps(response_data, ensure_ascii=False)
 
     except Exception as e:
         # Keep the screenshot if it was captured successfully — the failure is
@@ -3306,7 +3307,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
             error_info["screenshot_path"] = str(screenshot_path)
             error_info["note"] = "Screenshot was captured but vision analysis failed. You can still share it via MEDIA:<path>."
         _copy_fallback_warning(error_info, result if 'result' in locals() else {})
-        return json.dumps(error_info, ensure_ascii=False)
+        return fastjson.dumps(error_info, ensure_ascii=False)
 
 
 def _cleanup_old_screenshots(screenshots_dir, max_age_hours=24):

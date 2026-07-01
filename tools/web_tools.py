@@ -832,7 +832,7 @@ def web_search_tool(query: str, limit: int = 5) -> str:
             response_data = provider.search(query, limit)
 
         debug_call_data["results_count"] = len(response_data.get("data", {}).get("web", []))
-        result_json = json.dumps(response_data, indent=2, ensure_ascii=False)
+        result_json = fastjson.dumps(response_data, indent=2, ensure_ascii=False)
         debug_call_data["final_response_size"] = len(result_json)
         _debug.log_call("web_search_tool", debug_call_data)
         _debug.save()
@@ -884,7 +884,7 @@ async def web_extract_tool(
     from urllib.parse import unquote
     for _url in urls:
         if _PREFIX_RE.search(_url) or _PREFIX_RE.search(unquote(_url)):
-            return json.dumps({
+            return fastjson.dumps({
                 "success": False,
                 "error": "Blocked: URL contains what appears to be an API key or token. "
                          "Secrets must not be sent in URLs.",
@@ -949,7 +949,7 @@ async def web_extract_tool(
                 # isn't registered at all (typo / uninstalled plugin), fall
                 # through to the active-provider walk.
                 if provider is not None and not provider.supports_extract():
-                    return json.dumps(
+                    return fastjson.dumps(
                         {
                             "success": False,
                             "error": (
@@ -963,7 +963,7 @@ async def web_extract_tool(
                     )
                 provider = get_active_extract_provider()
                 if provider is None:
-                    return json.dumps(
+                    return fastjson.dumps(
                         {
                             "success": False,
                             "error": (
@@ -1001,7 +1001,7 @@ async def web_extract_tool(
         logger.info("Extracted content from %d pages", pages_extracted)
         
         debug_call_data["pages_extracted"] = pages_extracted
-        debug_call_data["original_response_size"] = len(json.dumps(response))
+        debug_call_data["original_response_size"] = len(fastjson.dumps(response))
         effective_model = model or _get_default_summarizer_model()
         auxiliary_available = check_auxiliary_model()
         
@@ -1106,7 +1106,7 @@ async def web_extract_tool(
             cleaned_result = clean_base64_images(result_json)
         
         else:
-            result_json = json.dumps(trimmed_response, indent=2, ensure_ascii=False)
+            result_json = fastjson.dumps(trimmed_response, indent=2, ensure_ascii=False)
             
             cleaned_result = clean_base64_images(result_json)
         
@@ -1201,7 +1201,7 @@ async def web_crawl_tool(
             # but not crawl (e.g. firecrawl), fall through to the legacy
             # firecrawl-via-extract path below.
             if not crawl_provider.supports_extract():
-                return json.dumps(
+                return fastjson.dumps(
                     {
                         "success": False,
                         "error": (
@@ -1224,7 +1224,7 @@ async def web_crawl_tool(
         # ``{"success": False, "error": "..."}`` rather than burying the
         # configuration message inside a per-page ``results[]`` entry.
         if crawl_provider is not None and not crawl_provider.is_available():
-            return json.dumps(
+            return fastjson.dumps(
                 {
                     "success": False,
                     "error": (
@@ -1243,14 +1243,14 @@ async def web_crawl_tool(
 
             # SSRF protection — block private/internal addresses
             if not is_safe_url(url):
-                return json.dumps({"results": [{"url": url, "title": "", "content": "",
+                return fastjson.dumps({"results": [{"url": url, "title": "", "content": "",
                     "error": "Blocked: URL targets a private or internal network address"}]}, ensure_ascii=False)
 
             # Website policy check
             blocked = check_website_access(url)
             if blocked:
                 logger.info("Blocked web_crawl for %s by rule %s", blocked["host"], blocked["rule"])
-                return json.dumps({"results": [{"url": url, "title": "", "content": "", "error": blocked["message"],
+                return fastjson.dumps({"results": [{"url": url, "title": "", "content": "", "error": blocked["message"],
                     "blocked_by_policy": {"host": blocked["host"], "rule": blocked["rule"], "source": blocked["source"]}}]}, ensure_ascii=False)
 
             from tools.interrupt import is_interrupted as _is_int
@@ -1284,7 +1284,7 @@ async def web_crawl_tool(
             pages_crawled = len(response.get('results', []))
             logger.info("Crawled %d pages", pages_crawled)
             debug_call_data["pages_crawled"] = pages_crawled
-            debug_call_data["original_response_size"] = len(json.dumps(response))
+            debug_call_data["original_response_size"] = len(fastjson.dumps(response))
 
             # Process each result with LLM if enabled
             if use_llm_processing and auxiliary_available:
@@ -1328,7 +1328,7 @@ async def web_crawl_tool(
 
             trimmed_results = [{"url": r.get("url", ""), "title": r.get("title", ""), "content": r.get("content", ""), "error": r.get("error"),
                 **({  "blocked_by_policy": r["blocked_by_policy"]} if "blocked_by_policy" in r else {})} for r in response.get("results", [])]
-            result_json = json.dumps({"results": trimmed_results}, indent=2, ensure_ascii=False)
+            result_json = fastjson.dumps({"results": trimmed_results}, indent=2, ensure_ascii=False)
             cleaned_result = clean_base64_images(result_json)
             debug_call_data["final_response_size"] = len(cleaned_result)
             _debug.log_call("web_crawl_tool", debug_call_data)
@@ -1338,7 +1338,7 @@ async def web_crawl_tool(
         # No registered provider supports crawl AND no crawl-capable plugin
         # is available. Surface a typed error pointing the user at the two
         # crawl-capable providers (Firecrawl + Tavily).
-        return json.dumps(
+        return fastjson.dumps(
             {
                 "success": False,
                 "error": (

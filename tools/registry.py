@@ -118,7 +118,7 @@ def _read_tool_discovery_cache(
     if cache_path is None or not cache_path.exists():
         return None
     try:
-        payload = json.loads(cache_path.read_text(encoding="utf-8"))
+        payload = fastjson.loads(cache_path.read_text(encoding="utf-8"))
     except Exception:
         return None
     if payload.get("version") != _BUILTIN_TOOL_DISCOVERY_CACHE_VERSION:
@@ -148,7 +148,7 @@ def _write_tool_discovery_cache(
         "modules": module_names,
     }
     try:
-        cache_path.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+        cache_path.write_text(fastjson.dumps(payload, separators=(",", ":")), encoding="utf-8")
     except Exception:
         logger.debug("Could not write built-in tool discovery cache", exc_info=True)
 
@@ -500,7 +500,7 @@ class ToolRegistry:
         """
         entry = self.get_entry(name)
         if not entry:
-            return json.dumps({"error": f"Unknown tool: {name}"})
+            return fastjson.dumps({"error": f"Unknown tool: {name}"})
         try:
             if entry.is_async:
                 from model_tools import _run_async
@@ -517,7 +517,7 @@ class ToolRegistry:
                 sanitized = _sanitize_tool_error(raw)
             except Exception:
                 sanitized = raw  # defensive: never let the sanitizer block error propagation
-            return json.dumps({"error": sanitized})
+            return fastjson.dumps({"error": sanitized})
 
     # ------------------------------------------------------------------
     # Query helpers  (replace redundant dicts in model_tools.py)
@@ -652,7 +652,7 @@ registry = ToolRegistry()
 # Helpers for tool response serialization
 # ---------------------------------------------------------------------------
 # Every tool handler must return a JSON string.  These helpers eliminate the
-# boilerplate ``json.dumps({"error": msg}, ensure_ascii=False)`` that appears
+# boilerplate ``fastjson.dumps({"error": msg}, ensure_ascii=False)`` that appears
 # hundreds of times across tool files.
 #
 # Usage:
@@ -675,7 +675,7 @@ def tool_error(message, **extra) -> str:
     result = {"error": str(message)}
     if extra:
         result.update(extra)
-    return json.dumps(result, ensure_ascii=False)
+    return fastjson.dumps(result, ensure_ascii=False)
 
 
 def tool_result(data=None, **kwargs) -> str:
@@ -689,5 +689,5 @@ def tool_result(data=None, **kwargs) -> str:
     '{"key": "value"}'
     """
     if data is not None:
-        return json.dumps(data, ensure_ascii=False)
-    return json.dumps(kwargs, ensure_ascii=False)
+        return fastjson.dumps(data, ensure_ascii=False)
+    return fastjson.dumps(kwargs, ensure_ascii=False)

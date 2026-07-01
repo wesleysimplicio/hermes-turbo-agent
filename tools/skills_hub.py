@@ -768,8 +768,8 @@ class GitHubSource(SkillSource):
             stat = cache_file.stat()
             if time.time() - stat.st_mtime > INDEX_CACHE_TTL:
                 return None
-            return json.loads(cache_file.read_text())
-        except (OSError, json.JSONDecodeError):
+            return fastjson.loads(cache_file.read_text())
+        except (OSError, fastjson.JSONDecodeError):
             return None
 
     def _write_cache(self, key: str, data: list) -> None:
@@ -777,7 +777,7 @@ class GitHubSource(SkillSource):
         INDEX_CACHE_DIR.mkdir(parents=True, exist_ok=True)
         cache_file = INDEX_CACHE_DIR / f"{key}.json"
         try:
-            cache_file.write_text(json.dumps(data, ensure_ascii=False))
+            cache_file.write_text(fastjson.dumps(data, ensure_ascii=False))
         except OSError as e:
             logger.debug("Could not write cache: %s", e)
 
@@ -1001,7 +1001,7 @@ class WellKnownSkillSource(SkillSource):
             return None
         try:
             data = resp.json()
-        except json.JSONDecodeError:
+        except fastjson.JSONDecodeError:
             return None
 
         skills = data.get("skills", []) if isinstance(data, dict) else []
@@ -1257,7 +1257,7 @@ class SkillsShSource(SkillSource):
             if resp.status_code != 200:
                 return []
             data = resp.json()
-        except (httpx.HTTPError, json.JSONDecodeError):
+        except (httpx.HTTPError, fastjson.JSONDecodeError):
             return []
 
         items = data.get("skills", []) if isinstance(data, dict) else []
@@ -1874,7 +1874,7 @@ class ClawHubSource(SkillSource):
             if resp.status_code != 200:
                 return []
             data = resp.json()
-        except (httpx.HTTPError, json.JSONDecodeError):
+        except (httpx.HTTPError, fastjson.JSONDecodeError):
             return []
 
         skills_data = data.get("items", data) if isinstance(data, dict) else data
@@ -1996,7 +1996,7 @@ class ClawHubSource(SkillSource):
                 if resp.status_code != 200:
                     break
                 data = resp.json()
-            except (httpx.HTTPError, json.JSONDecodeError):
+            except (httpx.HTTPError, fastjson.JSONDecodeError):
                 break
 
             items = data.get("items", []) if isinstance(data, dict) else []
@@ -2033,7 +2033,7 @@ class ClawHubSource(SkillSource):
             if resp.status_code != 200:
                 return None
             return resp.json()
-        except (httpx.HTTPError, json.JSONDecodeError):
+        except (httpx.HTTPError, fastjson.JSONDecodeError):
             return None
 
     def _resolve_latest_version(self, slug: str, skill_data: Dict[str, Any]) -> Optional[str]:
@@ -2248,8 +2248,8 @@ class ClaudeMarketplaceSource(SkillSource):
             )
             if resp.status_code != 200:
                 return []
-            data = json.loads(resp.text)
-        except (httpx.HTTPError, json.JSONDecodeError):
+            data = fastjson.loads(resp.text)
+        except (httpx.HTTPError, fastjson.JSONDecodeError):
             return []
 
         plugins = data.get("plugins", [])
@@ -2363,7 +2363,7 @@ class LobeHubSource(SkillSource):
             if resp.status_code != 200:
                 return None
             data = resp.json()
-        except (httpx.HTTPError, json.JSONDecodeError):
+        except (httpx.HTTPError, fastjson.JSONDecodeError):
             return None
 
         _write_index_cache(cache_key, data)
@@ -2376,7 +2376,7 @@ class LobeHubSource(SkillSource):
             resp = httpx.get(url, timeout=15)
             if resp.status_code == 200:
                 return resp.json()
-        except (httpx.HTTPError, json.JSONDecodeError) as e:
+        except (httpx.HTTPError, fastjson.JSONDecodeError) as e:
             logger.debug("LobeHub agent fetch failed: %s", e)
         return None
 
@@ -2452,7 +2452,7 @@ class BrowseShSource(SkillSource):
             if resp.status_code != 200:
                 return []
             data = resp.json()
-        except (httpx.HTTPError, json.JSONDecodeError):
+        except (httpx.HTTPError, fastjson.JSONDecodeError):
             return []
         skills = data.get("skills", []) if isinstance(data, dict) else []
         if isinstance(skills, list):
@@ -2576,7 +2576,7 @@ class BrowseShSource(SkillSource):
                     md_url = data.get("skillMdUrl")
                     if isinstance(md_url, str) and md_url.startswith("http"):
                         return md_url
-        except (httpx.HTTPError, json.JSONDecodeError):
+        except (httpx.HTTPError, fastjson.JSONDecodeError):
             pass
 
         source_url = item.get("sourceUrl", "") if isinstance(item, dict) else ""
@@ -2778,8 +2778,8 @@ def _read_index_cache(key: str) -> Optional[Any]:
         stat = cache_file.stat()
         if time.time() - stat.st_mtime > INDEX_CACHE_TTL:
             return None
-        return json.loads(cache_file.read_text())
-    except (OSError, json.JSONDecodeError):
+        return fastjson.loads(cache_file.read_text())
+    except (OSError, fastjson.JSONDecodeError):
         return None
 
 
@@ -2797,7 +2797,7 @@ def _write_index_cache(key: str, data: Any) -> None:
             pass
     cache_file = INDEX_CACHE_DIR / f"{key}.json"
     try:
-        cache_file.write_text(json.dumps(data, ensure_ascii=False, default=str))
+        cache_file.write_text(fastjson.dumps(data, ensure_ascii=False, default=str))
     except OSError as e:
         logger.debug("Could not write cache: %s", e)
 
@@ -2831,13 +2831,13 @@ class HubLockFile:
         if not self.path.exists():
             return {"version": 1, "installed": {}}
         try:
-            return json.loads(self.path.read_text())
-        except (json.JSONDecodeError, OSError):
+            return fastjson.loads(self.path.read_text())
+        except (fastjson.JSONDecodeError, OSError):
             return {"version": 1, "installed": {}}
 
     def save(self, data: dict) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+        self.path.write_text(fastjson.dumps(data, indent=2, ensure_ascii=False) + "\n")
 
     def record_install(
         self,
@@ -2903,14 +2903,14 @@ class TapsManager:
         if not self.path.exists():
             return []
         try:
-            data = json.loads(self.path.read_text())
+            data = fastjson.loads(self.path.read_text())
             return data.get("taps", [])
-        except (json.JSONDecodeError, OSError):
+        except (fastjson.JSONDecodeError, OSError):
             return []
 
     def save(self, taps: List[dict]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps({"taps": taps}, indent=2) + "\n")
+        self.path.write_text(fastjson.dumps({"taps": taps}, indent=2) + "\n")
 
     def add(self, repo: str, path: str = "skills/") -> bool:
         """Add a tap. Returns False if already exists."""
@@ -3197,8 +3197,8 @@ def _load_hermes_index() -> Optional[dict]:
         try:
             age = time.time() - HERMES_INDEX_CACHE_FILE.stat().st_mtime
             if age < HERMES_INDEX_TTL:
-                return json.loads(HERMES_INDEX_CACHE_FILE.read_text())
-        except (OSError, json.JSONDecodeError):
+                return fastjson.loads(HERMES_INDEX_CACHE_FILE.read_text())
+        except (OSError, fastjson.JSONDecodeError):
             pass
 
     # Fetch from docs site
@@ -3208,7 +3208,7 @@ def _load_hermes_index() -> Optional[dict]:
             logger.debug("Hermes index fetch returned %d", resp.status_code)
             return _load_stale_index_cache()
         data = resp.json()
-    except (httpx.HTTPError, json.JSONDecodeError) as e:
+    except (httpx.HTTPError, fastjson.JSONDecodeError) as e:
         logger.debug("Hermes index fetch failed: %s", e)
         return _load_stale_index_cache()
 
@@ -3219,7 +3219,7 @@ def _load_hermes_index() -> Optional[dict]:
     # Cache locally
     try:
         HERMES_INDEX_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        HERMES_INDEX_CACHE_FILE.write_text(json.dumps(data))
+        HERMES_INDEX_CACHE_FILE.write_text(fastjson.dumps(data))
     except OSError:
         pass
 
@@ -3230,8 +3230,8 @@ def _load_stale_index_cache() -> Optional[dict]:
     """Fall back to stale cache when the network fetch fails."""
     if HERMES_INDEX_CACHE_FILE.exists():
         try:
-            return json.loads(HERMES_INDEX_CACHE_FILE.read_text())
-        except (OSError, json.JSONDecodeError):
+            return fastjson.loads(HERMES_INDEX_CACHE_FILE.read_text())
+        except (OSError, fastjson.JSONDecodeError):
             pass
     return None
 

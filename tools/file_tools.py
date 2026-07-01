@@ -503,7 +503,7 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
         # Block paths that would hang the process (infinite output,
         # blocking on input).  Pure path check — no I/O.
         if _is_blocked_device(path):
-            return json.dumps({
+            return fastjson.dumps({
                 "error": (
                     f"Cannot read '{path}': this is a device file that would "
                     "block or produce infinite output."
@@ -516,7 +516,7 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
         # Block binary files by extension (no I/O).
         if has_binary_extension(str(_resolved)):
             _ext = _resolved.suffix.lower()
-            return json.dumps({
+            return fastjson.dumps({
                 "error": (
                     f"Cannot read binary file '{path}' ({_ext}). "
                     "Use vision_analyze for images, or terminal to inspect binary files."
@@ -532,7 +532,7 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
         # the Python process cwd, which can differ.
         block_error = get_read_block_error(str(_resolved))
         if block_error:
-            return json.dumps({"error": block_error})
+            return fastjson.dumps({"error": block_error})
 
         # ── Dedup check ───────────────────────────────────────────────
         # If we already read this exact (path, offset, limit) and the
@@ -570,7 +570,7 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
                         _cap_read_tracker_data(task_data)
 
                     if hits >= 2:
-                        return json.dumps({
+                        return fastjson.dumps({
                             "error": (
                                 f"BLOCKED: You have called read_file on this "
                                 f"exact region {hits + 1} times and the file "
@@ -584,7 +584,7 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
                             "already_read": hits + 1,
                         }, ensure_ascii=False)
 
-                    return json.dumps({
+                    return fastjson.dumps({
                         "status": "unchanged",
                         "message": _READ_DEDUP_STATUS_MESSAGE,
                         "path": path,
@@ -611,7 +611,7 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
         max_chars = _get_max_read_chars()
         if content_len > max_chars:
             total_lines = result_dict.get("total_lines", "unknown")
-            return json.dumps({
+            return fastjson.dumps({
                 "error": (
                     f"Read produced {content_len:,} characters which exceeds "
                     f"the safety limit ({max_chars:,} chars). "
@@ -690,7 +690,7 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
 
         if count >= 4:
             # Hard block: stop returning content to break the loop
-            return json.dumps({
+            return fastjson.dumps({
                 "error": (
                     f"BLOCKED: You have read this exact file region {count} times in a row. "
                     "The content has NOT changed. You already have this information. "
@@ -706,7 +706,7 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
                 "If you are stuck in a loop, stop reading and proceed with writing or responding."
             )
 
-        return json.dumps(result_dict, ensure_ascii=False)
+        return fastjson.dumps(result_dict, ensure_ascii=False)
     except Exception as e:
         return tool_error(str(e))
 
@@ -884,7 +884,7 @@ def write_file_tool(path: str, content: str, task_id: str = "default",
             if stale_warning:
                 result_dict["_warning"] = stale_warning
             _update_read_timestamp(path, task_id)
-            return json.dumps(result_dict, ensure_ascii=False)
+            return fastjson.dumps(result_dict, ensure_ascii=False)
 
         # Serialize the read→modify→write region per-path so concurrent
         # subagents can't interleave on the same file.  Different paths
@@ -905,7 +905,7 @@ def write_file_tool(path: str, content: str, task_id: str = "default",
             _update_read_timestamp(path, task_id)
             if not result_dict.get("error"):
                 file_state.note_write(task_id, _resolved)
-        return json.dumps(result_dict, ensure_ascii=False)
+        return fastjson.dumps(result_dict, ensure_ascii=False)
     except Exception as e:
         if _is_expected_write_exception(e):
             logger.debug("write_file expected denial: %s: %s", type(e).__name__, e)
@@ -1030,7 +1030,7 @@ def patch_tool(mode: str = "replace", path: str = None, old_string: str = None,
                     "old_string not found. Use read_file to verify the current "
                     "content, or search_files to locate the text."
                 )
-        return json.dumps(result_dict, ensure_ascii=False)
+        return fastjson.dumps(result_dict, ensure_ascii=False)
     except Exception as e:
         return tool_error(str(e))
 
@@ -1067,7 +1067,7 @@ def search_tool(pattern: str, target: str = "content", path: str = ".",
             count = task_data["consecutive"]
 
         if count >= 4:
-            return json.dumps({
+            return fastjson.dumps({
                 "error": (
                     f"BLOCKED: You have run this exact search {count} times in a row. "
                     "The results have NOT changed. You already have this information. "
@@ -1094,7 +1094,7 @@ def search_tool(pattern: str, target: str = "content", path: str = ".",
                 "The results have not changed. Use the information you already have."
             )
 
-        result_json = json.dumps(result_dict, ensure_ascii=False)
+        result_json = fastjson.dumps(result_dict, ensure_ascii=False)
         # Hint when results were truncated — explicit next offset is clearer
         # than relying on the model to infer it from total_count vs match count.
         if result_dict.get("truncated"):

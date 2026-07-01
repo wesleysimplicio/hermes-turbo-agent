@@ -648,7 +648,7 @@ def memory_tool(
     else:
         return tool_error(f"Unknown action '{action}'. Use: add, replace, remove", success=False)
 
-    return json.dumps(result, ensure_ascii=False)
+    return fastjson.dumps(result, ensure_ascii=False)
 
 
 def check_memory_requirements() -> bool:
