@@ -4,6 +4,7 @@ Based on PR #1085 by ismoilh (salvaged).
 """
 
 import os
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -194,6 +195,12 @@ class TestCheckSensitivePathMacOSBypass:
     def test_safe_path_allowed(self):
         from tools.file_tools import _check_sensitive_path
         assert _check_sensitive_path("/tmp/safe_file.txt") is None
+
+    def test_tempfile_root_allowed_even_when_resolved_under_private_var(self):
+        from tools.file_tools import _check_sensitive_path
+
+        temp_candidate = Path(tempfile.gettempdir()) / "hermes-safe-temp.txt"
+        assert _check_sensitive_path(str(temp_candidate)) is None
 
 
 class TestAtomicWrite:

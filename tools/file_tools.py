@@ -5,6 +5,7 @@ import errno
 import json
 import logging
 import os
+import tempfile
 import threading
 from pathlib import Path
 
@@ -513,6 +514,23 @@ def _check_sensitive_path(filepath: str, task_id: str = "default") -> str | None
     except (OSError, ValueError):
         resolved = filepath
     normalized = os.path.normpath(_expand_tilde(filepath))
+
+    def _is_under_temp_root(path_str: str) -> bool:
+        if not path_str:
+            return False
+        try:
+            candidate = Path(path_str).expanduser().resolve(strict=False)
+            temp_root = Path(tempfile.gettempdir()).resolve(strict=False)
+            return candidate == temp_root or temp_root in candidate.parents
+        except Exception:
+            return False
+
+    # macOS resolves tempfile roots to /private/var/folders/...; treat the OS
+    # temp dir as an explicit safe exception so normal temp-workspace edits and
+    # pytest tmp_path runs are not misclassified as system-path writes.
+    if _is_under_temp_root(resolved) or _is_under_temp_root(normalized):
+        return None
+
     _err = (
         f"Refusing to write to sensitive system path: {filepath}\n"
         "Use the terminal tool with sudo if you need to modify system files."
