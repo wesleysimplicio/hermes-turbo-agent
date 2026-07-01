@@ -79,23 +79,6 @@ All notable changes to Hermes Turbo Agent are recorded here. Format follows
 
 ### Fixed
 
-- `agent/verification_evidence.py::verification_status` now attaches an
-  explicit `claims_gate` field (`allow_fresh_verification_claim`,
-  `allow_repo_green_claim`, `reason`) to every response, so downstream
-  consumers stop over-inferring a "repo green" state from a single passed
-  command.
-- `model_tools.py::handle_function_call` now emits the `post_tool_call`
-  observer hook with `status="blocked"` when an edit is denied by ACP
-  approval or when the approval guard itself raises, so blocked edits are no
-  longer silently unobserved.
-- `tools/file_tools.py::_check_sensitive_path` narrows the sensitive-path
-  check with an explicit OS-temp-root carve-out, fixing a macOS false
-  positive where `/tmp` resolves to `/private/var/folders/...` and was
-  misclassified as a protected `/private/var/` system path. The carve-out is
-  ordered after the Hermes-config check so it cannot bypass the
-  security-critical "refuse to write to Hermes config file" guard (a build
-  and test hardening pass caught this ordering bug via
-  `tests/tools/test_file_tools.py::TestSensitivePathCheck` regressing).
 - Restored the four token-economy telemetry modules (`token_savings`,
   `gain_analytics`, `stage_timer`, `dashboard`) that a prior cleanup removed
   while leaving their shipped #136–#139 consumers in place; `hermes report
@@ -250,3 +233,25 @@ under issues #81–#103. Validation: 183 targeted unit tests pass
 
 Validation: 40 new unit tests pass + 170 legacy turbo unit tests pass
 (was 159 — +11 with this batch).
+
+## [0.18.1] - 2026-07-01
+
+### Fixed
+
+- `agent/verification_evidence.py::verification_status` now attaches an
+  explicit `claims_gate` field (`allow_fresh_verification_claim`,
+  `allow_repo_green_claim`, `reason`) to every response, so downstream
+  consumers stop over-inferring a "repo green" state from a single passed
+  command.
+- `model_tools.py::handle_function_call` now emits the `post_tool_call`
+  observer hook with `status="blocked"` when an edit is denied by ACP
+  approval or when the approval guard itself raises, so blocked edits are no
+  longer silently unobserved.
+- `tools/file_tools.py::_check_sensitive_path` narrows the sensitive-path
+  check with an explicit OS-temp-root carve-out, fixing a macOS false
+  positive where `/tmp` resolves to `/private/var/folders/...` and was
+  misclassified as a protected `/private/var/` system path. The carve-out is
+  ordered after the Hermes-config check so it cannot bypass the
+  security-critical "refuse to write to Hermes config file" guard (a build
+  and test hardening pass caught this ordering bug via
+  `tests/tools/test_file_tools.py::TestSensitivePathCheck` regressing).
