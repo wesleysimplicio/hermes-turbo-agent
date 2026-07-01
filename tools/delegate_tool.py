@@ -424,6 +424,39 @@ def _get_max_async_children() -> int:
     return _DEFAULT_MAX_ASYNC_CHILDREN
 
 
+_DEFAULT_ASYNC_DISPATCH_RATE_PER_MINUTE = 20
+
+
+def _get_async_dispatch_rate_per_minute() -> Optional[float]:
+    """Read delegation.async_dispatch_rate_per_minute from config.
+
+    Bounds how many background (``background=true``) dispatches a single
+    ``role`` may start per minute, independent of ``max_async_children``
+    (which caps how many can run AT ONCE). ``None`` disables rate limiting
+    entirely (concurrency-only gate). Default is generous (20/min) so normal
+    usage is never affected unless explicitly tightened.
+    """
+    cfg = _load_config()
+    val = cfg.get("async_dispatch_rate_per_minute")
+    if val is not None:
+        try:
+            return max(0.001, float(val))
+        except (TypeError, ValueError):
+            logger.warning(
+                "delegation.async_dispatch_rate_per_minute=%r is not a valid "
+                "number; using default %d",
+                val, _DEFAULT_ASYNC_DISPATCH_RATE_PER_MINUTE,
+            )
+            return _DEFAULT_ASYNC_DISPATCH_RATE_PER_MINUTE
+    env_val = os.getenv("DELEGATION_ASYNC_DISPATCH_RATE_PER_MINUTE")
+    if env_val:
+        try:
+            return max(0.001, float(env_val))
+        except (TypeError, ValueError):
+            return _DEFAULT_ASYNC_DISPATCH_RATE_PER_MINUTE
+    return _DEFAULT_ASYNC_DISPATCH_RATE_PER_MINUTE
+
+
 def _get_child_timeout() -> Optional[float]:
     """Read delegation.child_timeout_seconds from config.
 
@@ -2841,6 +2874,7 @@ def delegate_task(
             runner=_batch_runner,
             interrupt_fn=_batch_interrupt,
             max_async_children=_get_max_async_children(),
+            dispatch_rate_per_minute=_get_async_dispatch_rate_per_minute(),
         )
 
         if dispatch.get("status") == "dispatched":

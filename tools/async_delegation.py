@@ -36,7 +36,9 @@ logic stays in one place.
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import sys
 import threading
 import time
 import uuid
@@ -45,9 +47,16 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures.thread import _worker
 from typing import Any, Callable, Dict, List, Optional
 
+from agent.tier_rate_limiter import TierRateLimiter
 from tools.thread_context import propagate_context_to_thread
 
 logger = logging.getLogger(__name__)
+
+# Gates the RATE of dispatch (per role) over a rolling window, independent of
+# and complementary to the concurrency cap (max_async_children) below: the
+# concurrency cap alone lets a model burn through its whole budget in a tight
+# loop as long as each call finishes quickly.
+_dispatch_rate_limiter = TierRateLimiter()
 
 
 class _DaemonThreadPoolExecutor(ThreadPoolExecutor):
@@ -69,15 +78,30 @@ class _DaemonThreadPoolExecutor(ThreadPoolExecutor):
         num_threads = len(self._threads)
         if num_threads < self._max_workers:
             thread_name = "%s_%d" % (self._thread_name_prefix or self, num_threads)
-            t = threading.Thread(
-                name=thread_name,
-                target=_worker,
-                args=(
+            if sys.version_info >= (3, 14):
+                # Python 3.14 restructured ThreadPoolExecutor internals: workers
+                # are built from a WorkerContext instead of raw
+                # (initializer, initargs), and _worker's signature changed to
+                # (executor_reference, ctx, work_queue). _create_worker_context()
+                # already captures whatever initializer/initargs were passed to
+                # our constructor, so this stays a faithful daemon-thread mirror
+                # of stdlib's own _adjust_thread_count for this version.
+                worker_args = (
+                    weakref.ref(self, weakref_cb),
+                    self._create_worker_context(),
+                    self._work_queue,
+                )
+            else:
+                worker_args = (
                     weakref.ref(self, weakref_cb),
                     self._work_queue,
                     self._initializer,
                     self._initargs,
-                ),
+                )
+            t = threading.Thread(
+                name=thread_name,
+                target=_worker,
+                args=worker_args,
                 daemon=True,
             )
             t.start()
@@ -133,6 +157,31 @@ def _new_delegation_id() -> str:
     return f"deleg_{uuid.uuid4().hex[:8]}"
 
 
+def _dedupe_key(
+    goal: str,
+    context: Optional[str],
+    toolsets: Optional[List[str]],
+    role: str,
+    model: Optional[str],
+) -> str:
+    """Deterministic content fingerprint for a single-goal dispatch.
+
+    Two dispatches with the same goal/context/toolsets/role/model produce the
+    same key. Used to detect an in-flight duplicate (e.g. a retried tool call
+    for the exact same task) and return the existing delegation instead of
+    spawning a second one for identical work.
+    """
+    parts = [
+        goal or "",
+        context or "",
+        ",".join(sorted(toolsets)) if toolsets else "",
+        role or "",
+        model or "",
+    ]
+    seed = "\x1f".join(parts)  # unit-separator: safe against part collisions
+    return hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16]
+
+
 def _prune_completed_locked() -> None:
     """Drop the oldest completed records beyond the retention cap.
 
@@ -162,6 +211,7 @@ def dispatch_async_delegation(
     runner: Callable[[], Dict[str, Any]],
     interrupt_fn: Optional[Callable[[], None]] = None,
     max_async_children: int = _DEFAULT_MAX_ASYNC_CHILDREN,
+    dispatch_rate_per_minute: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Spawn ``runner`` on the daemon executor and return a handle immediately.
 
@@ -185,13 +235,22 @@ def dispatch_async_delegation(
         Concurrency cap. When at capacity the dispatch is REJECTED (the caller
         should fall back to sync or tell the user) rather than queued, so a
         runaway model can't pile up unbounded background work.
+    dispatch_rate_per_minute
+        Optional rate cap (dispatches/minute) for this ``role``, independent
+        of ``max_async_children``: it bounds how often the gate opens over
+        time, not how many can run at once. ``None`` (default) disables rate
+        limiting entirely — a concurrency-only gate, matching prior behavior.
 
     Returns
     -------
     dict
-        ``{"status": "dispatched", "delegation_id": ...}`` on success, or
-        ``{"status": "rejected", "error": ...}`` when at capacity.
+        ``{"status": "dispatched", "delegation_id": ...}`` on success,
+        ``{"status": "deduped", "delegation_id": <existing_id>}`` when an
+        identical goal/context/toolsets/role/model is already running,
+        or ``{"status": "rejected", "error": ...}`` when at capacity or
+        rate-limited.
     """
+    dedupe_key = _dedupe_key(goal, context, toolsets, role, model)
     delegation_id = _new_delegation_id()
     dispatched_at = time.time()
     record: Dict[str, Any] = {
@@ -206,11 +265,35 @@ def dispatch_async_delegation(
         "dispatched_at": dispatched_at,
         "completed_at": None,
         "interrupt_fn": interrupt_fn,
+        "dedupe_key": dedupe_key,
     }
-    # Capacity check and record insert under ONE lock hold — checking
-    # active_count() separately would let two concurrent dispatches (e.g.
-    # from different gateway sessions) both pass the check and exceed the cap.
+    # Dedup check, capacity check, and record insert under ONE lock hold —
+    # checking any of these separately would let two concurrent dispatches
+    # (e.g. from different gateway sessions) both pass and double-spawn.
     with _records_lock:
+        for existing in _records.values():
+            if (
+                existing.get("status") == "running"
+                and existing.get("dedupe_key") == dedupe_key
+            ):
+                return {
+                    "status": "deduped",
+                    "delegation_id": existing["delegation_id"],
+                }
+
+        if dispatch_rate_per_minute is not None and not _dispatch_rate_limiter.try_acquire(
+            role, dispatch_rate_per_minute
+        ):
+            return {
+                "status": "rejected",
+                "error": (
+                    f"Async delegation rate limit reached for role={role!r} "
+                    f"({dispatch_rate_per_minute}/min). Wait a moment and retry, "
+                    f"or raise delegation.async_dispatch_rate_per_minute in "
+                    f"config.yaml."
+                ),
+            }
+
         running = sum(
             1 for r in _records.values() if r.get("status") == "running"
         )
@@ -349,6 +432,7 @@ def dispatch_async_delegation_batch(
     runner: Callable[[], Dict[str, Any]],
     interrupt_fn: Optional[Callable[[], None]] = None,
     max_async_children: int = _DEFAULT_MAX_ASYNC_CHILDREN,
+    dispatch_rate_per_minute: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Dispatch a WHOLE fan-out batch as ONE background unit.
 
@@ -393,6 +477,19 @@ def dispatch_async_delegation_batch(
         "is_batch": True,
     }
     with _records_lock:
+        if dispatch_rate_per_minute is not None and not _dispatch_rate_limiter.try_acquire(
+            role, dispatch_rate_per_minute
+        ):
+            return {
+                "status": "rejected",
+                "error": (
+                    f"Async delegation rate limit reached for role={role!r} "
+                    f"({dispatch_rate_per_minute}/min). Wait a moment and retry, "
+                    f"or raise delegation.async_dispatch_rate_per_minute in "
+                    f"config.yaml."
+                ),
+            }
+
         running = sum(
             1 for r in _records.values() if r.get("status") == "running"
         )
@@ -559,3 +656,4 @@ def _reset_for_tests() -> None:
         _executor_max_workers = 0
     with _records_lock:
         _records.clear()
+    _dispatch_rate_limiter.reset()

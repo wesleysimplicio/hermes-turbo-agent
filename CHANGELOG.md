@@ -6,6 +6,36 @@ All notable changes to Hermes Turbo Agent are recorded here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- `agent/tier_rate_limiter.py::TierRateLimiter` — thread-safe, per-tier
+  token-bucket rate limiter (idea adapted from an external Asolaria
+  Rust-federation prototype's per-tier route admission, reimplemented in
+  pure stdlib Python). Wired into `tools/async_delegation.py`'s background
+  subagent dispatch as an optional `dispatch_rate_per_minute` gate, per
+  delegation `role`, independent of and complementary to the existing
+  `max_async_children` concurrency cap. Configure via
+  `delegation.async_dispatch_rate_per_minute` in `config.yaml` (default: 20;
+  `None`/omitted disables rate limiting entirely — concurrency-only gate,
+  matching prior behavior).
+- `tools/async_delegation.py::dispatch_async_delegation` now computes a
+  deterministic content fingerprint (`dedupe_key`, sha256 of
+  goal+context+toolsets+role+model) for each background dispatch. A second
+  dispatch with identical content while the first is still running returns
+  `{"status": "deduped", "delegation_id": <existing_id>}` instead of
+  spawning a duplicate subagent — protects against double-dispatch from a
+  retried/duplicated tool call for the same task.
+
+### Fixed
+
+- `tools/async_delegation.py::_DaemonThreadPoolExecutor._adjust_thread_count`
+  crashed on Python 3.14 (`AttributeError: '_DaemonThreadPoolExecutor' object
+  has no attribute '_initializer'`) — stdlib's `ThreadPoolExecutor` internals
+  were restructured in 3.14 (`_worker`'s signature changed and
+  `_initializer`/`_initargs` were replaced by `_create_worker_context()`).
+  Now branches by `sys.version_info` so background subagent dispatch works
+  on 3.11–3.14+.
+
 ### Performance
 
 - `agent/prompt_caching.py::apply_anthropic_cache_control` no longer
