@@ -43,7 +43,47 @@ def test_show_status_termux_gateway_section_skips_systemctl(monkeypatch, capsys,
     output = capsys.readouterr().out
     assert "Manager:      Termux / manual process" in output
     assert "Start with:   hermes gateway" in output
+    assert "Resume gate:  clear" in output
+    assert "Dead targets: 0 recorded" in output
     assert "systemd (user)" not in output
+
+
+def test_show_status_surfaces_gateway_receipts(monkeypatch, capsys, tmp_path):
+    from hermes_cli import status as status_mod
+    import hermes_cli.auth as auth_mod
+    import hermes_cli.gateway as gateway_mod
+
+    gateway_dir = tmp_path / "gateway"
+    gateway_dir.mkdir(parents=True)
+    (gateway_dir / "restart_loop.json").write_text('{"boots": [440.0, 460.0, 490.0]}', encoding="utf-8")
+    (gateway_dir / "dead_targets.json").write_text(
+        '{"telegram:42": {"platform": "telegram", "chat_id": "42"}, "slack:C123": {"platform": "slack", "chat_id": "C123"}}',
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(status_mod, "get_env_path", lambda: tmp_path / ".env", raising=False)
+    monkeypatch.setattr(status_mod, "get_hermes_home", lambda: tmp_path, raising=False)
+    monkeypatch.setattr(status_mod, "load_config", lambda: {"model": "gpt-5.4"}, raising=False)
+    monkeypatch.setattr(status_mod, "resolve_requested_provider", lambda requested=None: "openai-codex", raising=False)
+    monkeypatch.setattr(status_mod, "resolve_provider", lambda requested=None, **kwargs: "openai-codex", raising=False)
+    monkeypatch.setattr(status_mod, "provider_label", lambda provider: "OpenAI Codex", raising=False)
+    monkeypatch.setattr(status_mod.time, "time", lambda: 500.0, raising=False)
+    monkeypatch.setattr(auth_mod, "get_nous_auth_status", lambda: {}, raising=False)
+    monkeypatch.setattr(auth_mod, "get_codex_auth_status", lambda: {}, raising=False)
+    monkeypatch.setattr(auth_mod, "get_qwen_auth_status", lambda: {}, raising=False)
+    monkeypatch.setattr(auth_mod, "get_minimax_oauth_auth_status", lambda: {}, raising=False)
+    monkeypatch.setattr(auth_mod, "get_xai_oauth_auth_status", lambda: {}, raising=False)
+    monkeypatch.setattr(gateway_mod, "find_gateway_pids", lambda exclude_pids=None: [], raising=False)
+
+    status_mod.show_status(SimpleNamespace(all=False, deep=False))
+
+    output = capsys.readouterr().out
+    assert "Resume gate:  TRIPPED (3/3 recent interrupted boots)" in output
+    assert f"window=60s file={gateway_dir / 'restart_loop.json'}" in output
+    assert "Dead targets: 2 recorded" in output
+    assert f"store: {gateway_dir / 'dead_targets.json'}" in output
+
+
 
 
 def test_show_status_reports_nous_auth_error(monkeypatch, capsys, tmp_path):
