@@ -2,9 +2,9 @@
   "version": 1,
   "upstream_url": "https://github.com/NousResearch/hermes-agent.git",
   "upstream_branch": "main",
-  "last_sync_sha": "80672754a875fe7ac0f231054918d47272097f9e",
+  "last_sync_sha": "9be292f1e678437644396b47b3410b433ba3433f",
   "last_sync_branch": "main",
-  "last_sync_at": "2026-06-05T00:00:00Z",
-  "last_run_id": "20260605-013107",
-  "notes": "2026-06-05 review-and-cherry-pick (not a full merge): all 50 newest upstream commits classified as bug/stability fixes, none speed-related. Took only the WAL TRUNCATE checkpoint fix (upstream 46b2afc56, #24034). See docs/upstream-sync/2026-06-05-review.md. Baseline recorded so the drift checker only alerts on commits past 80672754."
+  "last_sync_at": "2026-07-01T00:00:00Z",
+  "last_run_id": "20260701-full-merge",
+  "notes": "2026-07-01 full merge (not cherry-pick): merged upstream/main up to 9be292f1e (v0.17.0) via PR #179. git auto-merged ~3984/4038 files; 54 conflicts resolved per .upstream-sync-policy.yml (11 prefer-upstream, README/.gitattributes ours, 15 files blended 3-way). CAVEAT: run_agent.py kept at the FORK version -- upstream agent-core refactor (~3900-line conflict) NOT absorbed; needs a dedicated follow-up port. Fork perf preserved (PR #178). Baseline recorded so the drift checker only alerts on commits past 9be292f1e."
 }
