@@ -1,5 +1,45 @@
 # Progress Log
 
+## Cycle 2026-07-01 — hot-path performance pass (Simplicio scan)
+
+Goal (operator): scan the repo with Simplicio and make performance
+improvements.
+
+Approach: `simplicio map` for orientation, then an adversarially-verified
+8-dimension hot-path audit (find → refute) over the streaming, compression,
+scrubber, state, and caching paths. 10 findings confirmed+recommended; applied
+the safe subset, each grounded in code that was read and covered by tests.
+
+Landed (version bump 0.15.2 → 0.15.3):
+
+1. **`agent/prompt_caching.py`** — `apply_anthropic_cache_control` shallow-copies
+   the message list and deep-copies only the ≤4 messages it marks, instead of
+   `copy.deepcopy` of the whole transcript on every Anthropic send (per-message,
+   scales with conversation size). +2 non-mutation regression tests.
+2. **`agent/chat_completion_helpers.py` + `run_agent.py`** — dropped
+   `len(repr(chunk/event))` per stream chunk (pydantic deep-repr every token) at
+   4 sites for a cheap delta-length proxy on `_diag["bytes"]`.
+3. **`agent/chat_completion_helpers.py`** — streamed tool-call arguments now
+   accumulate in a list joined once (was `dict[...]["arguments"] += frag`, O(N²)).
+4. **`agent/think_scrubber.py`** — precomputed lowercased tag tuples; removes
+   per-delta `tag.lower()` across 5 hot-path scan helpers.
+5. **`hermes_state.py`** — `get_messages_around` / `get_anchored_view` read
+   `tool_calls` via `_json_loads` (fast-json aware) like the sibling readers.
+
+Validation: **463 passed** across think_scrubber, prompt_caching, cache_boundary,
+stream_drop_logging, anthropic_prompt_cache_policy, chat_completions transport,
+hermes_state (+ anchored/around), streaming, and streaming_tool_call_repair.
+(`tests/run_agent/test_partial_stream_finish_reason.py` has 3 failures that
+**pre-date** this work — reproduced on clean HEAD via `git stash`.)
+
+Note: the multi-agent audit fan-out left an unreviewed orjson migration in
+`tools/*.py` + `gateway/run.py` + a new `tools/_fastjson.py`. That was **out of
+scope, unvetted**, and reverted; the diff is saved in the session scratchpad as
+`unreviewed-tools-orjson-migration.patch` if we want to review it deliberately
+later.
+
+Not committed/pushed (project rule: no push; left for operator review).
+
 ## Cycle 2026-06-05 — upstream review + operational + speed
 
 Goal (operator): run the Hermes/Turbo update, see what changed, keep our

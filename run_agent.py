@@ -8374,12 +8374,29 @@ class AIAgent:
                     _diag["chunks"] = int(_diag.get("chunks", 0)) + 1
                     if _diag.get("first_chunk_at") is None:
                         _diag["first_chunk_at"] = last_chunk_time["t"]
-                    # Approximate byte size from the chunk's repr — exact wire
-                    # bytes aren't exposed by the SDK, but len(repr(chunk)) is
-                    # a stable proxy for "how much content arrived" that
-                    # survives stub provider differences.
+                    # Approximate size of "content that arrived" as a byte
+                    # proxy. Avoids len(repr(chunk)): repr() of a pydantic
+                    # ChatCompletionChunk recursively renders every nested
+                    # field into a throwaway string on every chunk (real
+                    # per-token CPU + GC waste). Sum only the delta
+                    # text/reasoning/tool-arg lengths instead.
                     try:
-                        _diag["bytes"] = int(_diag.get("bytes", 0)) + len(repr(chunk))
+                        _choices = getattr(chunk, "choices", None)
+                        if _choices:
+                            _d = _choices[0].delta
+                            if _d is not None:
+                                _n = len(getattr(_d, "content", None) or "")
+                                _r = getattr(_d, "reasoning_content", None) or getattr(_d, "reasoning", None)
+                                if _r:
+                                    _n += len(_r)
+                                _tcs = getattr(_d, "tool_calls", None)
+                                if _tcs:
+                                    for _tc in _tcs:
+                                        _fn = getattr(_tc, "function", None)
+                                        if _fn is not None:
+                                            _n += len(getattr(_fn, "arguments", None) or "")
+                                if _n:
+                                    _diag["bytes"] = int(_diag.get("bytes", 0)) + _n
                     except Exception:
                         pass
                 except Exception:
@@ -8610,7 +8627,17 @@ class AIAgent:
                         if _diag.get("first_chunk_at") is None:
                             _diag["first_chunk_at"] = last_chunk_time["t"]
                         try:
-                            _diag["bytes"] = int(_diag.get("bytes", 0)) + len(repr(event))
+                            _ev_delta = getattr(event, "delta", None)
+                            if _ev_delta is not None:
+                                _n = len(getattr(_ev_delta, "text", None) or "")
+                                _th = getattr(_ev_delta, "thinking", None)
+                                if _th:
+                                    _n += len(_th)
+                                _pj = getattr(_ev_delta, "partial_json", None)
+                                if _pj:
+                                    _n += len(_pj)
+                                if _n:
+                                    _diag["bytes"] = int(_diag.get("bytes", 0)) + _n
                         except Exception:
                             pass
                     except Exception:

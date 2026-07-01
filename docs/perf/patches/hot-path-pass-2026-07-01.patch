@@ -1,0 +1,520 @@
+From 3e68792cef50d54df7fc7e25e869c36165c5f048 Mon Sep 17 00:00:00 2001
+From: Wesley Simplicio <wesleysimplicio@live.com>
+Date: Wed, 1 Jul 2026 12:12:53 -0300
+Subject: [PATCH] perf: cut hot-path allocations in caching, streaming,
+ scrubber, state
+
+Adversarially-verified hot-path wins from a repo-wide perf audit:
+
+- prompt_caching: shallow-copy the message list and deepcopy only the <=4
+  cache-marked messages instead of deepcopy-ing the whole transcript on every
+  Anthropic send (per-message; scales with conversation size). +2 non-mutation
+  regression tests locking the contract.
+- chat_completion_helpers + run_agent: replace len(repr(chunk/event)) per
+  stream chunk (pydantic deep-repr every token) with a cheap delta-length byte
+  proxy (4 sites).
+- chat_completion_helpers: accumulate streamed tool-call arguments in a list
+  joined once, instead of dict-subscript += (O(N^2)).
+- think_scrubber: precompute lowercased tag tuples; drop per-delta tag.lower()
+  across 5 scan helpers.
+- hermes_state: get_messages_around / get_anchored_view read tool_calls via the
+  fast-json-aware _json_loads like the sibling readers.
+
+Version 0.15.2 -> 0.15.3. 463 targeted tests pass.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+---
+ CHANGELOG.md                                  | 27 ++++++++++
+ PROGRESS.md                                   | 40 ++++++++++++++
+ agent/chat_completion_helpers.py              | 52 +++++++++++++++----
+ agent/prompt_caching.py                       | 25 ++++++---
+ agent/think_scrubber.py                       | 35 +++++++------
+ hermes_state.py                               |  8 +--
+ pyproject.toml                                |  2 +-
+ run_agent.py                                  | 39 +++++++++++---
+ .../test_cache_breakpoint_placement.py        | 38 ++++++++++++++
+ 9 files changed, 224 insertions(+), 42 deletions(-)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index a90ab329f..2515a6393 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -8,6 +8,33 @@ All notable changes to Hermes Turbo Agent are recorded here. Format follows
+ 
+ ### Performance
+ 
++- `agent/prompt_caching.py::apply_anthropic_cache_control` no longer
++  `copy.deepcopy`s the entire transcript on every Anthropic send. It only ever
++  writes `cache_control` into ≤4 messages (system + last 3 non-system), so it
++  now shallow-copies the list and deep-copies just those messages. This drops a
++  per-turn clone of the whole conversation (including large multimodal / base64
++  content blocks) to a copy of ~4 dicts — a win that grows with conversation
++  length. The never-mutate-the-caller contract is preserved and now locked by
++  two new regression tests in `tests/regression/cache_boundary/`.
++- Streaming diagnostics (`_diag["bytes"]`) stopped calling `len(repr(chunk))` /
++  `len(repr(event))` on every stream chunk in `agent/chat_completion_helpers.py`
++  and `run_agent.py` (4 sites). `repr()` on a pydantic `ChatCompletionChunk`
++  recursively renders every nested field into a throwaway string per token; the
++  proxy now sums only the delta text/reasoning/tool-argument lengths — cheaper
++  and a more meaningful "bytes that arrived" measure.
++- Streamed tool-call arguments in `agent/chat_completion_helpers.py` now
++  accumulate into a list joined once at the end, instead of
++  `entry["function"]["arguments"] += fragment`. The `+=` target was a dict
++  subscript, which cannot use CPython's in-place string-concat fast path, giving
++  O(N²) behaviour on large tool-call JSON.
++- `agent/think_scrubber.StreamingThinkScrubber` precomputes lowercased tag
++  tuples (`_OPEN_TAGS_LOWER` / `_CLOSE_TAGS_LOWER`) once, removing the per-delta
++  `tag.lower()` recomputation of immutable tag constants across the five
++  hot-path scan helpers (runs per streamed delta).
++- `hermes_state.py` read paths `get_messages_around` and `get_anchored_view`
++  now deserialize `tool_calls` through the fast-json-aware `_json_loads` helper
++  (matching `get_messages`) instead of bare stdlib `json.loads`, so they honour
++  `HERMES_TURBO_FAST_STATE=1` (orjson) like the sibling readers.
+ - Corrected the optional Rust hot-path dispatch in `agent/_hermes_fast.py`.
+   Benchmarks showed the `hermes_fast` bridge is a net *loss* for token
+   estimation/truncation (the JSON-serialize + FFI boundary swamps the trivial
+diff --git a/PROGRESS.md b/PROGRESS.md
+index 65cf66f77..a4dd55917 100644
+--- a/PROGRESS.md
++++ b/PROGRESS.md
+@@ -1,5 +1,45 @@
+ # Progress Log
+ 
++## Cycle 2026-07-01 — hot-path performance pass (Simplicio scan)
++
++Goal (operator): scan the repo with Simplicio and make performance
++improvements.
++
++Approach: `simplicio map` for orientation, then an adversarially-verified
++8-dimension hot-path audit (find → refute) over the streaming, compression,
++scrubber, state, and caching paths. 10 findings confirmed+recommended; applied
++the safe subset, each grounded in code that was read and covered by tests.
++
++Landed (version bump 0.15.2 → 0.15.3):
++
++1. **`agent/prompt_caching.py`** — `apply_anthropic_cache_control` shallow-copies
++   the message list and deep-copies only the ≤4 messages it marks, instead of
++   `copy.deepcopy` of the whole transcript on every Anthropic send (per-message,
++   scales with conversation size). +2 non-mutation regression tests.
++2. **`agent/chat_completion_helpers.py` + `run_agent.py`** — dropped
++   `len(repr(chunk/event))` per stream chunk (pydantic deep-repr every token) at
++   4 sites for a cheap delta-length proxy on `_diag["bytes"]`.
++3. **`agent/chat_completion_helpers.py`** — streamed tool-call arguments now
++   accumulate in a list joined once (was `dict[...]["arguments"] += frag`, O(N²)).
++4. **`agent/think_scrubber.py`** — precomputed lowercased tag tuples; removes
++   per-delta `tag.lower()` across 5 hot-path scan helpers.
++5. **`hermes_state.py`** — `get_messages_around` / `get_anchored_view` read
++   `tool_calls` via `_json_loads` (fast-json aware) like the sibling readers.
++
++Validation: **463 passed** across think_scrubber, prompt_caching, cache_boundary,
++stream_drop_logging, anthropic_prompt_cache_policy, chat_completions transport,
++hermes_state (+ anchored/around), streaming, and streaming_tool_call_repair.
++(`tests/run_agent/test_partial_stream_finish_reason.py` has 3 failures that
++**pre-date** this work — reproduced on clean HEAD via `git stash`.)
++
++Note: the multi-agent audit fan-out left an unreviewed orjson migration in
++`tools/*.py` + `gateway/run.py` + a new `tools/_fastjson.py`. That was **out of
++scope, unvetted**, and reverted; the diff is saved in the session scratchpad as
++`unreviewed-tools-orjson-migration.patch` if we want to review it deliberately
++later.
++
++Not committed/pushed (project rule: no push; left for operator review).
++
+ ## Cycle 2026-06-05 — upstream review + operational + speed
+ 
+ Goal (operator): run the Hermes/Turbo update, see what changed, keep our
+diff --git a/agent/chat_completion_helpers.py b/agent/chat_completion_helpers.py
+index 8fe6bcd20..ad02f4dff 100644
+--- a/agent/chat_completion_helpers.py
++++ b/agent/chat_completion_helpers.py
+@@ -1620,12 +1620,29 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
+                 _diag["chunks"] = int(_diag.get("chunks", 0)) + 1
+                 if _diag.get("first_chunk_at") is None:
+                     _diag["first_chunk_at"] = last_chunk_time["t"]
+-                # Approximate byte size from the chunk's repr — exact wire
+-                # bytes aren't exposed by the SDK, but len(repr(chunk)) is
+-                # a stable proxy for "how much content arrived" that
+-                # survives stub provider differences.
++                # Approximate size of "content that arrived" as a byte proxy.
++                # Avoids len(repr(chunk)): repr() of a pydantic
++                # ChatCompletionChunk recursively renders every nested field
++                # into a throwaway string on every chunk (real per-token CPU +
++                # GC waste). Sum only the delta text/reasoning/tool-arg
++                # lengths — the meaningful payload — instead.
+                 try:
+-                    _diag["bytes"] = int(_diag.get("bytes", 0)) + len(repr(chunk))
++                    _choices = getattr(chunk, "choices", None)
++                    if _choices:
++                        _d = _choices[0].delta
++                        if _d is not None:
++                            _n = len(getattr(_d, "content", None) or "")
++                            _r = getattr(_d, "reasoning_content", None) or getattr(_d, "reasoning", None)
++                            if _r:
++                                _n += len(_r)
++                            _tcs = getattr(_d, "tool_calls", None)
++                            if _tcs:
++                                for _tc in _tcs:
++                                    _fn = getattr(_tc, "function", None)
++                                    if _fn is not None:
++                                        _n += len(getattr(_fn, "arguments", None) or "")
++                            if _n:
++                                _diag["bytes"] = int(_diag.get("bytes", 0)) + _n
+                 except Exception:
+                     pass
+             except Exception:
+@@ -1703,7 +1720,14 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
+                         tool_calls_acc[idx] = {
+                             "id": tc_delta.id or "",
+                             "type": "function",
+-                            "function": {"name": "", "arguments": ""},
++                            # ``arg_parts`` accumulates streamed argument
++                            # fragments in a list; joined once after the loop.
++                            # ``entry["function"]["arguments"] += frag`` cannot
++                            # use CPython's in-place str-concat fast path (the
++                            # target is a dict subscript, so the buffer carries
++                            # an extra ref and gets reallocated every fragment),
++                            # giving O(N^2) work on large tool-call JSON.
++                            "function": {"name": "", "arguments": "", "arg_parts": []},
+                             "extra_content": None,
+                         }
+                     entry = tool_calls_acc[idx]
+@@ -1721,7 +1745,7 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
+                             # Vercel AI patterns) is immune to this.
+                             entry["function"]["name"] = tc_delta.function.name
+                         if tc_delta.function.arguments:
+-                            entry["function"]["arguments"] += tc_delta.function.arguments
++                            entry["function"]["arg_parts"].append(tc_delta.function.arguments)
+                     extra = getattr(tc_delta, "extra_content", None)
+                     if extra is None and hasattr(tc_delta, "model_extra"):
+                         extra = (tc_delta.model_extra or {}).get("extra_content")
+@@ -1759,7 +1783,7 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
+             mock_tool_calls = []
+             for idx in sorted(tool_calls_acc):
+                 tc = tool_calls_acc[idx]
+-                arguments = tc["function"]["arguments"]
++                arguments = "".join(tc["function"]["arg_parts"])
+                 tool_name = tc["function"]["name"] or "?"
+                 if arguments and arguments.strip():
+                     try:
+@@ -1855,7 +1879,17 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
+                     if _diag.get("first_chunk_at") is None:
+                         _diag["first_chunk_at"] = last_chunk_time["t"]
+                     try:
+-                        _diag["bytes"] = int(_diag.get("bytes", 0)) + len(repr(event))
++                        _ev_delta = getattr(event, "delta", None)
++                        if _ev_delta is not None:
++                            _n = len(getattr(_ev_delta, "text", None) or "")
++                            _th = getattr(_ev_delta, "thinking", None)
++                            if _th:
++                                _n += len(_th)
++                            _pj = getattr(_ev_delta, "partial_json", None)
++                            if _pj:
++                                _n += len(_pj)
++                            if _n:
++                                _diag["bytes"] = int(_diag.get("bytes", 0)) + _n
+                     except Exception:
+                         pass
+                 except Exception:
+diff --git a/agent/prompt_caching.py b/agent/prompt_caching.py
+index a73d6e113..5603dc463 100644
+--- a/agent/prompt_caching.py
++++ b/agent/prompt_caching.py
+@@ -59,21 +59,34 @@ def apply_anthropic_cache_control(
+     Returns:
+         Deep copy of messages with cache_control breakpoints injected.
+     """
+-    messages = copy.deepcopy(api_messages)
+-    if not messages:
+-        return messages
+-
++    if not api_messages:
++        return list(api_messages)
++
++    # Only the system message (if present) plus the last up-to-3 non-system
++    # messages ever receive a cache_control marker. Deep-copying the entire
++    # transcript on every send is O(total conversation bytes) — including
++    # large multimodal / base64 content blocks and tool results — just to
++    # touch <=4 messages. Instead shallow-copy the list and deep-copy only
++    # the messages we actually mark. This still honours the never-mutate-the-
++    # caller contract: marked messages become independent copies before
++    # _apply_cache_marker writes into them, and untouched messages are shared
++    # by reference but only ever read.
++    messages = list(api_messages)
+     marker = _build_marker(cache_ttl)
+ 
++    def _mark(idx: int) -> None:
++        messages[idx] = copy.deepcopy(messages[idx])
++        _apply_cache_marker(messages[idx], marker, native_anthropic=native_anthropic)
++
+     breakpoints_used = 0
+ 
+     if messages[0].get("role") == "system":
+-        _apply_cache_marker(messages[0], marker, native_anthropic=native_anthropic)
++        _mark(0)
+         breakpoints_used += 1
+ 
+     remaining = 4 - breakpoints_used
+     non_sys = [i for i in range(len(messages)) if messages[i].get("role") != "system"]
+     for idx in non_sys[-remaining:]:
+-        _apply_cache_marker(messages[idx], marker, native_anthropic=native_anthropic)
++        _mark(idx)
+ 
+     return messages
+diff --git a/agent/think_scrubber.py b/agent/think_scrubber.py
+index 44ddcacff..31379c56f 100644
+--- a/agent/think_scrubber.py
++++ b/agent/think_scrubber.py
+@@ -89,6 +89,13 @@ class StreamingThinkScrubber:
+     _OPEN_TAGS: Tuple[str, ...] = tuple(f"<{name}>" for name in _OPEN_TAG_NAMES)
+     _CLOSE_TAGS: Tuple[str, ...] = tuple(f"</{name}>" for name in _OPEN_TAG_NAMES)
+ 
++    # Pre-lowercased tag forms. Every match in the per-delta hot path is
++    # case-insensitive and used to lower() these immutable constants on each
++    # call; precomputing them once removes that per-call allocation. ASCII
++    # case-folding never changes length, so len(tag_lower) == len(tag).
++    _OPEN_TAGS_LOWER: Tuple[str, ...] = tuple(t.lower() for t in _OPEN_TAGS)
++    _CLOSE_TAGS_LOWER: Tuple[str, ...] = tuple(t.lower() for t in _CLOSE_TAGS)
++
+     # Pre-compute the longest tag (for partial-tag hold-back bound).
+     _MAX_TAG_LEN: int = max(len(tag) for tag in _OPEN_TAGS + _CLOSE_TAGS)
+ 
+@@ -120,12 +127,12 @@ class StreamingThinkScrubber:
+             if self._in_block:
+                 # Hunt for the earliest close tag.
+                 close_idx, close_len = self._find_first_tag(
+-                    buf, self._CLOSE_TAGS,
++                    buf, self._CLOSE_TAGS_LOWER,
+                 )
+                 if close_idx == -1:
+                     # No close yet — hold back a potential partial
+                     # close-tag prefix; discard everything else.
+-                    held = self._max_partial_suffix(buf, self._CLOSE_TAGS)
++                    held = self._max_partial_suffix(buf, self._CLOSE_TAGS_LOWER)
+                     self._buf = buf[-held:] if held else ""
+                     return "".join(out)
+                 # Found close: discard block content + tag, continue.
+@@ -179,9 +186,9 @@ class StreamingThinkScrubber:
+                 # No resolvable tag structure in buf.  Hold back any
+                 # partial-tag prefix at the tail so a split tag
+                 # across deltas isn't missed, then emit the rest.
+-                held = self._max_partial_suffix(buf, self._OPEN_TAGS)
++                held = self._max_partial_suffix(buf, self._OPEN_TAGS_LOWER)
+                 held_close = self._max_partial_suffix(
+-                    buf, self._CLOSE_TAGS,
++                    buf, self._CLOSE_TAGS_LOWER,
+                 )
+                 held = max(held, held_close)
+                 if held:
+@@ -230,13 +237,14 @@ class StreamingThinkScrubber:
+     ) -> Tuple[int, int]:
+         """Return (earliest_index, tag_length) over *tags*, or (-1, 0).
+ 
+-        Case-insensitive match.
++        *tags* must already be lowercase (pass ``_OPEN_TAGS_LOWER`` /
++        ``_CLOSE_TAGS_LOWER``); matching is case-insensitive.
+         """
+         buf_lower = buf.lower()
+         best_idx = -1
+         best_len = 0
+         for tag in tags:
+-            idx = buf_lower.find(tag.lower())
++            idx = buf_lower.find(tag)
+             if idx != -1 and (best_idx == -1 or idx < best_idx):
+                 best_idx = idx
+                 best_len = len(tag)
+@@ -254,9 +262,7 @@ class StreamingThinkScrubber:
+         """
+         buf_lower = buf.lower()
+         best: "tuple[int, int] | None" = None
+-        for open_tag, close_tag in zip(self._OPEN_TAGS, self._CLOSE_TAGS):
+-            open_lower = open_tag.lower()
+-            close_lower = close_tag.lower()
++        for open_lower, close_lower in zip(self._OPEN_TAGS_LOWER, self._CLOSE_TAGS_LOWER):
+             open_idx = buf_lower.find(open_lower)
+             if open_idx == -1:
+                 continue
+@@ -280,8 +286,7 @@ class StreamingThinkScrubber:
+         buf_lower = buf.lower()
+         best_idx = -1
+         best_len = 0
+-        for tag in self._OPEN_TAGS:
+-            tag_lower = tag.lower()
++        for tag_lower in self._OPEN_TAGS_LOWER:
+             search_start = 0
+             while True:
+                 idx = buf_lower.find(tag_lower, search_start)
+@@ -290,7 +295,7 @@ class StreamingThinkScrubber:
+                 if self._is_block_boundary(buf, idx, already_emitted):
+                     if best_idx == -1 or idx < best_idx:
+                         best_idx = idx
+-                        best_len = len(tag)
++                        best_len = len(tag_lower)
+                     break  # first boundary hit for this tag is enough
+                 search_start = idx + 1
+         return best_idx, best_len
+@@ -346,8 +351,7 @@ class StreamingThinkScrubber:
+         max_check = min(len(buf_lower), cls._MAX_TAG_LEN - 1)
+         for i in range(max_check, 0, -1):
+             suffix = buf_lower[-i:]
+-            for tag in tags:
+-                tag_lower = tag.lower()
++            for tag_lower in tags:
+                 if len(tag_lower) > i and tag_lower.startswith(suffix):
+                     return i
+         return 0
+@@ -368,8 +372,7 @@ class StreamingThinkScrubber:
+         while i < len(text):
+             matched = False
+             if text_lower[i:i + 2] == "</":
+-                for tag in cls._CLOSE_TAGS:
+-                    tag_lower = tag.lower()
++                for tag_lower in cls._CLOSE_TAGS_LOWER:
+                     tag_len = len(tag_lower)
+                     if text_lower[i:i + tag_len] == tag_lower:
+                         # Skip the tag and any trailing whitespace,
+diff --git a/hermes_state.py b/hermes_state.py
+index b5414fea5..7ac029c61 100644
+--- a/hermes_state.py
++++ b/hermes_state.py
+@@ -1830,8 +1830,8 @@ class SessionDB:
+                 msg["content"] = self._decode_content(msg["content"])
+             if msg.get("tool_calls"):
+                 try:
+-                    msg["tool_calls"] = json.loads(msg["tool_calls"])
+-                except (json.JSONDecodeError, TypeError):
++                    msg["tool_calls"] = _json_loads(msg["tool_calls"])
++                except (ValueError, TypeError):
+                     logger.warning(
+                         "Failed to deserialize tool_calls in get_messages_around, falling back to []"
+                     )
+@@ -1952,8 +1952,8 @@ class SessionDB:
+                 msg["content"] = self._decode_content(msg["content"])
+             if msg.get("tool_calls"):
+                 try:
+-                    msg["tool_calls"] = json.loads(msg["tool_calls"])
+-                except (json.JSONDecodeError, TypeError):
++                    msg["tool_calls"] = _json_loads(msg["tool_calls"])
++                except (ValueError, TypeError):
+                     logger.warning(
+                         "Failed to deserialize tool_calls in get_anchored_view, falling back to []"
+                     )
+diff --git a/pyproject.toml b/pyproject.toml
+index e9b75a495..bab355a19 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
+ 
+ [project]
+ name = "hermes-agent"
+-version = "0.15.2"
++version = "0.15.3"
+ description = "Hermes Turbo Agent — a modified, faster Hermes fork with desktop and car profile distributions"
+ readme = "README.md"
+ requires-python = ">=3.11"
+diff --git a/run_agent.py b/run_agent.py
+index 6763d4e38..ad895e854 100644
+--- a/run_agent.py
++++ b/run_agent.py
+@@ -8374,12 +8374,29 @@ class AIAgent:
+                     _diag["chunks"] = int(_diag.get("chunks", 0)) + 1
+                     if _diag.get("first_chunk_at") is None:
+                         _diag["first_chunk_at"] = last_chunk_time["t"]
+-                    # Approximate byte size from the chunk's repr — exact wire
+-                    # bytes aren't exposed by the SDK, but len(repr(chunk)) is
+-                    # a stable proxy for "how much content arrived" that
+-                    # survives stub provider differences.
++                    # Approximate size of "content that arrived" as a byte
++                    # proxy. Avoids len(repr(chunk)): repr() of a pydantic
++                    # ChatCompletionChunk recursively renders every nested
++                    # field into a throwaway string on every chunk (real
++                    # per-token CPU + GC waste). Sum only the delta
++                    # text/reasoning/tool-arg lengths instead.
+                     try:
+-                        _diag["bytes"] = int(_diag.get("bytes", 0)) + len(repr(chunk))
++                        _choices = getattr(chunk, "choices", None)
++                        if _choices:
++                            _d = _choices[0].delta
++                            if _d is not None:
++                                _n = len(getattr(_d, "content", None) or "")
++                                _r = getattr(_d, "reasoning_content", None) or getattr(_d, "reasoning", None)
++                                if _r:
++                                    _n += len(_r)
++                                _tcs = getattr(_d, "tool_calls", None)
++                                if _tcs:
++                                    for _tc in _tcs:
++                                        _fn = getattr(_tc, "function", None)
++                                        if _fn is not None:
++                                            _n += len(getattr(_fn, "arguments", None) or "")
++                                if _n:
++                                    _diag["bytes"] = int(_diag.get("bytes", 0)) + _n
+                     except Exception:
+                         pass
+                 except Exception:
+@@ -8610,7 +8627,17 @@ class AIAgent:
+                         if _diag.get("first_chunk_at") is None:
+                             _diag["first_chunk_at"] = last_chunk_time["t"]
+                         try:
+-                            _diag["bytes"] = int(_diag.get("bytes", 0)) + len(repr(event))
++                            _ev_delta = getattr(event, "delta", None)
++                            if _ev_delta is not None:
++                                _n = len(getattr(_ev_delta, "text", None) or "")
++                                _th = getattr(_ev_delta, "thinking", None)
++                                if _th:
++                                    _n += len(_th)
++                                _pj = getattr(_ev_delta, "partial_json", None)
++                                if _pj:
++                                    _n += len(_pj)
++                                if _n:
++                                    _diag["bytes"] = int(_diag.get("bytes", 0)) + _n
+                         except Exception:
+                             pass
+                     except Exception:
+diff --git a/tests/regression/cache_boundary/test_cache_breakpoint_placement.py b/tests/regression/cache_boundary/test_cache_breakpoint_placement.py
+index 319a22162..8fd111565 100644
+--- a/tests/regression/cache_boundary/test_cache_breakpoint_placement.py
++++ b/tests/regression/cache_boundary/test_cache_breakpoint_placement.py
+@@ -76,3 +76,41 @@ def test_ttl_is_propagated_to_marker(ttl: str) -> None:
+     else:
+         # 5m is the default — Anthropic infers it from absence of `ttl`.
+         assert "ttl" not in marker
++
++
++def test_input_messages_are_never_mutated() -> None:
++    """The caller's messages (and their content parts) must never be mutated.
++
++    ``apply_anthropic_cache_control`` shallow-copies the list and deep-copies
++    only the <=4 messages it marks (instead of deep-copying the whole
++    transcript). This locks the contract that no cache_control ever leaks
++    into the caller's own message objects.
++    """
++    msgs = _build(5)  # 1 system + 10 non-system
++    ids_before = [id(m) for m in msgs]
++    apply_anthropic_cache_control(msgs, cache_ttl="1h")
++    for m in msgs:
++        assert "cache_control" not in m
++        content = m.get("content")
++        if isinstance(content, list):
++            for part in content:
++                if isinstance(part, dict):
++                    assert "cache_control" not in part
++    # Input list identity/membership preserved (function copied, not mutated).
++    assert [id(m) for m in msgs] == ids_before
++
++
++def test_untouched_messages_are_not_deep_copied() -> None:
++    """Messages that get no breakpoint are shared by reference with output.
++
++    Proves the optimization: only marked messages are copied; the long
++    history tail is not cloned. Marked messages (system + last 3 non-system)
++    are fresh copies; everything between is the same object.
++    """
++    msgs = _build(5)
++    rendered = apply_anthropic_cache_control(msgs, cache_ttl="5m")
++    assert rendered is not msgs
++    assert rendered[0] is not msgs[0]      # system — marked -> copied
++    assert rendered[-1] is not msgs[-1]    # last non-system — marked -> copied
++    assert rendered[1] is msgs[1]          # untouched -> shared reference
++    assert rendered[5] is msgs[5]          # untouched -> shared reference
+-- 
+2.53.0
+
