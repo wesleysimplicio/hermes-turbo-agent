@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hermes-agent"
-version = "0.17.0"
+version = "0.18.0"
 description = "Hermes Turbo Agent — a modified, faster Hermes fork with desktop and car profile distributions"
 readme = "README.md"
 # Upper bound is load-bearing, not cosmetic. uv resolves the project's

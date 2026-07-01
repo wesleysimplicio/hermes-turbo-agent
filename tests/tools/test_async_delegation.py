@@ -613,3 +613,140 @@ def test_gateway_cli_origin_event_left_unrouted():
     assert "platform" not in evt
 
 
+# ---------------------------------------------------------------------------
+# Rate limiting (dispatch_rate_per_minute) + content dedup (dedupe_key)
+# ---------------------------------------------------------------------------
+
+
+def test_dispatch_rate_per_minute_none_disables_rate_limiting():
+    """Default (None) behaves exactly like before: only the concurrency cap applies."""
+    def runner():
+        return {"status": "completed"}
+
+    for i in range(5):
+        res = ad.dispatch_async_delegation(
+            goal=f"g{i}", context=None, toolsets=None, role="leaf", model="m",
+            session_key="", runner=runner, max_async_children=10,
+            dispatch_rate_per_minute=None,
+        )
+        assert res["status"] == "dispatched"
+
+
+def test_dispatch_rate_per_minute_rejects_when_exhausted():
+    gate = threading.Event()
+
+    def runner():
+        gate.wait(timeout=5)
+        return {"status": "completed"}
+
+    res1 = ad.dispatch_async_delegation(
+        goal="a", context=None, toolsets=None, role="leaf", model="m",
+        session_key="", runner=runner, max_async_children=10,
+        dispatch_rate_per_minute=1,  # capacity defaults to 1 -> exhausted after 1 call
+    )
+    assert res1["status"] == "dispatched"
+
+    res2 = ad.dispatch_async_delegation(
+        goal="b", context=None, toolsets=None, role="leaf", model="m",
+        session_key="", runner=runner, max_async_children=10,
+        dispatch_rate_per_minute=1,
+    )
+    assert res2["status"] == "rejected"
+    assert "rate limit" in res2["error"].lower()
+    gate.set()
+
+
+def test_dispatch_rate_limit_is_independent_per_role():
+    gate = threading.Event()
+
+    def runner():
+        gate.wait(timeout=5)
+        return {"status": "completed"}
+
+    res_leaf = ad.dispatch_async_delegation(
+        goal="a", context=None, toolsets=None, role="leaf", model="m",
+        session_key="", runner=runner, max_async_children=10,
+        dispatch_rate_per_minute=1,
+    )
+    assert res_leaf["status"] == "dispatched"
+
+    # A different role has its own independent bucket.
+    res_planner = ad.dispatch_async_delegation(
+        goal="b", context=None, toolsets=None, role="planner", model="m",
+        session_key="", runner=runner, max_async_children=10,
+        dispatch_rate_per_minute=1,
+    )
+    assert res_planner["status"] == "dispatched"
+    gate.set()
+
+
+def test_dispatch_dedupes_identical_running_goal():
+    """A second dispatch with identical content while the first is still
+    running returns the EXISTING delegation instead of spawning a duplicate."""
+    gate = threading.Event()
+
+    def runner():
+        gate.wait(timeout=5)
+        return {"status": "completed"}
+
+    res1 = ad.dispatch_async_delegation(
+        goal="research X", context="ctx", toolsets=["web"], role="leaf",
+        model="m", session_key="", runner=runner, max_async_children=10,
+    )
+    assert res1["status"] == "dispatched"
+    assert ad.active_count() == 1
+
+    res2 = ad.dispatch_async_delegation(
+        goal="research X", context="ctx", toolsets=["web"], role="leaf",
+        model="m", session_key="", runner=runner, max_async_children=10,
+    )
+    assert res2["status"] == "deduped"
+    assert res2["delegation_id"] == res1["delegation_id"]
+    # No second worker was spawned.
+    assert ad.active_count() == 1
+    gate.set()
+
+
+def test_dispatch_does_not_dedupe_distinct_goals():
+    gate = threading.Event()
+
+    def runner():
+        gate.wait(timeout=5)
+        return {"status": "completed"}
+
+    res1 = ad.dispatch_async_delegation(
+        goal="research X", context=None, toolsets=None, role="leaf",
+        model="m", session_key="", runner=runner, max_async_children=10,
+    )
+    res2 = ad.dispatch_async_delegation(
+        goal="research Y", context=None, toolsets=None, role="leaf",
+        model="m", session_key="", runner=runner, max_async_children=10,
+    )
+    assert res1["status"] == "dispatched"
+    assert res2["status"] == "dispatched"
+    assert res1["delegation_id"] != res2["delegation_id"]
+    assert ad.active_count() == 2
+    gate.set()
+
+
+def test_dispatch_does_not_dedupe_against_completed_delegation():
+    """Once the first delegation finishes, an identical goal is free to
+    dispatch again (dedup only blocks against a currently-RUNNING match)."""
+    def runner():
+        return {"status": "completed"}
+
+    res1 = ad.dispatch_async_delegation(
+        goal="research X", context=None, toolsets=None, role="leaf",
+        model="m", session_key="", runner=runner, max_async_children=10,
+    )
+    assert res1["status"] == "dispatched"
+    assert _drain_one() is not None  # wait for it to actually finish
+
+    res2 = ad.dispatch_async_delegation(
+        goal="research X", context=None, toolsets=None, role="leaf",
+        model="m", session_key="", runner=runner, max_async_children=10,
+    )
+    assert res2["status"] == "dispatched"
+    assert res2["delegation_id"] != res1["delegation_id"]
+
+
