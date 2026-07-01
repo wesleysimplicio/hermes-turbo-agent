@@ -4,8 +4,10 @@ Status command for hermes CLI.
 Shows the status of all Hermes Agent components.
 """
 
+import json
 import os
 import sys
+import time
 import subprocess  # noqa: F401 — re-exported for tests that monkeypatch status.subprocess to guard against regressions
 from pathlib import Path
 
@@ -84,6 +86,48 @@ def _effective_provider_label() -> str:
         effective = "custom"
 
     return provider_label(effective)
+
+
+def _gateway_restart_loop_status() -> dict:
+    """Best-effort snapshot of the gateway auto-resume breaker."""
+    path = get_hermes_home() / "gateway" / "restart_loop.json"
+    window_seconds = 60
+    threshold = 3
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    except Exception as exc:
+        return {"label": f"unreadable ({exc})", "detail": f"state file: {path}"}
+
+    boots = raw.get("boots", []) if isinstance(raw, dict) else []
+    boots = [float(t) for t in boots if isinstance(t, (int, float))]
+    cutoff = time.time() - max(1, window_seconds)
+    recent = [t for t in boots if t >= cutoff]
+    tripped = threshold > 0 and len(recent) >= threshold
+    if tripped:
+        label = f"TRIPPED ({len(recent)}/{threshold} recent interrupted boots)"
+    elif recent:
+        label = f"clear ({len(recent)}/{threshold} recent interrupted boots)"
+    else:
+        label = "clear"
+    return {
+        "label": label,
+        "detail": f"window={window_seconds}s file={path}",
+    }
+
+
+def _gateway_dead_target_status() -> dict:
+    """Best-effort snapshot of confirmed-dead delivery targets."""
+    path = get_hermes_home() / "gateway" / "dead_targets.json"
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    except Exception as exc:
+        return {"label": f"unreadable ({exc})", "detail": f"store: {path}"}
+
+    count = len(raw) if isinstance(raw, dict) else 0
+    return {
+        "label": f"{count} recorded",
+        "detail": f"store: {path}",
+    }
 
 
 from hermes_constants import is_termux as _is_termux
@@ -503,6 +547,16 @@ def show_status(args):
         else:
             print(f"  Status:       {color('N/A', Colors.DIM)}")
             print("  Manager:      (not supported on this platform)")
+
+    restart_status = _gateway_restart_loop_status()
+    print(f"  Resume gate:  {restart_status['label']}")
+    if restart_status.get("detail"):
+        print(f"    {restart_status['detail']}")
+
+    dead_target_status = _gateway_dead_target_status()
+    print(f"  Dead targets: {dead_target_status['label']}")
+    if dead_target_status.get("detail"):
+        print(f"    {dead_target_status['detail']}")
 
     # =========================================================================
     # Cron Jobs
