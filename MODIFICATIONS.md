@@ -510,3 +510,32 @@ Validação (turbo-2):
 | simplicio-prompt | <https://github.com/wesleysimplicio/simplicio-prompt> |
 | yool-tuple-hamt (spec canon) | <https://github.com/wesleysimplicio/yool-tuple-hamt> |
 | rtk-ai (token-smart shell) | <https://github.com/rtk-ai/rtk> |
+
+---
+
+## 7. 2026-07-01 — hot-path performance pass (kept, measured)
+
+Model: base = original Hermes (kept current via `hermes update`) + this fork's
+measured-winning perf reapplied on top. This pass added five behavior-preserving
+hot-path optimizations (commit `3e68792ce`), all covered by focused tests and
+**registered for reapply after every `hermes update`**:
+
+- Reapply patch: `docs/perf/patches/hot-path-pass-2026-07-01.patch`
+- Reapply guide: the Optimization Matrix in `docs/hermes-100x-fast-reapply-playbook.md`
+- Sync protection: `performance-patches-and-budgets` rule (`manual-review`) in
+  `.upstream-sync-policy.yml` + the `docs/hermes-turbo-sync-policy.json` mirror.
+
+| Change | File(s) | Measured gain |
+|---|---|---|
+| prompt_caching: deepcopy only the ≤4 cache-marked messages | `agent/prompt_caching.py` | 2.3×→18.6× per Anthropic send (scales with transcript) |
+| stream-diag byte proxy (drop `len(repr(chunk/event))`) | `agent/chat_completion_helpers.py`, `run_agent.py` | 33.4× per chunk |
+| tool-call args list+join (was O(n²) `+=`) | `agent/chat_completion_helpers.py` | 6×→91× |
+| think_scrubber precomputed lowercased tag tuples | `agent/think_scrubber.py` | 1.39× per streamed response |
+| hermes_state fast-json `tool_calls` reads | `hermes_state.py` | consistency + orjson opt-in (`HERMES_TURBO_FAST_STATE=1`) |
+
+Also fixed a pre-existing sync-policy validator failure (`agent/token_saver/**`
+glob matched nothing after the turbo-3 cleanup) by adding it to that rule's
+`allow_empty_globs`, consistent with the other removed dirs.
+
+Validation: 463 targeted tests green. See `PROGRESS.md` (cycle 2026-07-01) and
+`CHANGELOG.md [Unreleased] → Performance`.

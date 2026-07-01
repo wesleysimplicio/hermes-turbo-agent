@@ -46,6 +46,23 @@ then docs/images.
 | OpenRouter metadata disk cache | `agent/model_metadata.py`, `hermes_cli/config.py`, `tests/agent/test_model_metadata.py`, `tests/agent/test_openrouter_response_cache.py` | `17435bffb` | `python -m pytest tests\agent\test_model_metadata.py tests\agent\test_openrouter_response_cache.py::TestDefaultConfig -q` |
 | 100X README, PR docs, images | `README.md`, `docs/hermes-performance-upstream-pr.md`, `docs/hermes-100x-fast-regression-log.md`, `docs/assets/100x-fast/` | `64710fb1b` through `452b27f9c` | Markdown image path check below |
 
+### 2026-07-01 hot-path pass (commit `3e68792ce`)
+
+Ready-made patch (try first): `docs/perf/patches/hot-path-pass-2026-07-01.patch`
+— `git apply` it, or `git am --3way < ...` onto the fresh upstream base. If
+upstream reshaped these files, port manually using the table below, then run
+each row's verification. All rows are behavior-preserving CPU/allocation wins
+on per-message / per-token paths, covered by focused tests. Gains are measured
+on the fork's own micro-benchmarks (Python 3.11).
+
+| Optimization | Primary Files | Reference | Verification | Measured gain |
+| --- | --- | --- | --- | --- |
+| prompt_caching: shallow-copy list + deepcopy only the ≤4 cache-marked messages (was full-transcript `copy.deepcopy` on every Anthropic send) | `agent/prompt_caching.py` | `3e68792ce` | `python -m pytest tests/regression/cache_boundary/ tests/agent/test_prompt_caching.py -q` | 2.3× (11 msgs) → 18.6× (101 msgs); scales with transcript size |
+| stream diag byte proxy: drop `len(repr(chunk/event))` per stream chunk, sum delta text/reasoning/tool-arg lengths instead | `agent/chat_completion_helpers.py`, `run_agent.py` | `3e68792ce` | `python -m pytest tests/run_agent/test_stream_drop_logging.py -q` | 33.4× per chunk (15.5 µs → 0.46 µs) |
+| tool-call arg accumulation: list + single join (was `entry["function"]["arguments"] += frag`, O(n²)) | `agent/chat_completion_helpers.py` | `3e68792ce` | `python -m pytest tests/run_agent/test_streaming.py tests/run_agent/test_streaming_tool_call_repair.py -q` | 6.1× (200 frags) → 90.9× (2000 frags) |
+| think_scrubber: precomputed lowercased tag tuples (`_OPEN_TAGS_LOWER`/`_CLOSE_TAGS_LOWER`), drop per-delta `tag.lower()` across 5 scan helpers | `agent/think_scrubber.py` | `3e68792ce` | `python -m pytest tests/agent/test_think_scrubber.py -q` | 1.39× per streamed response |
+| hermes_state: `get_messages_around` / `get_anchored_view` deserialize `tool_calls` via `_json_loads` (fast-json aware) like the sibling readers | `hermes_state.py` | `3e68792ce` | `python -m pytest tests/hermes_state/ tests/test_hermes_state.py -q` | consistency + orjson opt-in (`HERMES_TURBO_FAST_STATE=1`) |
+
 ## Porting Checklist
 
 Use this checklist for every new upstream update.

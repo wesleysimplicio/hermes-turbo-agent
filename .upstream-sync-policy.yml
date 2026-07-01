@@ -109,16 +109,24 @@ rules:
     reason: >-
       Fast-path patches and performance budgets are intentionally divergent;
       every upstream sync must review them against the latest measured
-      runtime behavior.
+      runtime behavior. The 2026-07-01 hot-path pass (commit 3e68792ce) added
+      per-message / per-token wins here; reapply via
+      docs/perf/patches/hot-path-pass-2026-07-01.patch and the Optimization
+      Matrix in docs/hermes-100x-fast-reapply-playbook.md.
     paths:
       - agent/_fastjson.py
       - agent/_hermes_fast.py
       - agent/uvloop_utils.py
+      - agent/prompt_caching.py
+      - agent/think_scrubber.py
+      - agent/chat_completion_helpers.py
+      - hermes_state.py
       - scripts/benchmark_runtime_usage.py
       - scripts/benchmark_startup_perf.py
       - scripts/perf_budgets.py
       - scripts/perf_budgets.json
       - .github/workflows/perf-budgets.yml
+      - docs/perf/patches/**
 
   - name: token-economy-and-telemetry-optimizations
     strategy: keep-turbo
@@ -144,6 +152,7 @@ rules:
       - hermes_cli/migrate_openclaw.py
       - .github/workflows/daily-turbo-score.yml
     allow_empty_globs:
+      - agent/token_saver/**
       - agent/governor/**
       - agent/router/**
       - agent/context/**
