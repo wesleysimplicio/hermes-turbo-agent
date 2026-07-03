@@ -263,12 +263,13 @@ if [ ! -f "$PLIST_PATH" ] || ! diff -q "$PLIST_PATH.plist.tmp" "$PLIST_PATH" &>/
     info "Arquivo plist criado em ${PLIST_PATH}"
 
     # Carregar no launchd
+    UID_NUM="$(id -u)"
     if launchctl list "$PLIST_LABEL" &>/dev/null 2>&1; then
         # Descarregar versão anterior primeiro
-        launchctl bootout gui/$(id -u) "$PLIST_PATH" 2>/dev/null || true
+        launchctl bootout "gui/${UID_NUM}" "$PLIST_PATH" 2>/dev/null || true
     fi
 
-    if launchctl bootstrap gui/$(id -u) "$PLIST_PATH"; then
+    if launchctl bootstrap "gui/${UID_NUM}" "$PLIST_PATH"; then
         passo_ok "LaunchAgent carregado no launchd (HTTP MCP na porta 6119)"
     else
         aviso "Não foi possível carregar o LaunchAgent (tente reboot ou: launchctl bootstrap gui/\$(id -u) ${PLIST_PATH})"
@@ -371,14 +372,16 @@ else
     passo_fail "plist        ✗ (arquivo não encontrado)"
 fi
 
-# Teste 7: Hermes CLI básico
-if command -v hermes &>/dev/null; then
-    ok "hermes CLI   ✓ ($(which hermes))"
+# Teste 7: CLI básico (simplicio_agent é o nome primário; hermes é alias legado)
+if command -v simplicio_agent &>/dev/null; then
+    ok "simplicio_agent CLI ✓ ($(which simplicio_agent))"
+elif command -v hermes &>/dev/null; then
+    ok "hermes CLI   ✓ ($(which hermes)) — considere reinstalar para ganhar o alias simplicio_agent"
 else
     if [ -x "${REPO_ROOT}/hermes" ]; then
         ok "hermes CLI   ✓ (${REPO_ROOT}/hermes)"
     else
-        aviso "hermes CLI   ⚠ (não no PATH — rode 'pip install -e .' na raiz do repo)"
+        aviso "CLI ⚠ (não no PATH — rode 'pip install -e .' na raiz do repo)"
     fi
 fi
 
