@@ -322,6 +322,10 @@ all = [
 
 [project.scripts]
 hermes = "hermes_cli.main:main"
+# Primary user-facing command name (issue #189): avoids collision with a
+# separately-installed native Hermes Agent (upstream NousResearch). Same
+# entrypoint/module as `hermes` -- pure alias, no behavior difference.
+simplicio_agent = "hermes_cli.main:main"
 hermes-agent = "run_agent:main"
 hermes-acp = "acp_adapter.entry:main"
 hermes-turbo = "hermes_cli.main:main"
