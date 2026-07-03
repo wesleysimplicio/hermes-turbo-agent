@@ -143,3 +143,11 @@ apps/desktop/demo/
 # PR body is the archive. See the hermes-agent-dev skill's
 # pr-infographic-workflow reference (storage rule + lapse #8 / #COMMIT-1).
 infographic/
+
+# Benchmark results are generated artifacts — track .gitkeep, not results
+benchmarks/results/*
+!benchmarks/results/.gitkeep
+
+# Vanilla Hermes provisioned venv and upstream clone
+.vanilla-bench-*/
+.upstream-cache/
