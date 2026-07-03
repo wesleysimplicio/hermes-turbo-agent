@@ -63,10 +63,7 @@ color_warn()  { echo -e "${YELLOW}${WARN_ICON}${NC}"; }
 color_err()   { echo -e "${RED}${ERR_ICON}${NC}"; }
 color_info()  { echo -e "${CYAN}${INFO_ICON}${NC}"; }
 
-# Cores para JSON (não escapadas)
-json_ok="ok"
-json_warn="warning"
-json_err="error"
+# Cores para JSON (não escapadas) — valores inline em emit_json
 
 # Acumulador de resultado geral
 _overall="ok"
@@ -96,11 +93,11 @@ print_header() {
 
 print_footer() {
   if [ "$MODE" = "json" ]; then return; fi
-  local status_label status_color
+  local status_color
   case "$_overall" in
-    ok)      status_color="${GREEN}SAUDÁVEL${NC}";     status_label="Saudável" ;;
-    warning) status_color="${YELLOW}ATENÇÃO${NC}";     status_label="Atenção" ;;
-    error)   status_color="${RED}CRÍTICO${NC}";        status_label="Crítico" ;;
+    ok)      status_color="${GREEN}SAUDÁVEL${NC}" ;;
+    warning) status_color="${YELLOW}ATENÇÃO${NC}" ;;
+    error)   status_color="${RED}CRÍTICO${NC}" ;;
   esac
   echo ""
   echo -e "${BOLD}Resumo:${NC} Saúde geral do ecossistema: ${status_color}"
@@ -153,6 +150,7 @@ check_repo() {
 
   ahead=0; behind=0
   if (cd "$path" && git rev-parse "@{upstream}" 2>/dev/null) >/dev/null; then
+    # shellcheck disable=SC1083
     eval "$(cd "$path" && git rev-list --left-right --count HEAD...@{upstream} 2>/dev/null | awk '{print "ahead="$1"; behind="$2}')" 2>/dev/null || true
   fi
 
