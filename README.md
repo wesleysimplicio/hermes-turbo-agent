@@ -20,161 +20,103 @@
   <a href="READMEs/README.ms-MY.md">🇲🇾 Bahasa Melayu</a>
 </p>
 
-Executable installation and performance-optimization skill for Hermes Agent.
+Executable installation and performance-optimization skill for Hermes Agent. It is a procedure, not an executable fork: it measures the active Hermes path, applies the smallest compatible change, tests it, and keeps it only when evidence supports it.
 
-When installed and invoked for optimization, the skill identifies the authorized Hermes installation, installs optional accelerators, applies compatible changes, runs tests, and compares before/after benchmarks. It is not an executable Hermes fork.
+## 1. Scope and safety
 
-## What this skill recommends
+The target is the active bundle at `${HERMES_HOME:-$HOME/.hermes}`. The skill must not silently modify a source checkout, discard user state, break prompt caching, add telemetry, or claim a benchmark gain that was not measured on the real path.
 
-### `orjson`
+Every run creates a rollback point, records a baseline, applies a bounded change, runs regression tests, repeats the benchmark, and reports modified files, fallback status, and rollback instructions.
 
-Evaluate `orjson` on hot JSON serialization and deserialization paths, such as messages, schemas, and tool calls.
+## 2. Performance modules
 
-Expected benefits:
+### Fast JSON and typed contracts
 
-- lower `json.loads` and `json.dumps` latency;
-- lower CPU cost for medium and large payloads;
-- higher message-processing throughput;
-- potentially fewer allocations on frequent paths.
+Use an internal bytes-first adapter with this order:
 
-Usage must be encapsulated and retain a fallback to the standard `json` library.
+1. `orjson` for ordinary JSON dictionaries, lists, tool results, and cache payloads;
+2. `msgspec` only for stable typed `Struct` contracts such as fixed envelopes;
+3. Python `json` as the universal fallback.
 
-### `msgspec`
+The adapter must preserve `str`/`bytes` behavior, Unicode, invalid-payload errors, non-serializable values, and compatibility with existing dictionaries. It must never replace flexible parsing with a typed contract without tests.
 
-Evaluate `msgspec` for typed parsing of messages and tool calls with stable contracts.
+### Native streaming parser
 
-Expected benefits:
+The Simplicio Agent comparison added a PyO3 `hermes_fast` extension for incremental JSON/tool-call parsing. Hermes Turbo may build it with `maturin`, but it remains optional and must have a `json.JSONDecoder.raw_decode` fallback.
 
-- faster and more predictable parsing;
-- lower validation and conversion overhead;
-- lower memory usage for typed structures;
-- clearer detection of invalid payloads.
+The FFI boundary is not free. On the measured macOS Python 3.11 path, small payloads were faster with stdlib; payloads around 1 KiB and larger favored Rust. Use a target-specific size threshold and re-benchmark after changing Python, Rust, or the extension.
 
-It must not replace flexible parsing without compatibility tests using real payloads.
+### Async event loop
 
-### `uvloop`
+Install `uvloop` only on supported Unix platforms and only through capability detection at async entrypoints. Keep stdlib `asyncio` for Windows, missing packages, opt-out, and installation failures. Measure cold start, warm start, latency, and throughput separately.
 
-Evaluate `uvloop` as an optional event loop for the CLI and gateway on supported platforms.
+### Existing persistence and caches
 
-Expected benefits:
-
-- better asynchronous task scheduling;
-- lower latency for I/O operations;
-- higher throughput in highly concurrent scenarios;
-- better gateway responsiveness under load.
-
-`asyncio` remains the official fallback. Gains must be measured per operating system.
-
-## Other recommendations
-
-### Batched persistence
-
-Group the events from one round and persist them in a single SQLite transaction.
-
-Benefits:
-
-- fewer I/O operations;
-- lower transaction overhead;
-- lower session-save latency;
-- better efficiency in conversations with many messages.
-
-Ordering, role alternation, and crash recovery must remain intact.
-
-### Startup and tool discovery
-
-Separate metadata discovery from effective imports and cache schemas with versioning.
-
-Benefits:
-
-- lower cold-start time;
-- less repeated work when Hermes starts;
-- faster loading of tools and plugins;
-- fewer unnecessary imports.
-
-The cache must be invalidated when the version, configuration, skills, plugins, or tools change.
-
-### External metadata cache
-
-Use a local cache with TTL, a versioned schema, and atomic writes.
-
-Benefits:
-
-- fewer network calls;
-- faster responses for catalogs and metadata;
-- greater resilience when an external service is unavailable;
-- lower startup and query cost.
-
-Caches must never store secrets or sensitive data.
+Batch one conversation round into one SQLite transaction without changing message ordering, role alternation, or crash recovery. Cache tool discovery, schemas, and external metadata with versioning, TTL where appropriate, invalidation on configuration/skill/plugin/schema changes, atomic writes, and no secrets.
 
 ### Safe parallelism
 
-Run operations in parallel only when they are demonstrably independent.
+Parallelize only independent operations. Preserve deterministic result order, bounded concurrency, timeout, cancellation, backpressure, and sequential-equivalent semantics.
 
-Benefits:
+## 3. Simplicio-derived candidates
 
-- lower total time for independent operations;
-- better use of I/O;
-- greater responsiveness in multi-tool flows;
-- less waiting caused by unnecessary sequential work.
+The analyzed `wesleysimplicio/simplicio-agent` repository also contains a warm daemon, working-set/token memoization, deterministic routing, an async DAG executor, an HTTP pool, a TOON output codec, project mapping, and a performance-regression gate.
 
-The implementation must preserve deterministic ordering, concurrency limits, timeouts, cancellation, and semantics equivalent to the sequential path.
+Working-set memoization and cache invalidation are safe candidates when the active Hermes path does not already provide them. The warm daemon is a separate lifecycle surface: do not copy it into Hermes without a daemon benchmark, idle TTL, memory bound, shutdown handling, and crash-recovery tests. The Rust token estimator is not enabled automatically because serialization and FFI can outweigh its simple arithmetic; benchmark it on the actual history shape first.
 
-## How much can it improve
+## 4. Installation workflow
 
-The figures below are benchmark references from the former Hermes Turbo Agent fork. They are not guaranteed gains for current Hermes and must be reproduced on the real path before being treated as project results.
+1. Map the active bundle, runtime, profile, package manager, and state.
+2. Create a rollback archive before mutation.
+3. Capture cold/warm startup, discovery, persistence, JSON/tool parsing, async throughput, and memory baselines.
+4. Detect platform and optional capabilities.
+5. Install `orjson`, `msgspec`, and `uvloop` with the active runtime package manager (`uv pip` when the venv has no pip).
+6. Apply one small, reviewable change to the measured bottleneck.
+7. Add regression, fallback, invalid-payload, concurrency, and crash-recovery coverage.
+8. Run the same benchmark in the same environment.
+9. Keep the change only if tests pass and there is no compatibility, safety, memory, latency, or prompt-cache regression.
+10. Write a report with packages, files, metrics, tests, fallbacks, and rollback.
 
-| Measured path | Observed gain in fork benchmark |
-| --- | ---: |
-| JSON serialization with large payloads | approximately 4x–6x |
-| JSON deserialization with large payloads | approximately 4x |
-| Medium-message latency | approximately 3x |
-| Medium-message throughput | approximately 3x–4x |
-| Typed tool-call parsing | up to approximately 2x–5x, depending on method |
-| Batched session writes | approximately 19x–38x on the instrumented path |
-| Cached metadata queries | approximately 0.007 s per query in the measured scenario |
-| Startup and tool discovery | approximately 2x–4x in the measured scenario |
-| Subagent construction with dead local preflight | approximately 9x–10x on the specific measured path |
-| Parallel execution of independent operations | approximately 4x–5x in the measured scenario |
+## 5. Reproducible command pattern
 
-These values depend on payload, hardware, operating system, Python version, model, tool count, concurrent load, and the exact path measured. They must not be turned into a promise of “100x” for Hermes as a whole.
+```bash
+HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
+HERMES_RUNTIME="$HERMES_HOME/hermes-agent/venv/bin/python"
+uv pip install --python "$HERMES_RUNTIME" orjson msgspec
+# Supported Unix platforms only:
+uv pip install --python "$HERMES_RUNTIME" uvloop
+```
 
-## Expected general benefits
+An optional native build is allowed only after a baseline and only when the toolchain is available:
 
-- shorter startup time;
-- faster responses in multi-tool flows;
-- lower CPU and I/O cost;
-- higher message throughput;
-- lower memory use in typed structures;
-- better asynchronous scalability;
-- fewer repeated external calls;
-- native acceleration without sacrificing portability;
-- regression diagnosis with reproducible metrics.
+```bash
+cd "$HERMES_HOME/hermes-agent/rust_ext"
+source "$HERMES_HOME/hermes-agent/venv/bin/activate"
+uvx --from maturin maturin develop --release
+```
 
-## How the skill works
+Do not use `uv add` or modify the source checkout's dependency manifest for an active-bundle installation.
 
-1. Map the project and active Hermes installation.
-2. Confirm branch, working state, and authorized scope.
-3. Measure cold start, warm start, tool discovery, persistence, parsing, and memory.
-4. Identify the dominant bottleneck.
-5. Apply one small change per cycle.
-6. Add a regression test and fallback.
-7. Run before/after benchmarks in the same environment.
-8. Reject the change if there is a functional, security, compatibility, or prompt-caching regression.
-9. Deliver a report, metrics, diff, and rollback instructions.
+## 6. Evidence and benchmarks
 
-## Compatibility guarantees
+Reference numbers from another operating system or fork are not Hermes results. The report must store before/after artifacts under the active bundle and identify the exact payload, Python version, platform, iteration count, and backend.
 
-- `orjson`, `msgspec`, and `uvloop` are optional;
-- standard `json` and `asyncio` remain available as fallbacks;
-- the system prompt and prompt-cache prefix remain stable during a conversation;
-- message role alternation is not changed;
-- behavioral settings stay in `config.yaml`;
-- no secrets are included in caches;
-- no external telemetry is added without opt-in;
-- publishable changes should be small and reviewable.
+A local result may be useful without being universal. In the macOS implementation, the measured result was approximately 2.1× for JSON decode through `fast_json`/orjson and 2.7× for a 4 KiB tool-call parser through thresholded `hermes_fast`; small parser payloads correctly remained on stdlib.
 
-## Conclusion
+## 7. Compatibility invariants
 
-Hermes Turbo Agent is an evidence-driven optimization strategy. The greatest benefit does not come from one library, but from combining less I/O, less startup work, more efficient parsing, correct caching, and safe parallelism.
+- Keep the system prompt and prompt-cache prefix byte-stable during a conversation.
+- Never insert synthetic messages or break strict role alternation.
+- Preserve Python `json` and `asyncio` fallbacks.
+- Keep settings in `config.yaml` and secrets in `.env`.
+- Never cache secrets or add outbound telemetry without explicit opt-in.
+- Preserve plugins, providers, skills, security boundaries, and external payload semantics.
+- Do not force native dependencies on constrained platforms.
+- Do not report an optimization as complete without tests, measured comparison, and rollback evidence.
 
-The goal is to make Hermes faster without turning it into an incompatible fork, requiring Rust or native dependencies, or sacrificing security, portability, or prompt-cache stability.
+## 8. Related files
+
+- [`SKILL.md`](SKILL.md) — executable installation and optimization procedure.
+- [`READMEs/`](READMEs/) — localized copies with this same section structure.
+
+The goal is faster Hermes without creating an incompatible fork: less repeated work, faster parsing where it actually wins, controlled async scheduling, bounded persistence, and evidence-driven decisions.
