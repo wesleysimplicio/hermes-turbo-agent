@@ -1,5 +1,25 @@
 # Hermes Turbo Agent
 
+<p align="center">
+  <strong>🌍 Languages:</strong><br>
+  <a href="README.md">🇬🇧 English</a> |
+  <a href="READMEs/README.pt-BR.md">🇧🇷 Português</a> |
+  <a href="READMEs/README.es-ES.md">🇪🇸 Español</a> |
+  <a href="READMEs/README.fr-FR.md">🇫🇷 Français</a> |
+  <a href="READMEs/README.de-DE.md">🇩🇪 Deutsch</a> |
+  <a href="READMEs/README.it-IT.md">🇮🇹 Italiano</a> |
+  <a href="READMEs/README.ja-JP.md">🇯🇵 日本語</a> |
+  <a href="READMEs/README.ko-KR.md">🇰🇷 한국어</a> |
+  <a href="READMEs/README.zh-CN.md">🇨🇳 简体中文</a> |
+  <a href="READMEs/README.ru-RU.md">🇷🇺 Русский</a> |
+  <a href="READMEs/README.pl-PL.md">🇵🇱 Polski</a> |
+  <a href="READMEs/README.hi-IN.md">🇮🇳 हिन्दी</a> |
+  <a href="READMEs/README.ar-SA.md">🇸🇦 العربية</a> |
+  <a href="READMEs/README.he-IL.md">🇮🇱 עברית</a> |
+  <a href="READMEs/README.id-ID.md">🇮🇩 Bahasa Indonesia</a> |
+  <a href="READMEs/README.ms-MY.md">🇲🇾 Bahasa Melayu</a>
+</p>
+
 Skill executável de instalação e aplicação de melhorias de desempenho para o Hermes Agent.
 
 Ao ser instalada e acionada para otimização, a skill identifica o Hermes autorizado, instala acelerações opcionais, aplica mudanças compatíveis, executa testes e compara benchmarks antes/depois. Ela não é um fork executável do Hermes.

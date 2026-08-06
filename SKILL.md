@@ -1,7 +1,7 @@
 ---
 name: hermes-turbo-agent
 description: Use when installing Hermes Agent performance improvements.
-version: 2.0.0
+version: 2.1.0
 author: Hermes Agent
 license: MIT
 metadata:
@@ -14,25 +14,25 @@ metadata:
 
 ## Purpose
 
-This is an executable installation and optimization procedure, not a passive recommendation list. When the user asks Hermes to read/install/apply this skill, begin the installation workflow immediately in the authorized Hermes project. Install optional acceleration packages, apply compatible structural changes, run tests and benchmarks, and report exactly what changed.
+This is an executable installation and optimization procedure, not a passive recommendation list. When the user asks Hermes to read/install/apply this skill, begin the installation workflow immediately against the installed active Hermes bundle at `$HERMES_HOME` (normally `~/.hermes`), not against the Hermes source checkout. Install optional acceleration packages into the active Hermes runtime, apply compatible bundle-level changes, run tests and benchmarks, and report exactly what changed.
 
-Never target a guessed repository. First identify the active Hermes checkout, profile, Python environment, branch, and working-tree state. Preserve existing uncommitted work.
+Resolve the active bundle with `${HERMES_HOME:-$HOME/.hermes}`. The bundle includes the installed runtime, active skills, configuration, state, and logs. Never target `/path/to/hermes-agent` or another guessed repository unless the user explicitly requests source-repository development. Preserve existing user state and unrelated changes.
 
 ## Installation workflow
 
 Execute these steps in order when this skill is requested for installation or speed improvements:
 
-1. Map the active project and Hermes checkout before editing.
-2. Check `git status`, current branch, Python version, package manager, and active Hermes home.
-3. Create a rollback point or worktree when the repository is clean. Never overwrite unrelated user changes.
-4. Capture a baseline for cold start, warm start, tool discovery, session persistence, JSON/tool-call parsing, async throughput, and memory. Store results in a local report.
+1. Map the active installed bundle at `${HERMES_HOME:-$HOME/.hermes}`; do not map or edit the Hermes source checkout.
+2. Check the bundle path, installed runtime path, Python executable, package manager, active profile, and current state. Only inspect source files when a bundle-level installed module must be patched.
+3. Create a rollback point for bundle configuration and skills. Never overwrite unrelated user state.
+4. Capture a baseline for installed-runtime cold start, warm start, tool discovery, session persistence, JSON/tool-call parsing, async throughput, and memory. Store results under the active bundle, not in the source repository.
 5. Detect platform and capabilities.
-6. Install optional dependencies into the active Hermes environment, using the project's package manager:
+6. Install optional dependencies into the active Hermes environment, using the installed runtime package manager:
    - `orjson`
    - `msgspec`
    - `uvloop` on supported Unix platforms only
    Keep Python `json` and `asyncio` fallbacks available.
-7. Apply the smallest compatible code changes for the measured bottleneck:
+7. Apply the smallest compatible bundle-level changes for the measured bottleneck:
    - use an internal fast-JSON adapter with `orjson` fallback;
    - use `msgspec` only for stable typed message/tool-call contracts;
    - enable `uvloop` only through capability detection;
@@ -42,32 +42,27 @@ Execute these steps in order when this skill is requested for installation or sp
 8. Add or update regression tests and verify crash recovery, concurrency, invalid payloads, plugin/provider compatibility, and fallback paths.
 9. Run the same benchmarks again in the same environment.
 10. Keep a change only when functional tests pass and the measured path improves without a safety, compatibility, memory, or latency regression.
-11. Produce a report containing installed packages, modified files, benchmark before/after, tests, fallback status, and rollback instructions.
+11. Produce a report containing installed packages, modified bundle files, benchmark before/after, tests, fallback status, and rollback instructions.
 
 ## Required command patterns
 
-Use the active project's package manager rather than guessing. Typical commands are:
+Use the installed Hermes runtime's package manager rather than a source repository manager. Typical commands are:
 
 ```bash
-python -m pip install orjson msgspec
-# Unix/macOS/Linux only, when supported by the active Python environment:
-python -m pip install uvloop
+HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
+HERMES_RUNTIME="$HERMES_HOME/hermes-agent/venv/bin/python"
+uv pip install --python "$HERMES_RUNTIME" orjson msgspec
+# macOS/Linux and other supported Unix platforms only:
+uv pip install --python "$HERMES_RUNTIME" uvloop
 ```
 
-For a repository managed by `uv`, prefer:
-
-```bash
-uv add orjson msgspec
-uv add --optional fast uvloop
-```
-
-For a repository managed by Poetry, use its dependency commands. Do not install into the system Python when a project virtual environment exists. If installation fails, retain the fallback path, document the failure, and continue only with safe changes.
+Do not run `uv add` or modify `pyproject.toml` in the Hermes source checkout for this installed-bundle task. If the installed runtime or `uv` is missing, stop and report the missing prerequisite rather than installing into system Python. If an optional package fails, retain the fallback path, document the failure, and continue only with safe bundle-level changes.
 
 ## Implementation requirements
 
 ### `orjson`
 
-Encapsulate JSON acceleration behind an internal adapter. Verify bytes versus strings, dates, exceptions, non-serializable objects, and all real payload shapes. Never replace the standard fallback without tests.
+Encapsulate JSON acceleration behind an internal adapter in the installed bundle. Verify bytes versus strings, dates, exceptions, non-serializable objects, and all real payload shapes. Never replace the standard fallback without tests.
 
 ### `msgspec`
 
@@ -88,13 +83,13 @@ Batch SQLite writes without changing message ordering or role alternation. Versi
 - Preserve Python and `asyncio` fallbacks.
 - Put behavioral settings in `config.yaml`; keep secrets in `.env`.
 - Do not add outbound telemetry without explicit opt-in.
-- Do not discard user changes, force-push, delete branches, or rewrite history.
-- Do not claim a benchmark gain that was not measured on the actual path.
+- Do not discard user state, force-push, delete branches, or rewrite history.
+- Do not claim a benchmark gain that was not measured on the actual installed path.
 
 ## Acceptance criteria
 
 - Baseline and post-change benchmarks are reproducible and comparable.
-- `orjson`, `msgspec`, and `uvloop` installation status is verified.
+- `orjson`, `msgspec`, and `uvloop` installation status is verified in the active bundle runtime.
 - Unit and real-path E2E tests pass.
 - Fallback paths are tested without optional dependencies.
 - Configuration, plugins, skills, providers, security, prompt caching, and message alternation remain compatible.
@@ -102,4 +97,4 @@ Batch SQLite writes without changing message ordering or role alternation. Versi
 
 ## Version control
 
-If the user explicitly requests publication, create a branch, commit the verified changes, push that branch, open a PR against the requested base, wait for checks, and merge only when the PR is mergeable. Never push directly to `main` when a PR is requested.
+If the user explicitly requests publication, create a branch, commit the verified skill/documentation changes, push that branch, open a PR against the requested base, wait for checks, and merge only when the PR is mergeable. Never push directly to `main` when a PR is requested.
