@@ -1,105 +1,105 @@
 ---
 name: hermes-turbo-agent
-description: Use when improving Hermes Agent speed.
-version: 1.0.0
+description: Use when installing Hermes Agent performance improvements.
+version: 2.0.0
 author: Hermes Agent
 license: MIT
 metadata:
   hermes:
-    tags: [hermes, performance, profiling, benchmarking, orjson, msgspec, uvloop, turbo]
+    tags: [hermes, performance, installer, benchmarking, orjson, msgspec, uvloop, turbo]
     related_skills: [hermes-agent-skill-authoring, systematic-debugging]
 ---
 
 # Hermes Turbo Agent
 
-## Objetivo
+## Purpose
 
-Aplicar recomendações de desempenho ao Hermes Agent sem criar um fork permanente. Esta skill transforma o conceito Hermes Turbo em uma rotina de auditoria, benchmark e melhoria estrutural do próprio Hermes.
+This is an executable installation and optimization procedure, not a passive recommendation list. When the user asks Hermes to read/install/apply this skill, begin the installation workflow immediately in the authorized Hermes project. Install optional acceleration packages, apply compatible structural changes, run tests and benchmarks, and report exactly what changed.
 
-Ao ser instalada e acionada em uma sessão, deve primeiro mapear o Hermes ativo, medir os gargalos e aplicar apenas mudanças autorizadas no projeto correto. Não alterar outro repositório, perfil, configuração ou ambiente sem escopo explícito.
+Never target a guessed repository. First identify the active Hermes checkout, profile, Python environment, branch, and working-tree state. Preserve existing uncommitted work.
 
-## Regra de segurança operacional
+## Installation workflow
 
-A skill pode preparar e aplicar melhorias, mas não deve apagar repositórios, forçar push, alterar a branch principal, publicar código ou abrir PR sem instrução explícita para o alvo. Mudanças devem ser pequenas, reversíveis e acompanhadas de testes e benchmark.
+Execute these steps in order when this skill is requested for installation or speed improvements:
 
-## Otimizações principais
+1. Map the active project and Hermes checkout before editing.
+2. Check `git status`, current branch, Python version, package manager, and active Hermes home.
+3. Create a rollback point or worktree when the repository is clean. Never overwrite unrelated user changes.
+4. Capture a baseline for cold start, warm start, tool discovery, session persistence, JSON/tool-call parsing, async throughput, and memory. Store results in a local report.
+5. Detect platform and capabilities.
+6. Install optional dependencies into the active Hermes environment, using the project's package manager:
+   - `orjson`
+   - `msgspec`
+   - `uvloop` on supported Unix platforms only
+   Keep Python `json` and `asyncio` fallbacks available.
+7. Apply the smallest compatible code changes for the measured bottleneck:
+   - use an internal fast-JSON adapter with `orjson` fallback;
+   - use `msgspec` only for stable typed message/tool-call contracts;
+   - enable `uvloop` only through capability detection;
+   - batch session writes into one SQLite transaction per round;
+   - cache tool discovery, schemas, and external metadata with versioning, TTL, atomic writes, and invalidation;
+   - parallelize only independent operations with deterministic ordering, limits, timeouts, and cancellation.
+8. Add or update regression tests and verify crash recovery, concurrency, invalid payloads, plugin/provider compatibility, and fallback paths.
+9. Run the same benchmarks again in the same environment.
+10. Keep a change only when functional tests pass and the measured path improves without a safety, compatibility, memory, or latency regression.
+11. Produce a report containing installed packages, modified files, benchmark before/after, tests, fallback status, and rollback instructions.
 
-### 1. Serialização rápida com `orjson`
+## Required command patterns
 
-Avaliar `orjson` nos caminhos quentes de `json.loads` e `json.dumps`, especialmente mensagens, schemas e tool calls. Encapsular em uma interface interna, preservar fallback para a biblioteca padrão e testar bytes versus strings, datas, exceções e payloads reais.
+Use the active project's package manager rather than guessing. Typical commands are:
 
-### 2. Parsing tipado com `msgspec`
+```bash
+python -m pip install orjson msgspec
+# Unix/macOS/Linux only, when supported by the active Python environment:
+python -m pip install uvloop
+```
 
-Avaliar `msgspec` para decodificar mensagens e tool calls estáveis. Usar structs somente com contratos definidos. Medir latência, alocações, payloads inválidos e compatibilidade antes de substituir parsing flexível.
+For a repository managed by `uv`, prefer:
 
-### 3. Event loop opcional com `uvloop`
+```bash
+uv add orjson msgspec
+uv add --optional fast uvloop
+```
 
-Avaliar `uvloop` no CLI e gateway em plataformas compatíveis. Detectar capacidade em runtime e manter `asyncio` como fallback. Medir cold start, warm start, latência e estabilidade por plataforma; não torná-lo dependência obrigatória.
+For a repository managed by Poetry, use its dependency commands. Do not install into the system Python when a project virtual environment exists. If installation fails, retain the fallback path, document the failure, and continue only with safe changes.
 
-### 4. Persistência em lote
+## Implementation requirements
 
-Acumular eventos de uma rodada e gravar uma transação SQLite por lote, preservando ordenação, alternância de papéis, recuperação após falha, concorrência e consistência.
+### `orjson`
 
-### 5. Startup e descoberta de ferramentas
+Encapsulate JSON acceleration behind an internal adapter. Verify bytes versus strings, dates, exceptions, non-serializable objects, and all real payload shapes. Never replace the standard fallback without tests.
 
-Separar descoberta de metadados da importação efetiva. Cachear schemas e metadados com versão baseada em Hermes, configuração, plugins, skills e ferramentas. Invalidar corretamente e remover preflight local que não seja necessário.
+### `msgspec`
 
-### 6. Cache de metadados externos
+Use typed structs only where the contract is stable. Verify malformed payloads, optional fields, unknown fields, tool-call deltas, and compatibility with existing dictionaries and schemas.
 
-Usar TTL, schema versionado, escrita atômica e recuperação para o caminho original quando houver corrupção ou indisponibilidade. Nunca armazenar segredos ou dados sensíveis.
+### `uvloop`
 
-### 7. Paralelismo seguro
+Enable only on supported Unix platforms and only when importable. Keep `asyncio` as the default fallback on Windows, unsupported environments, and failures. Measure cold start, warm start, latency, and task throughput separately.
 
-Paralelizar somente operações comprovadamente independentes. Manter resultados determinísticos, limitar concorrência, aplicar timeout/cancelamento e preservar a semântica do caminho sequencial. Não paralelizar efeitos colaterais ou operações dependentes de estado.
+### Persistence, cache, and parallelism
 
-## Fluxo automático de auditoria
+Batch SQLite writes without changing message ordering or role alternation. Version and invalidate caches when Hermes, configuration, skills, plugins, providers, or schemas change. Use atomic writes and never cache secrets. Parallelize only independent operations and preserve deterministic result order.
 
-Quando acionada para melhorar velocidade:
+## Non-negotiable invariants
 
-1. Mapear o projeto e o Hermes ativo antes de editar.
-2. Identificar o repositório, branch e estado de trabalho; não descartar mudanças existentes.
-3. Medir baseline de cold start, warm start, tool discovery, persistência, parsing e memória.
-4. Localizar o gargalo dominante com evidência.
-5. Propor ou executar uma única mudança estrutural pequena por ciclo, dentro do escopo autorizado.
-6. Implementar teste de regressão, fallback e caminho de rollback.
-7. Executar benchmark antes/depois no mesmo ambiente.
-8. Rejeitar mudanças com regressão funcional, de segurança, compatibilidade, prompt caching ou alternância de mensagens.
-9. Produzir relatório com métricas, diff, testes e decisão.
+- Keep the system prompt and prompt-cache prefix byte-stable for the life of a conversation.
+- Never insert synthetic messages that break strict role alternation.
+- Preserve Python and `asyncio` fallbacks.
+- Put behavioral settings in `config.yaml`; keep secrets in `.env`.
+- Do not add outbound telemetry without explicit opt-in.
+- Do not discard user changes, force-push, delete branches, or rewrite history.
+- Do not claim a benchmark gain that was not measured on the actual path.
 
-## Invariantes do Hermes
+## Acceptance criteria
 
-- O system prompt e o prefixo de prompt caching devem permanecer estáveis durante uma conversa.
-- Nunca inserir mensagens sintéticas que quebrem a alternância estrita de papéis.
-- Fallback Python e `asyncio` devem continuar funcionando quando extras opcionais não estiverem instalados.
-- Configurações comportamentais pertencem ao `config.yaml`; segredos pertencem ao `.env`.
-- Nenhuma telemetria externa deve ser adicionada sem opt-in explícito.
-- Benchmarks sintéticos não substituem testes E2E no caminho real.
+- Baseline and post-change benchmarks are reproducible and comparable.
+- `orjson`, `msgspec`, and `uvloop` installation status is verified.
+- Unit and real-path E2E tests pass.
+- Fallback paths are tested without optional dependencies.
+- Configuration, plugins, skills, providers, security, prompt caching, and message alternation remain compatible.
+- The diff is reviewable and rollback is documented.
 
-## Ordem de implementação
+## Version control
 
-1. Escrita de sessões em lote e testes de consistência.
-2. Redução de trabalho no startup e remoção de preflight morto.
-3. Cache versionado de descoberta de ferramentas e metadados.
-4. Paralelismo seguro de operações independentes.
-5. Interface de parsing com `orjson` e `msgspec`, mantendo fallback.
-6. `uvloop` opcional após medir por plataforma.
-7. Extensão Rust opcional somente depois de estabilizar os contratos Python.
-8. Dashboard e score como observabilidade, nunca como substitutos de benchmark.
-
-## Critérios de aceitação
-
-- Benchmark reproduzível antes/depois no mesmo caminho.
-- Testes unitários e E2E reais, inclusive com Hermes Home temporário.
-- `orjson`, `msgspec` e `uvloop` opcionais, com fallback verificado.
-- Compatibilidade preservada com configuração, plugins, skills e providers.
-- Nenhum segredo ou telemetria não autorizada.
-- Prompt caching, alternância de papéis e segurança preservados.
-- Diff pequeno, revisável e com rollback simples.
-
-## Controle de versão
-
-Quando o usuário pedir publicação explícita: criar branch de trabalho, executar testes e benchmarks, fazer commit descritivo, fazer push da branch e abrir PR contra a branch alvo. Não fazer force push nem apagar a branch principal. Se o pedido disser simultaneamente “push na main” e “abrir PR”, pedir confirmação do fluxo porque são operações diferentes.
-
-## Não copiar do fork
-
-Não copiar branding, mudança automática de `HERMES_HOME`, dependências nativas obrigatórias, rotinas de atualização sem aprovação, números de benchmark não reproduzidos ou alegações de “100x” fora do caminho especificamente medido.
+If the user explicitly requests publication, create a branch, commit the verified changes, push that branch, open a PR against the requested base, wait for checks, and merge only when the PR is mergeable. Never push directly to `main` when a PR is requested.

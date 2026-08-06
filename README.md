@@ -1,8 +1,8 @@
 # Hermes Turbo Agent
 
-Skill de recomendação e auditoria de desempenho para o Hermes Agent.
+Skill executável de instalação e aplicação de melhorias de desempenho para o Hermes Agent.
 
-O Hermes Turbo Agent não é um fork executável do Hermes. Ele orienta o próprio Hermes a medir seus gargalos e aplicar melhorias estruturais pequenas, testáveis, reversíveis e compatíveis.
+Ao ser instalada e acionada para otimização, a skill identifica o Hermes autorizado, instala acelerações opcionais, aplica mudanças compatíveis, executa testes e compara benchmarks antes/depois. Ela não é um fork executável do Hermes.
 
 ## O que esta skill recomenda
 
