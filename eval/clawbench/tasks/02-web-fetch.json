@@ -1,8 +1,0 @@
-{
-  "id": "web-fetch-001",
-  "kind": "web_fetch",
-  "description": "Fetch an example URL and report the HTTP status code.",
-  "prompt": "GET https://example.com and report the HTTP status code.",
-  "scorer": "soft",
-  "expected": "status 200 example domain"
-}
