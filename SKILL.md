@@ -10,7 +10,7 @@ metadata:
     related_skills: [hermes-agent-skill-authoring, systematic-debugging]
 ---
 
-# Hermes Turbo Agent
+# Hermes Turbo Agent 10x
 
 ## Purpose
 
@@ -27,22 +27,23 @@ Execute these steps in order when this skill is requested for installation or sp
 3. Create a rollback point for bundle configuration and skills. Never overwrite unrelated user state.
 4. Capture a baseline for installed-runtime cold start, warm start, tool discovery, session persistence, JSON/tool-call parsing, async throughput, and memory. Store results under the active bundle, not in the source repository.
 5. Detect platform and capabilities.
-6. Install optional dependencies into the active Hermes environment, using the installed runtime package manager:
+6. Install optional dependencies into the active Hermes environment, using the project's package manager:
    - `orjson`
    - `msgspec`
    - `uvloop` on supported Unix platforms only
    Keep Python `json` and `asyncio` fallbacks available.
-7. Apply the smallest compatible bundle-level changes for the measured bottleneck:
+7. Apply the smallest compatible code changes for the measured bottleneck:
    - use an internal fast-JSON adapter with `orjson` fallback;
-   - use `msgspec` only for stable typed message/tool-call contracts;
-   - enable `uvloop` only through capability detection;
+   - use bytes-first serialization and `msgspec` only for stable typed message/tool-call contracts;
+   - enable `uvloop` only through capability detection at async entrypoints;
+   - optionally build the PyO3 `hermes_fast` extension for streaming JSON/tool-call parsing;
    - batch session writes into one SQLite transaction per round;
    - cache tool discovery, schemas, and external metadata with versioning, TTL, atomic writes, and invalidation;
    - parallelize only independent operations with deterministic ordering, limits, timeouts, and cancellation.
 8. Add or update regression tests and verify crash recovery, concurrency, invalid payloads, plugin/provider compatibility, and fallback paths.
 9. Run the same benchmarks again in the same environment.
 10. Keep a change only when functional tests pass and the measured path improves without a safety, compatibility, memory, or latency regression.
-11. Produce a report containing installed packages, modified bundle files, benchmark before/after, tests, fallback status, and rollback instructions.
+11. Produce a report containing installed packages, modified files, benchmark before/after, tests, fallback status, and rollback instructions.
 
 ## Required command patterns
 
@@ -56,13 +57,33 @@ uv pip install --python "$HERMES_RUNTIME" orjson msgspec
 uv pip install --python "$HERMES_RUNTIME" uvloop
 ```
 
-Do not run `uv add` or modify `pyproject.toml` in the Hermes source checkout for this installed-bundle task. If the installed runtime or `uv` is missing, stop and report the missing prerequisite rather than installing into system Python. If an optional package fails, retain the fallback path, document the failure, and continue only with safe bundle-level changes.
+Do not run `uv add` or modify `pyproject.toml` in the Hermes source checkout for this installed-bundle task. If the installed runtime is missing, stop and report the missing prerequisite rather than installing into system Python. If an optional package fails, retain the fallback path, document the failure, and continue only with safe bundle-level changes.
+
+For an installed runtime without `pip`, use `uv pip` as shown above. Do not create a new project environment merely to run the installer.
+
+### Simplicio-derived performance modules
+
+When the installed bundle contains the corresponding Hermes modules, prefer these additive paths discovered in `wesleysimplicio/simplicio-agent`:
+
+| Module | Benefit | Safe fallback | Gate |
+|---|---|---|---|
+| `agent._fastjson` | bytes-first `orjson`, then `msgspec`, then stdlib | `json` | round-trip, bytes/str, Unicode and invalid-payload tests |
+| `agent._hermes_fast` + `hermes_fast` | Rust incremental tool-call JSON parsing | `json.JSONDecoder.raw_decode` | build/import probe and parser equivalence test |
+| `agent.uvloop_utils` | lower async scheduling overhead on supported Unix | stdlib `asyncio` | platform, opt-out and loop-policy test |
+| warm daemon | amortizes plugin/skill/provider discovery across invocations | ordinary cold start | only enable after a real daemon lifecycle benchmark |
+| working-set/token cache | reduces repeated context scoring and serialization | existing estimator | identity/invalidation and memory-bound tests |
+
+The Rust estimator is **not automatically preferable**: FFI and serialization can outweigh its trivial arithmetic. Route only the parser through Rust by default; benchmark token estimation before enabling `HERMES_RUST_ESTIMATES=1`.
+
+For Rust parser dispatch, benchmark payload sizes on the target machine and use a size threshold when the FFI crossing loses on small payloads. Never report the upstream Linux result as a macOS result.
+
+The warm daemon is a separate process and must not be added by copying a whole fork. Reuse existing gateway/session lifecycle code, bound idle TTL and memory, and prove crash recovery before enabling it.
 
 ## Implementation requirements
 
 ### `orjson`
 
-Encapsulate JSON acceleration behind an internal adapter in the installed bundle. Verify bytes versus strings, dates, exceptions, non-serializable objects, and all real payload shapes. Never replace the standard fallback without tests.
+Encapsulate JSON acceleration behind an internal adapter. Verify bytes versus strings, dates, exceptions, non-serializable objects, and all real payload shapes. Never replace the standard fallback without tests.
 
 ### `msgspec`
 
@@ -83,18 +104,20 @@ Batch SQLite writes without changing message ordering or role alternation. Versi
 - Preserve Python and `asyncio` fallbacks.
 - Put behavioral settings in `config.yaml`; keep secrets in `.env`.
 - Do not add outbound telemetry without explicit opt-in.
-- Do not discard user state, force-push, delete branches, or rewrite history.
-- Do not claim a benchmark gain that was not measured on the actual installed path.
+- Do not discard user changes, force-push, delete branches, or rewrite history.
+- Do not claim a benchmark gain that was not measured on the actual path.
 
 ## Acceptance criteria
 
 - Baseline and post-change benchmarks are reproducible and comparable.
-- `orjson`, `msgspec`, and `uvloop` installation status is verified in the active bundle runtime.
+- `orjson`, `msgspec`, and `uvloop` installation status is verified.
+- If a native extension is built, its exact platform/Python wheel and import status are verified; otherwise the Python parser fallback is tested.
 - Unit and real-path E2E tests pass.
 - Fallback paths are tested without optional dependencies.
+- Token-estimator acceleration is kept off unless its real-path benchmark beats Python without changing estimates.
 - Configuration, plugins, skills, providers, security, prompt caching, and message alternation remain compatible.
 - The diff is reviewable and rollback is documented.
 
 ## Version control
 
-If the user explicitly requests publication, create a branch, commit the verified skill/documentation changes, push that branch, open a PR against the requested base, wait for checks, and merge only when the PR is mergeable. Never push directly to `main` when a PR is requested.
+If the user explicitly requests publication, create a branch, commit the verified changes, push that branch, open a PR against the requested base, wait for checks, and merge only when the PR is mergeable. Never push directly to `main` when a PR is requested.
