@@ -1,6 +1,6 @@
 # Hermes Turbo Agent
 
-Skill de recomendações e auditoria de desempenho para o Hermes Agent. Não é um fork executável: mede gargalos e aplica mudanças estruturais pequenas, testáveis e reversíveis.
+Skill executável de instalação e otimização de desempenho para o Hermes Agent. Ela não é um fork executável: mede gargalos e aplica mudanças estruturais pequenas, testáveis e reversíveis.
 
 ## Recomendações
 
@@ -10,7 +10,7 @@ Skill de recomendações e auditoria de desempenho para o Hermes Agent. Não é 
 - Escrita de sessões em lote para reduzir I/O e transações SQLite.
 - Startup e descoberta de ferramentas mais rápidos com cache versionado e invalidação correta.
 - Cache de metadados externos com TTL e escrita atômica, sem segredos.
-- Paralelismo somente para operações independentes, com ordem determinística, limites e timeout.
+- Paralelismo apenas para operações independentes, com ordem determinística, limites, timeout e cancelamento.
 
 ## Benefícios esperados
 

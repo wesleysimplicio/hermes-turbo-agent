@@ -20,161 +20,161 @@
   <a href="READMEs/README.ms-MY.md">🇲🇾 Bahasa Melayu</a>
 </p>
 
-Skill executável de instalação e aplicação de melhorias de desempenho para o Hermes Agent.
+Executable installation and performance-optimization skill for Hermes Agent.
 
-Ao ser instalada e acionada para otimização, a skill identifica o Hermes autorizado, instala acelerações opcionais, aplica mudanças compatíveis, executa testes e compara benchmarks antes/depois. Ela não é um fork executável do Hermes.
+When installed and invoked for optimization, the skill identifies the authorized Hermes installation, installs optional accelerators, applies compatible changes, runs tests, and compares before/after benchmarks. It is not an executable Hermes fork.
 
-## O que esta skill recomenda
+## What this skill recommends
 
 ### `orjson`
 
-Avaliar `orjson` nos caminhos quentes de serialização e desserialização JSON, como mensagens, schemas e tool calls.
+Evaluate `orjson` on hot JSON serialization and deserialization paths, such as messages, schemas, and tool calls.
 
-Benefícios esperados:
+Expected benefits:
 
-- menor latência em `json.loads` e `json.dumps`;
-- menor custo de CPU em payloads médios e grandes;
-- maior throughput no processamento de mensagens;
-- possibilidade de reduzir alocações em caminhos frequentes.
+- lower `json.loads` and `json.dumps` latency;
+- lower CPU cost for medium and large payloads;
+- higher message-processing throughput;
+- potentially fewer allocations on frequent paths.
 
-O uso deve ser encapsulado e ter fallback para a biblioteca `json` padrão.
+Usage must be encapsulated and retain a fallback to the standard `json` library.
 
 ### `msgspec`
 
-Avaliar `msgspec` para parsing tipado de mensagens e chamadas de ferramentas com contratos estáveis.
+Evaluate `msgspec` for typed parsing of messages and tool calls with stable contracts.
 
-Benefícios esperados:
+Expected benefits:
 
-- parsing mais rápido e previsível;
-- menor overhead de validação e conversão;
-- menor uso de memória em estruturas tipadas;
-- detecção mais clara de payloads inválidos.
+- faster and more predictable parsing;
+- lower validation and conversion overhead;
+- lower memory usage for typed structures;
+- clearer detection of invalid payloads.
 
-Não deve substituir parsing flexível sem testes de compatibilidade com payloads reais.
+It must not replace flexible parsing without compatibility tests using real payloads.
 
 ### `uvloop`
 
-Avaliar `uvloop` como event loop opcional no CLI e no gateway em plataformas compatíveis.
+Evaluate `uvloop` as an optional event loop for the CLI and gateway on supported platforms.
 
-Benefícios esperados:
+Expected benefits:
 
-- melhor escalonamento de tarefas assíncronas;
-- menor latência em operações de I/O;
-- maior throughput em cenários com muitas tarefas concorrentes;
-- melhor responsividade do gateway sob carga.
+- better asynchronous task scheduling;
+- lower latency for I/O operations;
+- higher throughput in highly concurrent scenarios;
+- better gateway responsiveness under load.
 
-`asyncio` continua sendo o fallback oficial. O ganho deve ser medido por sistema operacional.
+`asyncio` remains the official fallback. Gains must be measured per operating system.
 
-## Outras recomendações
+## Other recommendations
 
-### Persistência em lote
+### Batched persistence
 
-Agrupar os eventos de uma rodada e persistir em uma única transação SQLite.
+Group the events from one round and persist them in a single SQLite transaction.
 
-Benefícios:
+Benefits:
 
-- menos operações de I/O;
-- menor custo de transação;
-- menor latência ao salvar sessões;
-- melhor eficiência em conversas com muitas mensagens.
+- fewer I/O operations;
+- lower transaction overhead;
+- lower session-save latency;
+- better efficiency in conversations with many messages.
 
-A ordenação, a alternância de papéis e a recuperação após falhas devem permanecer preservadas.
+Ordering, role alternation, and crash recovery must remain intact.
 
-### Startup e descoberta de ferramentas
+### Startup and tool discovery
 
-Separar descoberta de metadados da importação efetiva e cachear schemas de forma versionada.
+Separate metadata discovery from effective imports and cache schemas with versioning.
 
-Benefícios:
+Benefits:
 
-- menor cold start;
-- menor trabalho repetido ao iniciar o Hermes;
-- carregamento mais rápido de ferramentas e plugins;
-- menos imports desnecessários.
+- lower cold-start time;
+- less repeated work when Hermes starts;
+- faster loading of tools and plugins;
+- fewer unnecessary imports.
 
-O cache deve ser invalidado quando mudarem a versão, a configuração, as skills, os plugins ou as ferramentas.
+The cache must be invalidated when the version, configuration, skills, plugins, or tools change.
 
-### Cache de metadados externos
+### External metadata cache
 
-Usar cache local com TTL, schema versionado e escrita atômica.
+Use a local cache with TTL, a versioned schema, and atomic writes.
 
-Benefícios:
+Benefits:
 
-- menos chamadas de rede;
-- resposta mais rápida para catálogos e metadados;
-- maior resiliência quando o serviço externo estiver indisponível;
-- menor custo de inicialização e consulta.
+- fewer network calls;
+- faster responses for catalogs and metadata;
+- greater resilience when an external service is unavailable;
+- lower startup and query cost.
 
-Caches nunca devem armazenar segredos ou dados sensíveis.
+Caches must never store secrets or sensitive data.
 
-### Paralelismo seguro
+### Safe parallelism
 
-Executar em paralelo somente operações comprovadamente independentes.
+Run operations in parallel only when they are demonstrably independent.
 
-Benefícios:
+Benefits:
 
-- menor tempo total de operações independentes;
-- melhor aproveitamento de I/O;
-- maior responsividade em fluxos com várias ferramentas;
-- menor espera causada por tarefas sequenciais desnecessárias.
+- lower total time for independent operations;
+- better use of I/O;
+- greater responsiveness in multi-tool flows;
+- less waiting caused by unnecessary sequential work.
 
-A implementação deve manter ordem determinística, limites de concorrência, timeout, cancelamento e semântica equivalente ao caminho sequencial.
+The implementation must preserve deterministic ordering, concurrency limits, timeouts, cancellation, and semantics equivalent to the sequential path.
 
-## Quanto pode melhorar
+## How much can it improve
 
-Os números abaixo são referências de benchmarks produzidos no antigo fork Hermes Turbo Agent. Eles não são garantia de ganho no Hermes atual e precisam ser reproduzidos no caminho real antes de serem considerados resultados do projeto.
+The figures below are benchmark references from the former Hermes Turbo Agent fork. They are not guaranteed gains for current Hermes and must be reproduced on the real path before being treated as project results.
 
-| Caminho medido | Ganho observado no benchmark do fork |
+| Measured path | Observed gain in fork benchmark |
 | --- | ---: |
-| Serialização JSON em payloads grandes | aproximadamente 4x a 6x |
-| Desserialização JSON em payloads grandes | aproximadamente 4x |
-| Latência de mensagens médias | aproximadamente 3x |
-| Throughput de mensagens médias | aproximadamente 3x a 4x |
-| Parsing tipado de tool calls | até aproximadamente 2x–5x, conforme o método |
-| Escrita de sessões em lote | aproximadamente 19x–38x no caminho instrumentado |
-| Consultas de metadados em cache | aproximadamente 0,007 s por consulta no cenário medido |
-| Startup e descoberta de ferramentas | aproximadamente 2x–4x no cenário medido |
-| Construção de subagentes com preflight local morto | aproximadamente 9x–10x no caminho específico medido |
-| Execução paralela de operações independentes | aproximadamente 4x–5x no cenário medido |
+| JSON serialization with large payloads | approximately 4x–6x |
+| JSON deserialization with large payloads | approximately 4x |
+| Medium-message latency | approximately 3x |
+| Medium-message throughput | approximately 3x–4x |
+| Typed tool-call parsing | up to approximately 2x–5x, depending on method |
+| Batched session writes | approximately 19x–38x on the instrumented path |
+| Cached metadata queries | approximately 0.007 s per query in the measured scenario |
+| Startup and tool discovery | approximately 2x–4x in the measured scenario |
+| Subagent construction with dead local preflight | approximately 9x–10x on the specific measured path |
+| Parallel execution of independent operations | approximately 4x–5x in the measured scenario |
 
-Esses valores dependem de payload, hardware, sistema operacional, versão do Python, modelo, número de ferramentas, carga concorrente e caminho exato medido. Não devem ser convertidos em uma promessa de “100x” para o Hermes inteiro.
+These values depend on payload, hardware, operating system, Python version, model, tool count, concurrent load, and the exact path measured. They must not be turned into a promise of “100x” for Hermes as a whole.
 
-## Benefícios gerais esperados
+## Expected general benefits
 
-- menor tempo de inicialização;
-- respostas mais rápidas em fluxos com muitas ferramentas;
-- menor custo de CPU e I/O;
-- maior throughput de mensagens;
-- menor uso de memória em estruturas tipadas;
-- melhor escalabilidade assíncrona;
-- menor quantidade de chamadas externas repetidas;
-- possibilidade de usar aceleração nativa sem perder portabilidade;
-- diagnóstico de regressões com métricas reproduzíveis.
+- shorter startup time;
+- faster responses in multi-tool flows;
+- lower CPU and I/O cost;
+- higher message throughput;
+- lower memory use in typed structures;
+- better asynchronous scalability;
+- fewer repeated external calls;
+- native acceleration without sacrificing portability;
+- regression diagnosis with reproducible metrics.
 
-## Como a skill trabalha
+## How the skill works
 
-1. Mapeia o projeto e o Hermes ativo.
-2. Confirma branch, estado de trabalho e escopo autorizado.
-3. Mede cold start, warm start, descoberta de ferramentas, persistência, parsing e memória.
-4. Identifica o gargalo dominante.
-5. Aplica uma mudança pequena por ciclo.
-6. Adiciona teste de regressão e fallback.
-7. Executa benchmark antes/depois no mesmo ambiente.
-8. Rejeita a mudança se houver regressão funcional, de segurança, compatibilidade ou prompt caching.
-9. Entrega relatório, métricas, diff e rollback.
+1. Map the project and active Hermes installation.
+2. Confirm branch, working state, and authorized scope.
+3. Measure cold start, warm start, tool discovery, persistence, parsing, and memory.
+4. Identify the dominant bottleneck.
+5. Apply one small change per cycle.
+6. Add a regression test and fallback.
+7. Run before/after benchmarks in the same environment.
+8. Reject the change if there is a functional, security, compatibility, or prompt-caching regression.
+9. Deliver a report, metrics, diff, and rollback instructions.
 
-## Garantias de compatibilidade
+## Compatibility guarantees
 
-- `orjson`, `msgspec` e `uvloop` são opcionais;
-- `json` padrão e `asyncio` continuam disponíveis como fallback;
-- o system prompt e o prefixo de prompt caching permanecem estáveis durante a conversa;
-- a alternância de papéis das mensagens não é alterada;
-- configurações comportamentais ficam no `config.yaml`;
-- nenhum segredo é incluído em cache;
-- nenhuma telemetria externa é adicionada sem opt-in;
-- mudanças publicáveis devem ser pequenas e revisáveis.
+- `orjson`, `msgspec`, and `uvloop` are optional;
+- standard `json` and `asyncio` remain available as fallbacks;
+- the system prompt and prompt-cache prefix remain stable during a conversation;
+- message role alternation is not changed;
+- behavioral settings stay in `config.yaml`;
+- no secrets are included in caches;
+- no external telemetry is added without opt-in;
+- publishable changes should be small and reviewable.
 
-## Conclusão
+## Conclusion
 
-Hermes Turbo Agent é uma estratégia de otimização orientada por evidências. O maior benefício não vem de uma única biblioteca, mas da combinação de menos I/O, menos trabalho no startup, parsing mais eficiente, cache correto e paralelismo seguro.
+Hermes Turbo Agent is an evidence-driven optimization strategy. The greatest benefit does not come from one library, but from combining less I/O, less startup work, more efficient parsing, correct caching, and safe parallelism.
 
-O objetivo é fazer o Hermes ficar mais rápido sem transformá-lo em um fork incompatível, sem exigir Rust ou dependências nativas e sem sacrificar segurança, portabilidade ou estabilidade do prompt caching.
+The goal is to make Hermes faster without turning it into an incompatible fork, requiring Rust or native dependencies, or sacrificing security, portability, or prompt-cache stability.

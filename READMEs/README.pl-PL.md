@@ -1,19 +1,19 @@
 # Hermes Turbo Agent
 
-Skill z zaleceniami i audytem wydajności Hermes Agent. Nie jest wykonywalnym forkiem: mierzy wąskie gardła i stosuje małe, testowalne oraz odwracalne zmiany strukturalne.
+Wykonywalny skill do instalacji i optymalizacji wydajności Hermes Agent. To nie jest wykonywalny fork: mierzy wąskie gardła i stosuje małe, testowalne oraz odwracalne zmiany strukturalne.
 
 ## Zalecenia
 
-- `orjson`: szybszy JSON z fallbackiem do standardowego `json`.
-- `msgspec`: typowane parsowanie stabilnych wiadomości i tool calls.
+- `orjson`: szybszy JSON z fallbackiem do `json`.
+- `msgspec`: typowane parsing wiadomości i stabilnych wywołań narzędzi.
 - `uvloop`: opcjonalny event loop z fallbackiem do `asyncio`.
-- Grupowy zapis sesji, aby zmniejszyć I/O i liczbę transakcji SQLite.
-- Szybszy startup i tool discovery dzięki wersjonowanemu cache z poprawną invalidacją.
-- Cache zewnętrznych metadanych z TTL i atomic write, bez sekretów.
-- Równoległość tylko dla niezależnych operacji, z deterministyczną kolejnością i timeoutami.
+- Grupowy zapis sesji w celu ograniczenia I/O i transakcji SQLite.
+- Szybszy startup i wykrywanie narzędzi dzięki wersjonowanemu cache z poprawną invalidacją.
+- Cache zewnętrznych metadanych z TTL i zapisem atomowym, bez sekretów.
+- Równoległość tylko dla niezależnych operacji, z deterministyczną kolejnością, limitami, timeoutem i anulowaniem.
 
 ## Oczekiwane korzyści
 
-Wcześniejsze benchmarki forka wykazały około 4–6x dla dużego JSON, 3–4x dla ścieżki wiadomości, 19–38x dla zmierzonej ścieżki zapisu sesji i 2–4x dla startupu. To wartości referencyjne, nie gwarancje; należy je odtworzyć w Hermes.
+Wcześniejsze benchmarki forka wykazały około 4–6x dla dużego JSON, 3–4x dla ścieżki wiadomości, 19–38x dla zmierzonej ścieżki utrwalania i 2–4x podczas startupu. To wartości referencyjne, nie gwarancje; pomiary trzeba powtórzyć na rzeczywistym Hermes.
 
-Należy zachować prompt caching, kompatybilność, fallbacki Python/`asyncio`, bezpieczeństwo i rollback. Szczegóły: `README.md` i `SKILL.md`.
+Należy zachować prompt caching, kompatybilność, fallbacki Python/`asyncio`, bezpieczeństwo i rollback. Zobacz `README.md` i `SKILL.md`.

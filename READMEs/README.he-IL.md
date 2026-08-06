@@ -1,19 +1,19 @@
 # Hermes Turbo Agent
 
-Skill להמלצות ולביקורת ביצועים עבור Hermes Agent. היא אינה fork להרצה, אלא מודדת צווארי בקבוק ומיישמת שינויים קטנים, ניתנים לבדיקה ולביטול.
+Skill הניתנת להרצה להתקנה ולאופטימיזציית ביצועים עבור Hermes Agent. זה אינו fork הניתן להרצה: היא מודדת צווארי בקבוק ומיישמת שינויים מבניים קטנים, ניתנים לבדיקה ולהחזרה.
 
 ## המלצות
 
-- `orjson`: סריאליזציית JSON מהירה יותר עם fallback ל־`json`.
-- `msgspec`: parsing טיפוסי להודעות ולקריאות כלים יציבות.
+- `orjson`: JSON מהיר יותר עם fallback ל־`json`.
+- `msgspec`: parsing טיפוסי של הודעות ו־tool calls יציבים.
 - `uvloop`: event loop אופציונלי עם fallback ל־`asyncio`.
-- כתיבת sessions באצוות להפחתת I/O ועסקאות SQLite.
-- האצת startup וגילוי כלים באמצעות cache עם versioning ו־invalidation נכון.
-- cache למטא־נתונים חיצוניים עם TTL וכתיבה אטומית, ללא סודות.
-- מקביליות רק לפעולות בלתי תלויות, עם סדר דטרמיניסטי, מגבלות ו־timeouts.
+- כתיבת sessions באצווה כדי לצמצם I/O ועסקאות SQLite.
+- האצת startup ו־tool discovery באמצעות cache עם גרסה וביטול תקין.
+- cache למטא־נתונים חיצוניים עם TTL וכתיבה אטומית, ללא secrets.
+- להקביל רק פעולות בלתי תלויות, תוך שמירה על סדר דטרמיניסטי, מגבלות, timeout וביטול.
 
-## תועלות צפויות
+## יתרונות צפויים
 
-Benchmarks קודמים של ה־fork הראו בערך 4–6x ב־JSON גדול, 3–4x בנתיב ההודעות, 19–38x בנתיב שמירת sessions שנמדד, ו־2–4x ב־startup. אלה נתוני ייחוס ולא הבטחות; יש לשחזר אותם ב־Hermes עצמו.
+Benchmarks קודמים של ה־fork הראו בערך 4–6x ב־JSON גדול, 3–4x בנתיב ההודעות, 19–38x בנתיב ההתמדה שנמדד ו־2–4x ב־startup. אלה ערכי ייחוס ולא הבטחות; יש לשחזר אותם ב־Hermes האמיתי.
 
-יש לשמור על prompt caching, תאימות, fallbacks של Python/`asyncio`, אבטחה ויכולת rollback. ראו `README.md` ו־`SKILL.md`.
+יש לשמור על prompt caching, תאימות, fallbacks של Python/`asyncio`, אבטחה ו־rollback. ראו `README.md` ו־`SKILL.md`.
