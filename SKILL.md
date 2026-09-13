@@ -18,6 +18,37 @@ This is an executable installation and optimization procedure, not a passive rec
 
 Resolve the active bundle with `${HERMES_HOME:-$HOME/.hermes}`. The bundle includes the installed runtime, active skills, configuration, state, and logs. Never target `/path/to/hermes-agent` or another guessed repository unless the user explicitly requests source-repository development. Preserve existing user state and unrelated changes.
 
+## Continuous Kanban and Bot profiles
+
+When the operator requests continuous Kanban execution across the Bot roster, configure the active bundle's root `config.yaml` with one multiplexed gateway and bounded parallelism:
+
+```yaml
+multiplex_profiles: true       # serve every installed profile from one gateway
+
+delegation:
+  max_concurrent_children: 10  # per delegation batch/profile
+
+kanban:
+  dispatch_in_gateway: true    # continuous dispatcher
+  max_in_progress: 10           # host-wide Kanban workers
+```
+
+`multiplex_profiles: true` with no profile allowlist serves all installed profiles from one gateway. Do not start one gateway per profile on the same Kanban database: multiple dispatchers can race for claims and duplicate work. Apply `delegation.max_concurrent_children: 10` to each existing profile override as well, because named Bot profiles keep independent configuration. Restart the single gateway after changing these startup-read settings.
+
+The limits do not make gated work executable: `todo` tasks still wait for dependencies, and `blocked` tasks still require their recorded failure, authorization, resource, or QA issue to be resolved. Never remove links, claims, leases, review gates, or the circuit breaker merely to increase throughput. Use the native Kanban recovery surface only after verifying the specific root cause.
+
+Validate the effective configuration and runtime after restart:
+
+```bash
+hermes -p default config get multiplex_profiles
+hermes -p default config get delegation.max_concurrent_children
+hermes -p default config get kanban.dispatch_in_gateway
+hermes -p default config get kanban.max_in_progress
+hermes profile list
+hermes kanban stats --json
+hermes kanban dispatch --dry-run --json
+```
+
 ## Installation workflow
 
 Execute these steps in order when this skill is requested for installation or speed improvements:
@@ -114,6 +145,8 @@ Batch SQLite writes without changing message ordering or role alternation. Versi
 - If a native extension is built, its exact platform/Python wheel and import status are verified; otherwise the Python parser fallback is tested.
 - Unit and real-path E2E tests pass.
 - Fallback paths are tested without optional dependencies.
+- Continuous Kanban readback confirms multiplexed profile serving, `dispatch_in_gateway: true`, and the requested bounded worker/delegation limits.
+- Dependency, claim, lease, review, and circuit-breaker gates remain intact; blocked or dependency-waiting tasks are not force-promoted.
 - Token-estimator acceleration is kept off unless its real-path benchmark beats Python without changing estimates.
 - Configuration, plugins, skills, providers, security, prompt caching, and message alternation remain compatible.
 - The diff is reviewable and rollback is documented.
