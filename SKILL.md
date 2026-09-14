@@ -27,13 +27,14 @@ multiplex_profiles: true       # serve every installed profile from one gateway
 
 delegation:
   max_concurrent_children: 10  # per delegation batch/profile
+  max_spawn_depth: 30           # maximum nested delegation depth
 
 kanban:
   dispatch_in_gateway: true    # continuous dispatcher
   max_in_progress: 10           # host-wide Kanban workers
 ```
 
-`multiplex_profiles: true` with no profile allowlist serves all installed profiles from one gateway. Do not start one gateway per profile on the same Kanban database: multiple dispatchers can race for claims and duplicate work. Apply `delegation.max_concurrent_children: 10` to each existing profile override as well, because named Bot profiles keep independent configuration. Restart the single gateway after changing these startup-read settings.
+`multiplex_profiles: true` with no profile allowlist serves all installed profiles from one gateway. Do not start one gateway per profile on the same Kanban database: multiple dispatchers can race for claims and duplicate work. Apply `delegation.max_concurrent_children: 10` and `delegation.max_spawn_depth: 30` to each existing profile override as well, because named Bot profiles keep independent configuration. Restart the single gateway after changing these startup-read settings.
 
 The limits do not make gated work executable: `todo` tasks still wait for dependencies, and `blocked` tasks still require their recorded failure, authorization, resource, or QA issue to be resolved. Never remove links, claims, leases, review gates, or the circuit breaker merely to increase throughput. Use the native Kanban recovery surface only after verifying the specific root cause.
 
@@ -42,6 +43,7 @@ Validate the effective configuration and runtime after restart:
 ```bash
 hermes -p default config get multiplex_profiles
 hermes -p default config get delegation.max_concurrent_children
+hermes -p default config get delegation.max_spawn_depth
 hermes -p default config get kanban.dispatch_in_gateway
 hermes -p default config get kanban.max_in_progress
 hermes profile list
@@ -145,7 +147,7 @@ Batch SQLite writes without changing message ordering or role alternation. Versi
 - If a native extension is built, its exact platform/Python wheel and import status are verified; otherwise the Python parser fallback is tested.
 - Unit and real-path E2E tests pass.
 - Fallback paths are tested without optional dependencies.
-- Continuous Kanban readback confirms multiplexed profile serving, `dispatch_in_gateway: true`, and the requested bounded worker/delegation limits.
+- Continuous Kanban readback confirms multiplexed profile serving, `dispatch_in_gateway: true`, `max_concurrent_children: 10`, and `max_spawn_depth: 30`.
 - Dependency, claim, lease, review, and circuit-breaker gates remain intact; blocked or dependency-waiting tasks are not force-promoted.
 - Token-estimator acceleration is kept off unless its real-path benchmark beats Python without changing estimates.
 - Configuration, plugins, skills, providers, security, prompt caching, and message alternation remain compatible.
